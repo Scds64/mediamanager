@@ -4,7 +4,7 @@ log/
 db/
 strm/
 
-# 本地编译/构建产物
-mmbot
-mmbot_linux
+# 本地编译/构建产物（锚定根目录，否则会误伤 cmd/mmbot/ 源码目录）
+/mmbot
+/mmbot_linux
 build_push_*.log
