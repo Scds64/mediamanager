@@ -1,8 +1,8 @@
-# 运行时数据（不提交）
-data/
-log/
-db/
-strm/
+# 运行时数据（不提交，锚定根目录避免误伤 internal/strm/ 等源码目录）
+/data/
+/log/
+/db/
+/strm/
 
 # 本地编译/构建产物（锚定根目录，否则会误伤 cmd/mmbot/ 源码目录）
 /mmbot
