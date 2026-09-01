@@ -1,0 +1,12 @@
+[
+  {
+    "library_pid": 51273421,
+    "media_category": "",
+    "media_type": "",
+    "monitor": true,
+    "name": "待整理目录",
+    "priority": 1,
+    "source_pid": 42895447,
+    "transfer_type": "move"
+  }
+]

@@ -1,0 +1,29 @@
+services:
+  mediamanager:
+    image: ssccing/mediamanager:latest
+    container_name: Mediamanager
+    restart: always
+    network_mode: host
+    mem_limit: 512m
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./log:/app/log
+      - /mnt/mydisk/strm:/media
+      # TG /update 命令需要操作宿主 docker（镜像内已装 docker-cli）
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # 时区设置
+      - TZ=Asia/Shanghai
+      # Go GC 内存软上限：防止同步/下载等重负载时堆内存无限膨胀
+      - GOMEMLIMIT=256MiB
+
+      # Web管理界面登录配置（必填）
+      - ENV_WEB_PASSPORT=admin
+      - ENV_WEB_PASSWORD=password
+
+      #TG命令更新必须！！ TG /update 更新命令：要拉取的镜像名；宿主部署目录（其中需有 docker-compose.yml）
+      - ENV_UPDATE_IMAGE=ssccing/mediamanager:latest
+      - ENV_COMPOSE_DIR=/mnt/mydisk/mediaman

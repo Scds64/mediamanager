@@ -1,0 +1,15 @@
+# 运行时数据（compose bind-mount 提供，不打进镜像，也避免密钥泄漏）
+config/
+data/
+log/
+strm/
+
+# 部署辅助脚本与说明文档
+push.py
+*.md
+
+# 本地编译产物
+mmbot
+mmbot_linux
+mmbot_arm64
+*.exe

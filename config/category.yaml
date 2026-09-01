@@ -1,0 +1,112 @@
+####### 配置说明 #######
+# 1. 该配置文件用于配置电影和电视剧的分类策略，配置后程序会按照配置的分类策略名称进行分类，配置文件采用yaml格式，需要严格附合语法规则
+# 2. 配置文件中的一级分类名称：`movie`、`tv` 为固定名称不可修改，二级名称同时也是目录名称，会按先后顺序匹配，匹配后程序会按这个名称建立二级目录
+# 3. 支持的分类条件：
+#   `original_language` 语种
+#   `production_countries` 国家或地区（电影）、`origin_country` 国家或地区（电视剧）
+#   `genre_ids` 内容类型
+#   `release_year` 发行年份，格式：YYYY，支持范围设定，如：`YYYY-YYYY`
+#   themoviedb 详情API返回的其它一级字段
+# 4. 配置多项条件时需要同时满足，一个条件需要匹配多个值是使用`,`分隔
+# 5. !条件值表示排除该值
+
+# 配置电影的分类策略
+movie:
+  # 分类名同时也是目录名
+  动画电影:
+    # 匹配 genre_ids 内容类型，16是动漫
+    genre_ids: '16'
+  华语电影:
+    # 匹配语种
+    original_language: 'zh,cn,bo,za'
+  # 未匹配以上条件时，分类为外语电影
+  外语电影:
+
+# 配置电视剧的分类策略
+tv:
+  # 分类名同时也是目录名
+  # 儿童（10762）置顶：儿童动画/儿童剧优先归入"儿童"，国漫/日番不再包含儿童向内容
+  儿童:
+    # 匹配 genre_ids 内容类型，10762是儿童
+    genre_ids: '10762'
+  国漫:
+    # 匹配 genre_ids 内容类型，16是动漫
+    genre_ids: '16'
+    # 匹配 origin_country 国家，CN是中国大陆，TW是中国台湾，HK是中国香港
+    origin_country: 'CN,TW,HK'
+  日番:
+    # 匹配 genre_ids 内容类型，16是动漫
+    genre_ids: '16'
+    # 匹配 origin_country 国家，JP是日本，US是美国（日番分类包含日本和美国动画剧集）
+    origin_country: 'JP,US'
+  纪录片:
+     # 匹配 genre_ids 内容类型，99是纪录片
+    genre_ids: '99'
+  综艺:
+    # 匹配 genre_ids 内容类型，10764 10767都是综艺
+    genre_ids: '10764,10767'
+  国产剧:
+    # 匹配 origin_country 国家，CN是中国大陆，TW是中国台湾，HK是中国香港
+    origin_country: 'CN,TW,HK'
+  欧美剧:
+    # 匹配 origin_country 国家，主要欧美国家列表
+    origin_country: 'US,FR,GB,DE,ES,IT,NL,PT,RU,UK'
+  日韩剧:
+    # 匹配 origin_country 国家，主要亚洲国家列表
+    origin_country: 'JP,KP,KR,TH,IN,SG'
+  # 未匹配以上分类，则命名为未分类
+  未分类:
+
+## genre_ids 内容类型 字典（常用）
+#	28	Action 动作
+#	12	Adventure 冒险
+#	16	Animation 动画
+#	35	Comedy 喜剧
+#	80	Crime 犯罪
+#	99	Documentary 纪录
+#	18	Drama 剧情
+#	10751	Family 家庭
+#	14	Fantasy 奇幻
+#	36	History 历史
+#	27	Horror 恐怖
+#	10402	Music 音乐
+#	9648	Mystery 悬疑
+#	10749	Romance 爱情
+#	878	Science Fiction 科幻
+#	10770	TV Movie 电视电影
+#	53	Thriller 惊悚
+#	10752	War 战争
+#	37	Western 西部
+#	10762	Kids 儿童（电视剧）
+#	10764	Variety 综艺（电视剧）
+#	10767	Variety 综艺（电视剧）
+
+## original_language 语种 字典（常用）
+#	zh/cn	中文
+#	ja	日语
+#	ko	朝鲜语
+#	en	英语
+#	fr	法语
+#	de	德语
+#	es	西班牙语
+#	ru	俄语
+#	bo	藏语
+#	za	壮语
+
+## origin_country/production_countries 国家地区 字典（常用）
+#	CN	中国内地
+#	HK	香港
+#	TW	中国台湾
+#	JP	日本
+#	KR	韩国
+#	KP	朝鲜
+#	US	美国
+#	GB	英国
+#	FR	法国
+#	DE	德国
+#	ES	西班牙
+#	IT	意大利
+#	RU	俄罗斯
+#	TH	泰国
+#	IN	印度
+#	SG	新加坡

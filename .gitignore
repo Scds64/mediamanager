@@ -1,0 +1,10 @@
+# 运行时数据（不提交）
+data/
+log/
+db/
+strm/
+
+# 本地编译/构建产物
+mmbot
+mmbot_linux
+build_push_*.log
