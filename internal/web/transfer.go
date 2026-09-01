@@ -211,7 +211,7 @@ func (s *Server) handleTransferHistory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	items := executor.History.List(size, (page-1)*size, status, keyword)
-	total := executor.History.Count(status)
+	total := executor.History.CountFilter(status, keyword)
 
 	var out []map[string]any
 	for _, it := range items {

@@ -1,4 +1,4 @@
-﻿package transfer
+package transfer
 
 // 整理历史记录模块（对应 transfer_history.py）。使用 sqlite 存储。数据库文件：db/data/transfer.db
 
@@ -241,6 +241,30 @@ func (h *TransferHistory) Count(status string) int {
 	if status != "" {
 		sqlStr += " WHERE status=?"
 		args = append(args, status)
+	}
+	var n int
+	if err := h.db.QueryRow(sqlStr, args...).Scan(&n); err != nil {
+		return 0
+	}
+	return n
+}
+
+// CountFilter 按状态 + 关键词统计记录数（与 List 的过滤条件保持一致，用于分页总数）。
+func (h *TransferHistory) CountFilter(status, keyword string) int {
+	sqlStr := fmt.Sprintf("SELECT COUNT(*) FROM %s", historyTable)
+	var where []string
+	var args []any
+	if status != "" {
+		where = append(where, "status=?")
+		args = append(args, status)
+	}
+	if keyword != "" {
+		where = append(where, "(media_title LIKE ? OR file_name LIKE ? OR target_path LIKE ?)")
+		kw := "%" + keyword + "%"
+		args = append(args, kw, kw, kw)
+	}
+	if len(where) > 0 {
+		sqlStr += " WHERE " + strings.Join(where, " AND ")
 	}
 	var n int
 	if err := h.db.QueryRow(sqlStr, args...).Scan(&n); err != nil {
