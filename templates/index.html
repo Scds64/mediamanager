@@ -40,16 +40,19 @@
             --text-400: #94A3B8;           /* slate-400 */
             --text-300: #CBD5E1;           /* slate-300 */
 
-            --bg: #F8FAFC;                 /* slate-50 */
+            --bg: #F1F5F9;                 /* slate-100 页面底色略深，衬托白色卡片 */
             --surface: #FFFFFF;
             --border: #E2E8F0;             /* slate-200 */
             --border-strong: #CBD5E1;      /* slate-300 */
+            --card-hi-light: rgba(148, 163, 184, 0.14);   /* 卡片顶部内高光（亮色，偏灰） */
+            --tray-bg: linear-gradient(160deg, #EEF2FF 0%, #E6ECF9 100%);  /* 海报卡片淡彩底（柔和区别于白卡） */
             --shadow-1: 0 1px 2px 0 rgba(66, 77, 114, 0.05), 0 1px 3px 0 rgba(66, 77, 114, 0.06);
             --shadow-2: 0 1px 3px 0 rgba(66, 77, 114, 0.06), 0 4px 12px -2px rgba(66, 77, 114, 0.09);
             --shadow-3: 0 2px 8px -1px rgba(66, 77, 114, 0.08), 0 10px 28px -6px rgba(66, 77, 114, 0.12);
 
-            --radius-sm: 8px;
+            --radius-sm: 10px;
             --radius: 12px;
+            --radius-card: 14px;
 
             --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Roboto, 'Helvetica Neue', sans-serif;
             --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, 'Consolas', 'Courier New', monospace;
@@ -375,11 +378,21 @@
         /* ============ 卡片（克制的平板面层） ============ */
         .card {
             background: var(--surface);
-            border-radius: 14px;
+            border-radius: var(--radius-card);
             padding: 20px 24px 24px;
             margin-bottom: 20px;
-            box-shadow: none;
-            border: 1px solid rgba(148, 163, 184, 0.32);
+            box-shadow: inset 0 1px 0 var(--card-hi-light);
+            border: none;
+        }
+        /* 卡片顶部内高光（亮色极淡，加深材质立体感；暗色更明显给“抬升”感） */
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 1px;
+            border-radius: var(--radius-card) var(--radius-card) 0 0;
+            background: var(--card-hi-light);
+            pointer-events: none;
         }
         .card-title {
             font-size: 15px;
@@ -580,7 +593,6 @@
         .cards-row .card-title { margin-bottom: 8px; }
         /* 系统状态 Tab：卡片与内容更融合 —— 边框更淡、收紧顶部留白、标题紧贴内容区 */
         #tab-system .card {
-            border-color: rgba(148, 163, 184, 0.28);
             padding-top: 18px;
         }
         /* system tab title follows new global refined style */
@@ -598,7 +610,63 @@
         }
         /* 订阅探索海报：横向 12:7，高度与媒体信息圆环等高（内容区上下间距均为 20px） */
         #tab-system .tmdb-entry-card { display: flex; flex-direction: column; }  /* flex 阻止标题/海报外边距折叠，保证卡高由海报撑起 */
-        #tab-system .tmdb-entry-card .tmdb-entry-poster { aspect-ratio: 12 / 7; margin: 10px 0 0; }
+        /* 订阅探索：全出血媒体横幅 —— 海报铺满整卡，无托盘无嵌套，标题悬浮左上 */
+        #tab-system .tmdb-entry-card.card {
+            position: relative;      /* 标题 absolute 的锚点 */
+            background: var(--tray-bg);
+            box-shadow: none;
+            border: none;
+            padding: 0;             /* 去除卡内边距，海报 100% 出血铺满 */
+            overflow: hidden;        /* 圆角裁剪切海报 */
+            cursor: pointer;
+        }
+        #tab-system .tmdb-entry-card .card-title.tmdb-entry-title {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            padding: 16px 16px 22px;
+            background: linear-gradient(180deg, rgba(15,23,42,0.6), transparent);
+            color: #F1F5F9;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            border-bottom: none;
+            text-shadow: 0 1px 2px rgba(15, 23, 42, 0.5);
+        }
+        #tab-system .tmdb-entry-card .card-title.tmdb-entry-title > i:not(.fa-chevron-right) {
+            color: #E0E5F6;
+        }
+        #tab-system .tmdb-entry-card .card-title.tmdb-entry-title .fa-chevron-right {
+            margin-left: auto;
+            color: rgba(241, 245, 249, 0.7);
+            font-size: 12px;
+        }
+        #tab-system .tmdb-entry-poster {
+            width: 100%;
+            flex: 1;               /* 撑满整卡（卡片为 flex 列布局，padding:0） */
+            display: flex;
+            gap: 0;
+            padding: 0;
+            border-radius: 0;
+            background: none;
+            box-shadow: none;
+            overflow: hidden;
+        }
+        #tab-system .tmdb-entry-poster img {
+            flex: 1;
+            height: 100%;
+            min-width: 0;
+            object-fit: cover;
+            border-radius: 0;
+            display: block;
+        }
+        #tab-system .tmdb-entry-card.card:hover {
+            box-shadow: 0 14px 30px -14px rgba(15, 23, 42, 0.55);
+        }
 
         /* ============ 媒体信息（环形图 + 扇区标签） ============ */
         .emby-stats {
@@ -748,20 +816,19 @@
 
         .history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .history-table thead th {
-            background: #F8FAFC;
-            color: var(--text-600);
-            padding: 12px 14px;
+            color: var(--text-500);
+            padding: 10px 14px 8px;
             text-align: left;
             font-weight: 600;
-            font-size: 13px;
+            font-size: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.6px;
             border-bottom: 1px solid var(--border);
             white-space: nowrap;
         }
         .history-table tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--text-700); }
         .history-table tbody tr:last-child td { border-bottom: none; }
-        .history-table tbody tr:hover { background: #F8FAFC; }
+        .history-table tbody tr:hover { background: rgba(99, 102, 241, 0.05); }
         .empty-row { text-align: center; color: var(--text-400); padding: 28px !important; }
         .bg-task-status { font-size: 13px; font-weight: 600; margin-top: 4px; }
         .bg-task-sub { font-size: 11px; color: var(--text-400); margin-top: 2px; }
@@ -868,18 +935,19 @@
         }
         .cfg-card {
             background: var(--surface);
-            border: 1px solid var(--border-strong);
+            border: none;
+            box-shadow: inset 0 1px 0 var(--card-hi-light);
             border-radius: var(--radius-sm);
             padding: 14px 16px;
             display: flex;
             flex-direction: column;
             gap: 10px;
             height: 100%;
-            transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+            transition: border-color 0.18s, box-shadow 0.18s, background 0.18s, transform 0.18s;
         }
         .cfg-card:hover {
-            border-color: var(--primary);
             background: var(--primary-light);
+            transform: translateY(-1px);
         }
         .cfg-card-head {
             display: flex;
@@ -1038,6 +1106,8 @@
             .drawer { display: none; }
             .content { padding: calc(20px + env(safe-area-inset-top)) 16px 110px; }
             .card { padding: 18px; }
+            /* 移动端：订阅探索保留全出血横幅（不被通用 .card padding 覆盖） */
+            #tab-system .tmdb-entry-card.card { padding: 0; }
             .cards-row { grid-template-columns: minmax(0, 1fr); }
             #tab-system .cards-row { grid-template-columns: minmax(0, 1fr); }
             #tab-bg .cards-row { grid-template-columns: minmax(0, 1fr); }
@@ -1070,27 +1140,27 @@
         }
 
         /* ============ TMDB 影视榜单 ============ */
-        /* 订阅探索入口：3 张竖版海报横排拼接，点击打开弹层 */
+        /* 订阅探索入口海报：默认样式由 #tab-system 卡片级规则接管（全出血横幅） */
         .tmdb-entry-poster {
             width: 100%;
             display: flex;
-            gap: 3px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
-            box-shadow: none;
+            gap: 0;
+            padding: 0;
+            border-radius: 0;
+            background: none;
+            border: none;
             overflow: hidden;
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .tmdb-entry-poster img {
             flex: 1;
             height: 100%;
             min-width: 0;
             object-fit: cover;
-            border-radius: 4px;
+            border-radius: 0;
             display: block;
         }
-        .tmdb-entry-poster:hover { transform: translateY(-2px); }
         /* 订阅探索弹层（更深层窗口）：全屏遮罩 + 居中卡片 */
         .tmdb-overlay {
             position: fixed;
@@ -1616,6 +1686,8 @@
                 --surface: #1E293B;
                 --border: #334155;
                 --border-strong: #475569;
+                --card-hi-light: rgba(148, 163, 184, 0.16);   /* 暗色顶部内高光更明显 */
+                --tray-bg: linear-gradient(160deg, #243150 0%, #1A243D 100%);  /* 暗色：比表面略深的卡片底 */
 
                 --shadow-1: 0 1px 2px rgba(10, 14, 28, 0.42), 0 1px 3px rgba(10, 14, 28, 0.46);
                 --shadow-2: 0 1px 3px rgba(10, 14, 28, 0.48), 0 4px 12px -2px rgba(23, 26, 52, 0.52);
@@ -1646,8 +1718,7 @@
             .chip { background: #1E293B; }
             .pv-box { background: #1E293B; }
             .pv-chip.active .pv-score { background: rgba(255, 255, 255, 0.18); }
-            .history-table thead th { background: #1E293B; }
-            .history-table tbody tr:hover { background: #1E293B; }
+            .history-table tbody tr:hover { background: rgba(99, 102, 241, 0.12); }
             .tmdb-seg { background: #1E293B; }
             .tmdb-search input { background: #1E293B; }
             .tmdb-title { color: #CBD5E1; }
@@ -1911,12 +1982,13 @@
                             <svg id="mem-chart" viewBox="0 0 800 140" preserveAspectRatio="none"></svg>
                         </div>
                     </div>
-                    <!-- 订阅探索：与媒体信息/内存占用同一行（宽度统一 340px，海报横向等高） -->
-                    <div class="card tmdb-entry-card">
-                        <div class="card-title">
+                    <!-- 订阅探索：与媒体信息/内存占用同一行（宽度统一 340px，全出血海报横幅，标题悬浮） -->
+                    <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
+                        <div class="card-title tmdb-entry-title">
                             <i class="fas fa-fire"></i>订阅探索
+                            <i class="fas fa-chevron-right"></i>
                         </div>
-                        <div id="tmdb-poster" class="tmdb-entry-poster" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索"></div>
+                        <div id="tmdb-poster" class="tmdb-entry-poster"></div>
                     </div>
                 </div>
 
