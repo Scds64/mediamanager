@@ -730,15 +730,22 @@
             top: 5.714%;      /* 8 / 140 */
             bottom: 8.571%;   /* 12 / 140 */
             width: 32px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: flex-end;
             font-size: 11px;
             color: var(--text-400);
             font-family: monospace;
-            padding-right: 4px;
         }
+        /* 每个刻度文字绝对定位到对应网格线 y 上并垂直居中，避免随行高/space-between 间距漂移导致文字与刻度线错位 */
+        .mem-y-axis span {
+            position: absolute;
+            right: 4px;
+            line-height: 1;
+            transform: translateY(-50%);
+        }
+        .mem-y-axis span:nth-child(1) { top: 0%; }
+        .mem-y-axis span:nth-child(2) { top: 25%; }
+        .mem-y-axis span:nth-child(3) { top: 50%; }
+        .mem-y-axis span:nth-child(4) { top: 75%; }
+        .mem-y-axis span:nth-child(5) { top: 100%; }
         .mem-x-axis {
             display: none;
         }
@@ -4413,7 +4420,7 @@
                 const y = MT + ph * k / 4;
                 const v = maxV * (1 - k / 4);
                 grid += `<line x1="${ML}" y1="${y}" x2="${W - MR}" y2="${y}" stroke="var(--text-400)" stroke-opacity="0.15" stroke-width="1"/>`;
-                grid += `<text x="${ML - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="var(--text-400)">${fmtDurShort(v)}</text>`;
+                grid += `<text x="${ML - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="var(--text-400)" style="font-variant-numeric:tabular-nums">${fmtDurShort(v)}</text>`;
             }
             let xlabels = '';
             days.forEach((d, i) => {
@@ -4453,7 +4460,7 @@
                     const cx = xAt(i), cy = yAt(sec);
                     points += `<g onclick="embyUsagePoint(this)" data-uid="${escapeHtml(u.id)}" data-uname="${escapeHtml(u.name)}" data-date="${days[i]}" cursor="pointer" style="cursor:pointer;">
                         <circle cx="${cx}" cy="${cy}" r="15" fill="transparent"/>
-                        <circle cx="${cx}" cy="${cy}" r="4" fill="${c}" stroke="#fff" stroke-width="1.5" pointer-events="none">
+                        <circle cx="${cx}" cy="${cy}" r="4" fill="${c}" style="stroke:var(--surface);stroke-width:1.5" pointer-events="none">
                             <title>${days[i]} ${escapeHtml(u.name)}：${fmtDuration(sec)}</title></circle></g>`;
                 });
             });
@@ -4543,8 +4550,8 @@
                 const cards = groups.map(g => {
                     total += g.seconds;
                     const poster = g.poster
-                        ? `<img src="${g.poster}" loading="lazy" style="width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:8px;background:#E2E8F0;" onerror="this.style.display='none'">`
-                        : `<div style="width:100%;aspect-ratio:2/3;border-radius:8px;background:#E2E8F0;display:flex;align-items:center;justify-content:center;color:var(--text-400);font-size:11px;">无图</div>`;
+                        ? `<img src="${g.poster}" loading="lazy" style="width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:var(--radius-sm);background:var(--border);" onerror="this.style.display='none'">`
+                        : `<div style="width:100%;aspect-ratio:2/3;border-radius:var(--radius-sm);background:var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-400);font-size:11px;">无图</div>`;
                     return `<div style="text-align:center;">
                         ${poster}
                         <div style="font-size:12px;font-weight:600;margin-top:5px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(g.title)}">${escapeHtml(g.title)}</div>
