@@ -19,6 +19,9 @@
             /* MoviePilot / Material Design 调色板 */
             --primary: #6366F1;            /* indigo-500 */
             --primary-dark: #4F46E5;       /* indigo-600 */
+            --primary-mute: #818CF8;       /* indigo-400 柔和/带灰度 */
+            --title-icon-1: #8B94C8;       /* 标题图标渐变起点(灰蓝) */
+            --title-icon-2: #B4BAD9;       /* 标题图标渐变终点(浅灰蓝) */
             --primary-light: #EEF2FF;      /* indigo-50 */
             --primary-soft: rgba(99, 102, 241, 0.12);
             --success: #10B981;            /* emerald-500 */
@@ -381,8 +384,8 @@
         .card-title {
             font-size: 15px;
             font-weight: 700;
-            color: var(--text-900);
-            letter-spacing: 0.02em;
+            color: var(--text-700);
+            letter-spacing: 0.03em;
             margin: 0 0 10px 0;
             padding: 0;
             display: flex;
@@ -393,9 +396,17 @@
             background: none;
         }
         .card-title > i:not(.fa-chevron-right) {
-            color: var(--primary);
+            color: var(--title-icon-1);
             font-size: 14px;
             flex-shrink: 0;
+        }
+        @supports ((-webkit-background-clip: text) or (background-clip: text)) {
+            .card-title > i:not(.fa-chevron-right) {
+                color: transparent;
+                background: linear-gradient(135deg, var(--title-icon-1) 0%, var(--title-icon-2) 100%);
+                -webkit-background-clip: text;
+                background-clip: text;
+            }
         }
         .card-title .hint { font-size: 12px; color: var(--text-500); font-weight: 400; margin-left: auto; }
         .btn-action {
@@ -415,7 +426,7 @@
         .card-title-icon-btn {
             background: transparent;
             border: none;
-            color: var(--primary);
+            color: var(--primary-mute);
             cursor: pointer;
             font-size: 15px;
             line-height: 1;
@@ -1585,6 +1596,9 @@
             :root {
                 color-scheme: dark;
                 --primary-light: rgba(99, 102, 241, 0.18);
+                --primary-mute: #818CF8;
+                --title-icon-1: #A6AFE0;
+                --title-icon-2: #CBD0EC;
                 --primary-soft: rgba(99, 102, 241, 0.24);
                 --success-soft: rgba(16, 185, 129, 0.15);
                 --warning-soft: rgba(245, 158, 11, 0.15);
