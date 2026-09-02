@@ -1108,7 +1108,7 @@
             .brand-title .t2 { font-size: 11px; letter-spacing: 2px; }
             .btn { padding: 0 14px; font-size: 13px; height: 36px; }
             /* 移动端：底部 Tab Bar 常驻（沉到 home indicator 下方） */
-            .mobile-tabbar { display: flex; padding-bottom: env(safe-area-inset-bottom); }
+            .mobile-tabbar { display: flex; padding-bottom: max(0px, env(safe-area-inset-bottom) - 14px); }
             /* 移动端：侧边栏抽屉被 Tab Bar 取代，隐藏 */
             .drawer { display: none; }
             .content { padding: calc(20px + env(safe-area-inset-top)) 16px 110px; }
