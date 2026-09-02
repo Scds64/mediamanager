@@ -120,11 +120,22 @@ func (r *StrmRuntime) ApplyConfig(data map[string]string) {
 		}
 		r.Overwrite = v
 	}
+	recomputeNext := false
 	if v, ok := data["ENV_STRM_FULL_SYNC"]; ok {
-		r.FullSyncEnabled = v == "1" || v == "true"
+		enabled := v == "1" || v == "true"
+		if enabled != r.FullSyncEnabled {
+			r.FullSyncEnabled = enabled
+			recomputeNext = true
+		}
 	}
 	if v, ok := data["ENV_STRM_FULL_SYNC_CRON"]; ok {
-		r.FullSyncCron = v
+		if v != r.FullSyncCron {
+			r.FullSyncCron = v
+			recomputeNext = true
+		}
+	}
+	if recomputeNext {
+		r.rescheduleNow()
 	}
 	if v, ok := data["ENV_STRM_TRANSFER_LINKED"]; ok {
 		r.TransferLinked = v == "1" || v == "true"
@@ -204,17 +215,7 @@ func (r *StrmRuntime) Stop() {
 
 // timerLoop 定时循环。
 func (r *StrmRuntime) timerLoop() {
-	r.mu.Lock()
-	r.nextFullSync = time.Time{}
-	if r.Enabled && r.FullSyncEnabled && r.FullSyncCron != "" {
-		t := computeNextCronTime(r.FullSyncCron, time.Now())
-		if t == nil {
-			log.Printf("【STRM定时】全量同步 cron 表达式无效，定时任务不生效: %s", r.FullSyncCron)
-		} else {
-			r.nextFullSync = *t
-		}
-	}
-	r.mu.Unlock()
+	r.rescheduleNow()
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -229,19 +230,28 @@ func (r *StrmRuntime) timerLoop() {
 			if r.Enabled && r.FullSyncEnabled && r.FullSyncCron != "" && !next.IsZero() {
 				if now.After(next) || now.Equal(next) {
 					r.safeRun("full_sync")
-					r.mu.Lock()
-					t := computeNextCronTime(r.FullSyncCron, now)
-					if t == nil {
-						log.Printf("【STRM定时】全量同步 cron 表达式无效，暂停定时任务: %s", r.FullSyncCron)
-						r.nextFullSync = time.Time{}
-					} else {
-						r.nextFullSync = *t
-					}
-					r.mu.Unlock()
+					r.rescheduleNow()
 				}
 			}
 		}
 	}
+}
+
+// rescheduleNow 按当前配置重算下一次全量同步时间（开关/周期热更新后也调用，
+// 否则 Web 保存只改字段、nextFullSync 保持零值，倒计时不显示且定时永不触发）。
+func (r *StrmRuntime) rescheduleNow() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.nextFullSync = time.Time{}
+	if !r.Enabled || !r.FullSyncEnabled || r.FullSyncCron == "" {
+		return
+	}
+	t := computeNextCronTime(r.FullSyncCron, time.Now())
+	if t == nil {
+		log.Printf("【STRM定时】全量同步 cron 表达式无效，定时任务不生效: %s", r.FullSyncCron)
+		return
+	}
+	r.nextFullSync = *t
 }
 
 // safeRun 带互斥锁的后台执行。
