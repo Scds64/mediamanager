@@ -1,4 +1,4 @@
-﻿package bot
+package bot
 
 // 频道监控模块（对应 123bot.py 的 get_latest_messages + main() 频道监控主循环）。
 // 职责：抓取 t.me/s/{channel} 页面 → 解析消息 → 过滤匹配 → 转存（分享/秒传）→ 记录数据库。
@@ -440,9 +440,13 @@ func (b *Bot) StartMonitor() {
 			default:
 			}
 			b.monitorScanMu.Lock()
+			b.monitorMu.Lock()
+			b.monitorScanning = true
+			b.monitorMu.Unlock()
 			b.checkChannel()
 			b.monitorScanMu.Unlock()
 			b.monitorMu.Lock()
+			b.monitorScanning = false
 			b.monitorLast = time.Now()
 			if interval > 0 {
 				b.monitorNext = b.monitorLast.Add(time.Duration(interval) * time.Minute)
@@ -468,19 +472,30 @@ func (b *Bot) StartMonitor() {
 	}()
 }
 
-// MonitorStatus 返回频道监控运行状态（是否激活、上次/下次检查时间，零值表示无）。
-func (b *Bot) MonitorStatus() (active bool, last, next time.Time) {
+// MonitorStatus 返回频道监控运行状态（扫描中、是否激活、上次/下次检查时间，零值表示无）。
+func (b *Bot) MonitorStatus() (scanning, active bool, last, next time.Time) {
 	b.monitorMu.Lock()
 	defer b.monitorMu.Unlock()
-	return b.monitorActive, b.monitorLast, b.monitorNext
+	return b.monitorScanning, b.monitorActive, b.monitorLast, b.monitorNext
 }
 
 // TriggerCheck 手动触发一次频道检查；与定时扫描共用 monitorScanMu 互斥，
 // 已有扫描在进行时返回 started=false，避免并发扫描重复转存。
-func (b *Bot) TriggerCheck() (started bool, processed int) {
+// 扫描在后台 goroutine 中执行，立即返回，避免阻塞调用方（如 Web 接口）。
+func (b *Bot) TriggerCheck() bool {
 	if !b.monitorScanMu.TryLock() {
-		return false, 0
+		return false
 	}
-	defer b.monitorScanMu.Unlock()
-	return true, b.checkChannel()
+	go func() {
+		defer b.monitorScanMu.Unlock()
+		b.monitorMu.Lock()
+		b.monitorScanning = true
+		b.monitorMu.Unlock()
+		b.checkChannel()
+		b.monitorMu.Lock()
+		b.monitorScanning = false
+		b.monitorLast = time.Now()
+		b.monitorMu.Unlock()
+	}()
+	return true
 }

@@ -20,10 +20,11 @@ func rfc3339OrNil(t time.Time) any {
 
 // handleTasksStatus 后台任务状态：频道监控 / 定时整理 / 全量同步 STRM。
 func (s *Server) handleTasksStatus(w http.ResponseWriter, r *http.Request) {
-	channel := map[string]any{"active": false, "last_check": nil, "next_check": nil}
+	channel := map[string]any{"scanning": false, "active": false, "last_check": nil, "next_check": nil}
 	if s.bot != nil {
-		active, last, next := s.bot.MonitorStatus()
+		scanning, active, last, next := s.bot.MonitorStatus()
 		channel = map[string]any{
+			"scanning":   scanning,
 			"active":     active,
 			"last_check": rfc3339OrNil(last),
 			"next_check": rfc3339OrNil(next),
@@ -65,8 +66,8 @@ func (s *Server) handleMonitorTrigger(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"started": false, "message": "频道监控未初始化"})
 		return
 	}
-	started, processed := s.bot.TriggerCheck()
-	resp := map[string]any{"started": started, "processed": processed}
+	started := s.bot.TriggerCheck()
+	resp := map[string]any{"started": started}
 	if !started {
 		resp["message"] = "已有扫描在进行中，请稍后再试"
 	}

@@ -730,9 +730,9 @@
             top: 5.714%;      /* 8 / 140 */
             bottom: 8.571%;   /* 12 / 140 */
             width: 32px;
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-400);
-            font-family: monospace;
+            font-variant-numeric: tabular-nums;
         }
         /* 每个刻度文字绝对定位到对应网格线 y 上并垂直居中，避免随行高/space-between 间距漂移导致文字与刻度线错位 */
         .mem-y-axis span {
@@ -3843,13 +3843,15 @@
             try {
                 const st = await api('/api/tasks/status');
                 _bgTasks = st;
+                const ch = st.channel_monitor || {};
                 const tf = st.transfer || {};
                 const sm = st.strm_full_sync || {};
+                _taskActive.channel = !!ch.scanning;
                 _taskActive.transfer = !!tf.scanning;
                 _taskActive.strm = !!sm.busy;
                 renderBgTasks();
                 renderBgCountdown();
-                if (!_taskActive.transfer && !_taskActive.strm) stopBgPoll();
+                if (!_taskActive.channel && !_taskActive.transfer && !_taskActive.strm) stopBgPoll();
             } catch (e) { /* 轮询失败忽略，下一轮再试 */ }
         }
 
@@ -3868,7 +3870,9 @@
                     showLoading('正在触发频道监控...');
                     const r = await api('/api/monitor/trigger', 'POST', {});
                     if (r.started) {
-                        showNotification(r.processed > 0 ? `监控扫描完成，处理 ${r.processed} 条消息` : '监控扫描完成，无新消息', 'success');
+                        _taskActive.channel = true;
+                        startBgPoll();
+                        showNotification('频道监控扫描已触发，可到日志查看结果', 'success');
                     } else {
                         showNotification(r.message || '已有扫描在进行中，请稍后再试', 'info');
                     }
@@ -3906,7 +3910,6 @@
                 showNotification('触发失败: ' + e.message, 'error');
             } finally {
                 if (kind === 'channel' || kind === 'strm') hideLoading();
-                if (kind === 'channel') _taskActive.channel = false;
                 loadBgTasks(true);
             }
         }

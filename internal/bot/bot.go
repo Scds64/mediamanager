@@ -1,4 +1,4 @@
-﻿// Package bot 实现 Telegram Bot 主程序（对应 Python 123bot.py 的 Bot 部分）。
+// Package bot 实现 Telegram Bot 主程序（对应 Python 123bot.py 的 Bot 部分）。
 // 职责：命令处理（start/info/oauth/restart/add/remove/organize/history/transfer_status/delete）、
 // 通用消息处理（123 分享链接转存、秒传链接、夸克/115 转存、磁力、搜索分享）、文档处理、频道监控。
 package bot
@@ -47,10 +47,11 @@ type Bot struct {
 	updateMu sync.Mutex
 
 	// 频道监控状态（StartMonitor 记录，供前端后台页展示）
-	monitorMu     sync.Mutex
-	monitorActive bool
-	monitorLast   time.Time
-	monitorNext   time.Time
+	monitorMu        sync.Mutex
+	monitorActive    bool
+	monitorScanning  bool
+	monitorLast      time.Time
+	monitorNext      time.Time
 
 	// 频道扫描互斥（定时扫描与手动触发共用，避免并发扫描重复转存）
 	monitorScanMu sync.Mutex
