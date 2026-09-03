@@ -9,7 +9,6 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#F1F5F9">
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0F172A">
     <link rel="apple-touch-icon" href="/static/icon-180.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -17,7 +16,7 @@
         :root {
             /* MoviePilot / Material Design 调色板 */
             --primary: #6366F1;            /* indigo-500 */
-            --primary-dark: #4F46E5;       /* indigo-600 */
+            --primary-hover: #4F46E5;       /* indigo-600，contained 按钮 hover 色 */
             --primary-mute: #818CF8;       /* indigo-400 柔和/带灰度 */
             --title-icon-1: #8B94C8;       /* 标题图标渐变起点(灰蓝) */
             --title-icon-2: #B4BAD9;       /* 标题图标渐变终点(浅灰蓝) */
@@ -142,104 +141,6 @@
         }
         .drawer-close:hover { background: #F1F5F9; color: var(--text-900); }
 
-        /* ============ 移动端底部 Tab Bar（默认隐藏，≤768px 显示） ============ */
-        /* 微信风格：浅灰底、浅分割线、中性灰图标（选中主题色） */
-        .mobile-tabbar {
-            display: none;
-            position: fixed;
-            left: 0; right: 0; bottom: 0;
-            z-index: 100;
-            background: #F7F7F7;
-            border-top: 1px solid #E5E5E5;
-        }
-        .tabbar-item {
-            flex: 1;
-            height: 64px;   /* Tab Bar 内容区高度（安全区由容器 padding-bottom 额外提供） */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 2px;
-            padding-top: 8px;   /* 图标/文字与顶部分割线保持间距 */
-            color: #8A8A8A;
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-        }
-        .tabbar-item i {
-            font-size: 25px;
-            color: #A8A8A8;   /* 微信同款：未选中实心浅灰图标 */
-            transition: color 0.18s;
-        }
-        .tabbar-item span { font-size: 11px; font-weight: 500; }
-        .tabbar-item.active { color: var(--primary); }
-        .tabbar-item.active i { color: var(--primary); }
-
-        /* ============ 移动端"更多"ActionSheet 弹层（默认隐藏，≤768px 显示） ============ */
-        .more-sheet-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 110;
-            background: rgba(0, 0, 0, 0.4);
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-            transition: opacity 0.25s ease, visibility 0.25s ease;
-        }
-        .more-sheet {
-            position: absolute;
-            left: 0; right: 0; bottom: 0;
-            background: rgba(255, 255, 255, 0.95);
-            -webkit-backdrop-filter: saturate(180%) blur(20px);
-            backdrop-filter: saturate(180%) blur(20px);
-            border-radius: 18px 18px 0 0;
-            padding: 8px 0 calc(8px + env(safe-area-inset-bottom));   /* iOS：面板上下留白 + 底部安全区 */
-            transform: translateY(105%);
-            transition: transform 0.25s ease;
-        }
-        .sheet-item {
-            display: flex;
-            align-items: center;               /* 垂直居中 */
-            justify-content: flex-start;       /* iOS：图标+文字整体靠左 */
-            gap: 14px;
-            padding: 0 16px;
-            height: 57px;   /* iOS 按钮标准行高（≥44pt 触控区） */
-            font-size: 19px;
-            font-weight: 400;
-            color: var(--text-600);   /* 减轻文字颜色 */
-            cursor: pointer;
-            border-bottom: 0.5px solid var(--border);
-            -webkit-tap-highlight-color: transparent;
-        }
-        .sheet-item i { font-size: 18px; color: var(--text-400); width: 24px; text-align: center; }   /* 图标列固定宽度，标签左对齐 */
-        /* iOS：最右侧灰色" > "箭头 */
-        .sheet-item .fa-chevron-right {
-            margin-left: auto; width: auto;
-            font-size: 14px; color: var(--text-300);
-        }
-        .sheet-item:active { background: #F1F5F9; }
-        .sheet-item.sheet-danger { color: var(--danger); }
-        .sheet-item.sheet-danger i:not(.fa-chevron-right) { color: var(--danger); }
-        .sheet-separator { height: 8px; background: #F1F5F9; border-bottom: 0.5px solid var(--border); }
-        .sheet-cancel {
-            height: 57px;
-            margin-top: 8px;
-            background: #fff;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 17px;
-            font-weight: 500;
-            color: var(--text-600);
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .sheet-cancel:active { background: #F1F5F9; }
-        /* 弹层打开态 */
-        .more-sheet-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
-        .more-sheet-overlay.open .more-sheet { transform: translateY(0); }
-
         /* ============ 侧边栏底部操作区 ============ */
         .drawer-footer {
             border-top: 1px solid var(--border);
@@ -278,11 +179,11 @@
             background: var(--primary); color: #fff;
             box-shadow: 0 1px 2px rgba(99, 102, 241, 0.22);
         }
-        .btn-contained:hover:not(:disabled) { background: var(--primary-dark); box-shadow: 0 1px 3px rgba(99, 102, 241, 0.30); }
+        .btn-contained:hover:not(:disabled) { background: var(--primary-hover); box-shadow: 0 1px 3px rgba(99, 102, 241, 0.30); }
         .btn-contained:active:not(:disabled) { transform: translateY(0.5px); }
 
         .btn-tonal {
-            background: var(--primary-soft); color: var(--primary-dark);
+            background: var(--primary-soft); color: var(--primary-hover);
         }
         .btn-tonal:hover:not(:disabled) { background: rgba(99, 102, 241, 0.20); }
         .btn-tonal:active:not(:disabled) { background: rgba(99, 102, 241, 0.26); }
@@ -337,7 +238,7 @@
         .nav-item:hover i { color: var(--text-700); }
         .nav-item.active {
             background: var(--primary-light);
-            color: var(--primary-dark);
+            color: var(--primary-hover);
             font-weight: 600;
         }
         .nav-item.active::before {
@@ -384,7 +285,7 @@
             box-shadow: inset 0 1px 0 var(--card-hi-light);
             border: none;
         }
-        /* 卡片顶部内高光（亮色极淡，加深材质立体感；暗色更明显给“抬升”感） */
+        /* 卡片顶部内高光（极淡，加深材质立体感） */
         .card::before {
             content: "";
             position: absolute;
@@ -453,7 +354,7 @@
             justify-content: center;
         }
         .card-title-icon-btn:hover:not(:disabled) {
-            color: var(--primary-dark);
+            color: var(--primary-hover);
             background: var(--primary-soft);
         }
         .card.clickable-card { cursor: pointer; }
@@ -549,13 +450,13 @@
             color: var(--text-700);
             line-height: 1.7;
         }
-        .info-callout .ic-title { color: var(--primary-dark); font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        .info-callout .ic-title { color: var(--primary-hover); font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
         .info-callout code {
             background: #fff;
             padding: 2px 7px;
             border-radius: 5px;
             font-family: 'JetBrains Mono', 'Courier New', monospace;
-            color: var(--primary-dark);
+            color: var(--primary-hover);
             border: 1px solid var(--border);
             font-size: 12.5px;
         }
@@ -607,8 +508,9 @@
         /* 后台任务的两个卡片（桌面端并入「系统状态」Tab 整理历史上方）保持原两列布局 */
         @media (min-width: 769px) {
             #tab-system #bg-cards-row { grid-template-columns: minmax(0, 1fr) 340px; }
-            /* 桌面端隐藏移动端"更多"ActionSheet 弹层（该弹层 HTML 默认带 open，且不受 tabbar 隐藏影响，需显式隐藏） */
-            .more-sheet-overlay { display: none !important; }
+            /* 桌面端隐藏移动端汉堡按钮和 drawer 遮罩 */
+            .hamburger-btn { display: none !important; }
+            .drawer-overlay { display: none !important; }
         }
         /* 订阅探索海报：横向 12:7，高度与媒体信息圆环等高（内容区上下间距均为 20px） */
         #tab-system .tmdb-entry-card { display: flex; flex-direction: column; }  /* flex 阻止标题/海报外边距折叠，保证卡高由海报撑起 */
@@ -650,10 +552,9 @@
         #tab-system .tmdb-entry-poster {
             width: 100%;
             flex: 1;               /* 撑满整卡（卡片为 flex 列布局，padding:0） */
-            display: flex;
-            gap: 0;
+            display: block;
             padding: 0;
-            border-radius: 14px;   /* 与外层 .card 圆角一致，保证 2px 描边在四角呈圆角而非直角 */
+            border-radius: 14px;
             background: none;
             box-shadow: none;
             overflow: hidden;
@@ -661,15 +562,65 @@
             box-sizing: border-box;
         }
         #tab-system .tmdb-entry-poster img {
-            flex: 1;
+            width: 100%;
             height: 100%;
-            min-width: 0;
             object-fit: cover;
             border-radius: 0;
             display: block;
         }
         #tab-system .tmdb-entry-card.card:hover {
             box-shadow: 0 14px 30px -14px rgba(15, 23, 42, 0.55);
+        }
+        /* 海报右下角三点指示器：去背景胶囊，只留 3 颗圆点 */
+        .poster-dots {
+            position: absolute;
+            right: 14px; bottom: 12px;
+            z-index: 3;
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 0;
+            background: none;
+        }
+        .poster-dots .dot {
+            width: 6px; height: 6px; border-radius: 999px;
+            background: rgba(241, 245, 249, 0.6);
+            transition: width .2s, background .2s;
+        }
+        .poster-dots .dot.active {
+            width: 18px;
+            background: #F1F5F9;
+            border-radius: 999px;
+        }
+        /* 通用搜索框（对齐截图样式） */
+        .hero-search {
+            position: relative;
+            display: flex; align-items: center;
+            height: 52px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 0 18px 0 48px;
+            margin: 8px 0 18px;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .hero-search .search-ico {
+            position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+            font-size: 16px;
+            color: var(--text-400);
+        }
+        .hero-search .hero-search-input {
+            flex: 1; height: 100%;
+            background: transparent; border: none; outline: none;
+            color: var(--text-900);
+            font-size: 14px; font-weight: 500;
+            padding: 0;
+        }
+        .hero-search .hero-search-input::placeholder { color: var(--text-400); }
+        .hero-search .search-filter {
+            width: 38px; height: 38px; border-radius: 999px;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: rgba(99, 102, 241, 0.10);
+            color: var(--primary);
+            font-size: 15px;
         }
 
         /* ============ 媒体信息（环形图 + 扇区标签） ============ */
@@ -776,7 +727,7 @@
         }
         .pv-chip:hover {
             border-color: var(--primary);
-            color: var(--primary-dark);
+            color: var(--primary-hover);
         }
         .pv-chip.active {
             background: var(--primary-light);
@@ -794,7 +745,7 @@
             font-size: 11px;
             font-weight: 600;
             background: var(--primary-soft);
-            color: var(--primary-dark);
+            color: var(--primary-hover);
         }
         .pv-chip.active .pv-score {
             background: var(--primary);
@@ -863,10 +814,10 @@
             color: var(--primary); font-size: 17px; font-weight: 700;
             line-height: 1; cursor: pointer; font-family: inherit;
         }
-        .bg-trigger-btn:hover { color: var(--primary-dark); }
+        .bg-trigger-btn:hover { color: var(--primary-hover); }
         .bg-trigger-btn:active { opacity: .65; }
         #emby-usage-load { color: var(--primary); }
-        #emby-usage-load:hover { color: var(--primary-dark); }
+        #emby-usage-load:hover { color: var(--primary-hover); }
 
         /* ============ Inline alert ============ */
         .alert {
@@ -1111,11 +1062,85 @@
             .brand-title .t1 { font-size: 17px; }
             .brand-title .t2 { font-size: 11px; letter-spacing: 2px; }
             .btn { padding: 0 14px; font-size: 13px; height: 36px; }
-            /* 移动端：底部 Tab Bar 常驻（沉到 home indicator 下方） */
-            .mobile-tabbar { display: flex; padding-bottom: env(safe-area-inset-bottom); }
-            /* 移动端：侧边栏抽屉被 Tab Bar 取代，隐藏 */
-            .drawer { display: none; }
-            .content { padding: calc(20px + env(safe-area-inset-top)) 16px 110px; }
+            /* 移动端：顶部工具行 —— 左汉堡、右日志图标，中间占位 */
+            .top-toolbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 8px;
+            }
+            .toolbar-icon-btn {
+                width: 48px; height: 48px;
+                display: flex; align-items: center; justify-content: center;
+                background: none; border: none;
+                color: var(--text-700);
+                font-size: 22px;
+                cursor: pointer;
+                -webkit-tap-highlight-color: transparent;
+                padding: 0;
+            }
+            /* 顶部工具行：默认态（汉堡/分段/日志） vs 编辑态（返回/空/保存） */
+            #topToolbar:not(.mode-edit) .mode-edit-left,
+            #topToolbar:not(.mode-edit) .mode-edit-right { display: none; }
+            #topToolbar.mode-edit .mode-default-left,
+            #topToolbar.mode-edit .mode-default-right,
+            #topToolbar.mode-edit .mode-default-center { display: none; }
+            /* 中间分段按钮：对齐订阅探索 .tmdb-seg 样式 */
+            .top-seg {
+                display: inline-flex;
+                background: #F1F5F9;
+                border-radius: 10px;
+                padding: 3px;
+                gap: 2px;
+                flex-shrink: 1;
+            }
+            .top-seg button {
+                border: none;
+                background: transparent;
+                padding: 7px 14px;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                color: var(--text-600);
+                font-family: inherit;
+                transition: all 0.18s ease;
+            }
+            .top-seg button:hover { color: var(--text-900); }
+            .top-seg button.on {
+                background: #fff;
+                color: var(--primary-hover);
+                box-shadow: none;
+                font-weight: 600;
+            }
+            /* 次级页面：搜索框吸收，不再显示 */
+            body.toolbar-mode-edit .hero-search { display: none; }
+            /* 移动端：drawer 中隐藏「系统状态/日志动态/后台任务/保存配置」——这 4 项入口在顶部按钮与默认页内 */
+            .drawer-hide-mobile { display: none !important; }
+            /* 移动端：drawer 遮罩层 */
+            .drawer-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                z-index: 150;
+                background: rgba(0, 0, 0, 0.35);
+                opacity: 0;
+                transition: opacity 0.28s;
+            }
+            .drawer-overlay.show { display: block; opacity: 1; }
+            /* 移动端：drawer 从左侧 fixed 滑出 */
+            .drawer {
+                display: flex;
+                position: fixed;
+                top: 0; left: 0; bottom: 0;
+                z-index: 200;
+                width: 260px;
+                transform: translateX(-100%);
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 2px 0 16px rgba(0,0,0,0.12);
+            }
+            .drawer.open { transform: translateX(0); }
+            .content { padding: calc(20px + env(safe-area-inset-top)) 16px 24px; }
             .card { padding: 18px; }
             /* 移动端：订阅探索保留全出血横幅（不被通用 .card padding 覆盖） */
             #tab-system .tmdb-entry-card.card { padding: 0; }
@@ -1154,10 +1179,9 @@
         /* 订阅探索入口海报：默认样式由 #tab-system 卡片级规则接管（全出血横幅） */
         .tmdb-entry-poster {
             width: 100%;
-            display: flex;
-            gap: 0;
+            display: block;
             padding: 0;
-            border-radius: 14px;   /* 与外层卡片圆角一致，让 2px 描边四角正常呈圆角 */
+            border-radius: 14px;
             background: none;
             border: 2px solid #fff;
             box-sizing: border-box;
@@ -1166,9 +1190,8 @@
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .tmdb-entry-poster img {
-            flex: 1;
+            width: 100%;
             height: 100%;
-            min-width: 0;
             object-fit: cover;
             border-radius: 0;
             display: block;
@@ -1237,7 +1260,7 @@
         .tmdb-seg button:hover { color: var(--text-900); }
         .tmdb-seg button.active {
             background: #fff;
-            color: var(--primary-dark);
+            color: var(--primary-hover);
             box-shadow: none;
             font-weight: 600;
         }
@@ -1673,93 +1696,6 @@
             .tmdb-modal-hero img { max-height: 260px; object-fit: contain; }
         }
 
-        /* ============ 深色模式（跟随系统，手机/桌面通用） ============ */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                color-scheme: dark;
-                --primary-light: rgba(99, 102, 241, 0.18);
-                --primary-mute: #818CF8;
-                --title-icon-1: #A6AFE0;
-                --title-icon-2: #CBD0EC;
-                --primary-soft: rgba(99, 102, 241, 0.24);
-                --success-soft: rgba(16, 185, 129, 0.15);
-                --warning-soft: rgba(245, 158, 11, 0.15);
-                --danger-soft: rgba(239, 68, 68, 0.16);
-                --info-soft: rgba(14, 165, 233, 0.16);
-
-                --text-900: #F1F5F9;
-                --text-700: #CBD5E1;
-                --text-600: #94A3B8;
-                --text-500: #94A3B8;
-                --text-400: #64748B;
-                --text-300: #475569;
-
-                --bg: #0F172A;
-                --surface: #1E293B;
-                --border: #334155;
-                --border-strong: #475569;
-                --card-hi-light: rgba(148, 163, 184, 0.16);   /* 暗色顶部内高光更明显 */
-                --tray-bg: linear-gradient(160deg, #243150 0%, #1A243D 100%);  /* 暗色：比表面略深的卡片底 */
-
-                --shadow-1: 0 1px 2px rgba(10, 14, 28, 0.42), 0 1px 3px rgba(10, 14, 28, 0.46);
-                --shadow-2: 0 1px 3px rgba(10, 14, 28, 0.48), 0 4px 12px -2px rgba(23, 26, 52, 0.52);
-                --shadow-3: 0 2px 8px -1px rgba(10, 14, 28, 0.50), 0 12px 30px -6px rgba(23, 26, 52, 0.60);
-            }
-            /* 硬编码浅色背景/文字的组件（未走 CSS 变量的部分） */
-            .drawer { background: #111C2E; }
-            .drawer-close:hover { background: #1E293B; color: var(--text-900); }
-            .nav-item:hover { background: #1E293B; color: var(--text-900); }
-            .nav-item:hover i { color: var(--text-700); }
-            .tmdb-modal-close {
-                background: rgba(15, 23, 42, 0.55);
-                border-color: rgba(255, 255, 255, 0.12);
-                color: #fff;
-            }
-            .tmdb-modal-close:hover { background: rgba(15, 23, 42, 0.75); }
-            .brand-title .t2 { color: #94A3B8; }
-            .mobile-tabbar { background: #111C2E; border-top-color: #334155; }
-            .tabbar-item { color: #9AA0A6; }
-            .tabbar-item i { color: #6B7280; }
-            .more-sheet { background: rgba(30, 41, 59, 0.96); }
-            .sheet-item:active { background: #334155; }
-            .sheet-separator { background: #1E293B; }
-            .sheet-cancel { background: #1E293B; }
-            .sheet-cancel:active { background: #334155; }
-            .nav-item.nav-danger { background: rgba(239, 68, 68, 0.12); border-color: rgba(248, 113, 113, 0.35); }
-            .nav-item.nav-danger:hover { background: rgba(239, 68, 68, 0.2); border-color: rgba(248, 113, 113, 0.5); }
-            .chip { background: #1E293B; }
-            .pv-box { background: #1E293B; }
-            .pv-chip.active .pv-score { background: rgba(255, 255, 255, 0.18); }
-            .history-table tbody tr:hover { background: rgba(99, 102, 241, 0.12); }
-            .tmdb-seg { background: #1E293B; }
-            .tmdb-search input { background: #1E293B; }
-            .tmdb-title { color: #CBD5E1; }
-            .tmdb-poster { background: #1E293B; }
-            /* 深色模式：订阅探索入口海报描边降为柔和的 slate-600，避免纯白过于刺眼 */
-            .tmdb-entry-poster { border-color: var(--border-strong); }
-            .tmdb-cast-item img { background: #1E293B; }
-            .form-group input[type="text"],
-            .form-group input[type="password"],
-            .form-group input[type="number"],
-            .form-group select,
-            .form-group textarea {
-                background: #1E293B;
-                border-color: #334155;
-                color: var(--text-900);
-            }
-            .form-group select:hover,
-            .form-group textarea:hover { border-color: #475569; background: #1E293B; }
-            .form-group textarea:focus { background: #1E293B; }
-            input:-webkit-autofill {
-                -webkit-box-shadow: 0 0 0 1000px #1E293B inset;
-                -webkit-text-fill-color: #F1F5F9;
-            }
-            /* Emby 环形图（SVG 内嵌颜色） */
-            .emby-donut text[fill="#0F172A"] { fill: #F1F5F9; }
-            .emby-donut text[fill="#64748B"] { fill: #94A3B8; }
-            .emby-donut circle[stroke="#EEF2F7"] { stroke: #334155; }
-        }
-
         /* ============ 日志动态：桌面端右上角按钮 + 下拉面板 ============ */
         .notif-bell {
             position: fixed; top: 18px; right: 24px; z-index: 200;
@@ -1825,7 +1761,7 @@
     </style>
 </head>
 <body>
-    <!-- ============ 日志动态：桌面端右上角按钮 + 下拉面板（移动端由底部 Tab Bar 提供入口） ============ -->
+    <!-- ============ 日志动态：桌面端右上角按钮 + 下拉面板（移动端入口在侧栏导航） ============ -->
     <button class="notif-bell" id="notifBell" onclick="toggleNotifPanel()" title="日志动态">
         <i class="fas fa-terminal"></i>
     </button>
@@ -1839,51 +1775,6 @@
         </div>
     </div>
 
-    <!-- ============ 移动端底部 Tab Bar（仅 ≤768px 显示） ============ -->
-    <nav class="mobile-tabbar" id="mobileTabbar">
-        <div class="tabbar-item active" data-tab="system" onclick="switchTab('system')">
-            <i class="fas fa-tachometer-alt"></i><span>系统</span>
-        </div>
-        <div class="tabbar-item" data-tab="logs" onclick="switchTab('logs')">
-            <i class="fas fa-terminal"></i><span>日志</span>
-        </div>
-        <div class="tabbar-item" data-tab="bg" onclick="switchTab('bg')">
-            <i class="fas fa-tasks"></i><span>后台</span>
-        </div>
-        <div class="tabbar-item active" id="tabbar-more" onclick="openMoreSheet()">
-            <i class="fas fa-gear"></i><span>设置</span>
-        </div>
-    </nav>
-
-    <!-- ============ 移动端"更多"ActionSheet 弹层（仅 ≤768px 显示，默认隐藏，点击"设置"时打开） ============ -->
-    <div class="more-sheet-overlay" id="moreSheetOverlay" onclick="closeMoreSheet()">
-        <div class="more-sheet" onclick="event.stopPropagation()">
-            <div class="sheet-item" onclick="switchTab('user'); closeMoreSheet()">
-                <i class="fas fa-user-cog"></i><span>用户配置</span><i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="sheet-item" onclick="switchTab('transfer-save'); closeMoreSheet()">
-                <i class="fas fa-cloud-download-alt"></i><span>资源转存</span><i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="sheet-item" onclick="switchTab('transfer'); closeMoreSheet()">
-                <i class="fas fa-folder-tree"></i><span>文件整理</span><i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="sheet-item" onclick="switchTab('strm'); closeMoreSheet()">
-                <i class="fas fa-file-video"></i><span>Strm生成</span><i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="sheet-item" onclick="switchTab('mediawarp'); closeMoreSheet()">
-                <i class="fas fa-shield-alt"></i><span>Emby反代</span><i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="sheet-separator"></div>
-            <div class="sheet-item" onclick="saveTopConfig(); closeMoreSheet()">
-                <i class="fas fa-save"></i><span>保存配置</span><i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="sheet-item sheet-danger" onclick="restartSystem(); closeMoreSheet()">
-                <i class="fas fa-redo-alt"></i><span>重启系统</span><i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="sheet-cancel" onclick="closeMoreSheet()">取消</div>
-        </div>
-    </div>
-
     <div class="layout">
         <aside class="drawer" id="drawer">
             <div class="drawer-brand">
@@ -1894,10 +1785,13 @@
                 </span>
                 <button class="drawer-close" onclick="toggleDrawer()"><i class="fas fa-times"></i></button>
             </div>
-            <a class="nav-item active" data-tab="system" onclick="switchTab('system')">
+            <a class="nav-item active drawer-hide-mobile" data-tab="system" onclick="switchTab('system')">
                 <i class="fas fa-tachometer-alt"></i><span>系统状态</span>
             </a>
-            <a class="nav-item" data-tab="bg" onclick="switchTab('bg')">
+            <a class="nav-item drawer-hide-mobile" data-tab="logs" onclick="switchTab('logs')">
+                <i class="fas fa-terminal"></i><span>日志动态</span>
+            </a>
+            <a class="nav-item drawer-hide-mobile" data-tab="bg" onclick="switchTab('bg')">
                 <i class="fas fa-tasks"></i><span>后台任务</span>
             </a>
             <a class="nav-item" data-tab="user" onclick="switchTab('user')">
@@ -1915,7 +1809,7 @@
             <a class="nav-item" data-tab="mediawarp" onclick="switchTab('mediawarp')">
                 <i class="fas fa-shield-alt"></i><span>Emby反代</span>
             </a>
-            <a id="saveEnvBtn" class="nav-item" onclick="saveTopConfig()">
+            <a id="saveEnvBtn" class="nav-item drawer-hide-mobile" onclick="saveTopConfig()">
                 <i class="fas fa-save"></i><span>保存配置</span>
             </a>
             <div class="drawer-footer">
@@ -1925,8 +1819,41 @@
             </div>
         </aside>
 
+        <!-- 移动端 drawer 遮罩层（点击关闭 drawer） -->
+        <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+
         <main class="content">
-            <!-- ============ 日志动态（移动端入口：底部 Tab Bar"日志"；桌面端由右上角按钮提供面板） ============ -->
+            <!-- 移动端顶部工具行（系统/后台 tab：左汉堡+中间分段+右日志；设置类 tab：左返回+空+右保存） -->
+            <div class="top-toolbar" id="topToolbar">
+                <!-- 汉堡（默认态） -->
+                <button class="toolbar-icon-btn hamburger-btn mode-default-left" id="hamburgerBtn" onclick="toggleDrawer()" aria-label="打开菜单">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <!-- 返回（编辑态） -->
+                <button class="toolbar-icon-btn back-btn mode-edit-left" onclick="switchTab('system')" aria-label="返回系统状态">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <!-- 中间分段：系统 / 后台（只有在默认态显示，编辑态隐藏） -->
+                <div class="top-seg mode-default-center" id="topSeg">
+                    <button class="on" data-seg-tab="system" onclick="switchTab('system')">系统</button>
+                    <button data-seg-tab="bg" onclick="switchTab('bg')">后台</button>
+                </div>
+                <!-- 日志（默认态） -->
+                <button class="toolbar-icon-btn logs-btn mode-default-right" onclick="switchTab('logs')" aria-label="日志动态">
+                    <i class="fas fa-terminal"></i>
+                </button>
+                <!-- 保存（编辑态） -->
+                <button class="toolbar-icon-btn save-btn mode-edit-right" onclick="saveTopConfig()" aria-label="保存配置">
+                    <i class="fas fa-save"></i>
+                </button>
+            </div>
+            <!-- 通用搜索框（占位，后续接功能） -->
+            <div class="hero-search">
+                <i class="fas fa-magnifying-glass search-ico"></i>
+                <input type="text" class="hero-search-input" placeholder="搜索影视、整理记录、任务..." disabled>
+                <i class="fas fa-sliders search-filter"></i>
+            </div>
+            <!-- ============ 日志动态 ============ -->
             <section class="tab-panel" id="tab-logs">
                 <div class="card">
                     <div class="card-title">
@@ -1946,7 +1873,7 @@
                     <div class="card">
                         <div class="card-title">
                             <i class="fas fa-chart-line"></i>Emby 观看时长
-                            <button class="card-title-icon-btn" id="emby-usage-load" style="margin-left: auto;" onclick="loadEmbyUsage()" title="刷新观看数据" aria-label="刷新观看数据"><i class="fas fa-rotate-right"></i></button>
+                            <button class="card-title-icon-btn emby-usage-load-btn" style="margin-left: auto;" onclick="loadEmbyUsage()" title="刷新观看数据" aria-label="刷新观看数据"><i class="fas fa-rotate-right"></i></button>
                         </div>
                         <div id="emby-usage-body"><div class="empty-row">观看数据加载失败: Failed to fetch</div></div>
                     </div>
@@ -1965,7 +1892,18 @@
             <section class="tab-panel active" id="tab-system">
                 <div id="transfer-alert"></div>
 
-                <!-- 媒体信息（基于上次查重扫描统计）+ 内存占用：并排一行 -->
+                <!-- 1. 订阅探索（单张横向海报，无角标，右下角3点；桌面端与移动端都作为首卡） -->
+                <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
+                    <div id="tmdb-poster" class="tmdb-entry-poster">
+                        <div class="poster-dots" aria-hidden="true">
+                            <span class="dot active"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 媒体信息 + 内存占用 + (桌面)订阅探索 并排一行 -->
                 <div class="cards-row">
                     <div class="card clickable-card" onclick="openEmbyModal()" role="button" title="打开媒体查重">
                         <div class="card-title">
@@ -1994,17 +1932,9 @@
                             <svg id="mem-chart" viewBox="0 0 800 140" preserveAspectRatio="none"></svg>
                         </div>
                     </div>
-                    <!-- 订阅探索：与媒体信息/内存占用同一行（宽度统一 340px，全出血海报横幅，标题悬浮） -->
-                    <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
-                        <div class="card-title tmdb-entry-title">
-                            <i class="fas fa-fire"></i>订阅探索
-                            <i class="fas fa-chevron-right"></i>
-                        </div>
-                        <div id="tmdb-poster" class="tmdb-entry-poster"></div>
-                    </div>
                 </div>
 
-                <!-- 整理历史 -->
+                <!-- 3. 整理历史（保留） -->
                 <div class="card" id="history-card">
                     <div class="card-title">
                         <i class="fas fa-history"></i>整理历史
@@ -2407,11 +2337,27 @@
             if (panel) panel.classList.add('active');
             const nav = document.querySelector(`.nav-item[data-tab="${tab}"]`);
             if (nav) nav.classList.add('active');
-            // 同步移动端底部 Tab Bar 高亮（不在常驻位的页签 → 高亮"设置"）
-            syncTabbarActive(tab);
             // 侧边栏"保存配置"按钮始终显示（不随 tab 隐藏）
-            // 关闭移动端抽屉
+
+            // 移动端：进入 5 个设置类 Tab 时切换顶部工具行：汉堡/分段/日志 → 返回/空/保存；同时隐藏搜索框
+            const SUB_TABS = { user: 1, 'transfer-save': 1, transfer: 1, strm: 1, mediawarp: 1 };
+            const toolbar = document.getElementById('topToolbar');
+            if (toolbar) {
+                toolbar.classList.toggle('mode-edit', !!SUB_TABS[tab]);
+            }
+            try { document.body.classList.toggle('toolbar-mode-edit', !!SUB_TABS[tab]); } catch (e) {}
+
+            // 顶部中间分段按钮高亮：system / bg
+            const topSeg = document.getElementById('topSeg');
+            if (topSeg) {
+                const buttons = topSeg.querySelectorAll('button');
+                buttons.forEach(b => b.classList.toggle('on', (b.dataset.segTab === tab)));
+            }
+
+            // 关闭移动端抽屉和遮罩
             document.getElementById('drawer').classList.remove('open');
+            const _ov = document.getElementById('drawerOverlay');
+            if (_ov) _ov.classList.remove('show');
             // 更新 URL hash
             if (location.hash !== '#' + tab) {
                 history.replaceState(null, '', '#' + tab);
@@ -2425,11 +2371,7 @@
                     window._embyLoaded = true;
                     loadEmbyStatus();
                 }
-                // Emby 观看时长图：首次进入自动加载，无需再点按钮（桌面端该卡并入系统状态）
-                if (!window._embyUsageAuto) {
-                    window._embyUsageAuto = true;
-                    loadEmbyUsage();
-                }
+                // Emby 观看时长图：首次进入「后台」Tab 自动加载（原来默认页也有，现在只保留后台页）
             } else {
                 stopUsagePolling();
                 stopHistoryPolling();
@@ -2447,8 +2389,12 @@
                 loadMediaWarpConfig();
             }
             if (tab === 'logs') loadLogs();
-            // 后台任务卡片桌面端并入「系统状态」Tab：进入系统状态时同样加载任务状态
-            if (tab === 'bg' || (tab === 'system' && isDesktopLayout())) {
+            // Emby 观看时长 + 后台任务：只在「后台」Tab 进入时加载
+            if (tab === 'bg') {
+                if (!window._embyUsageAuto) {
+                    window._embyUsageAuto = true;
+                    loadEmbyUsage();
+                }
                 loadBgTasks(true);
                 startBgCountdown();
             } else {
@@ -2456,36 +2402,20 @@
             }
         }
 
-        // ============ 后台任务卡片：桌面端并入「系统状态」（整理历史上方），手机端保持独立 Tab ============
+        // ============ 后台任务卡片：桌面端与移动端一致，都放在「后台」Tab 页面 ============
         function isDesktopLayout() {
             return !window.matchMedia('(max-width: 768px)').matches;
         }
 
         function layoutBgTasks() {
-            const desktop = isDesktopLayout();
+            // 取消之前把后台 2 张卡（Emby 观看时长 + 后台任务）并入系统状态的逻辑
+            // 现在两者都放在「后台」Tab 页面，桌面/移动端一致
             const row = document.getElementById('bg-cards-row');
             const bgPanel = document.getElementById('tab-bg');
-            const sysPanel = document.getElementById('tab-system');
-            const historyCard = document.getElementById('history-card');
             const bgNav = document.querySelector('.nav-item[data-tab="bg"]');
-            if (!row || !bgPanel || !sysPanel || !historyCard) return;
-            if (desktop) {
-                if (row.parentNode !== sysPanel) {
-                    historyCard.before(row);
-                    if (bgNav) bgNav.style.display = 'none';
-                    if (bgPanel.classList.contains('active')) {
-                        switchTab('system');  // 后台任务页签已并入系统状态，切回系统状态避免空白
-                        return;
-                    }
-                    if (sysPanel.classList.contains('active')) {
-                        loadBgTasks(true);
-                        startBgCountdown();
-                    }
-                }
-            } else if (row.parentNode !== bgPanel) {
-                bgPanel.appendChild(row);
-                if (bgNav) bgNav.style.display = '';
-            }
+            if (!row || !bgPanel) return;
+            if (row.parentNode !== bgPanel) bgPanel.appendChild(row);
+            if (bgNav) bgNav.style.display = '';
         }
 
         let _bgLayoutTimer = null;
@@ -3039,13 +2969,79 @@
             </div>`;
         }
 
-        // 订阅探索入口海报：取前 3 张有海报的影视竖版海报横排拼接
+        // 订阅探索入口海报：单张横向海报，每 10 秒随机切换；支持左右滑动/3 点指示
+        let _entryPosterItems = [];
+        let _entryPosterTimer = null;
+        let _entryPosterLastIdx = -1;
+        let _entryPosterTouch = null;     // 记录滑动起点
         function renderEntryPosters(items) {
             const strip = document.getElementById('tmdb-poster');
             if (!strip || !items) return;
-            strip.innerHTML = items.filter(i => i.poster_path).slice(0, 3)
-                .map(i => `<img src="https://image.tmdb.org/t/p/w500${i.poster_path}" alt="${escapeHtml(i.title)}" loading="lazy">`)
-                .join('');
+            _entryPosterItems = items.filter(i => i.poster_path);
+            if (_entryPosterItems.length === 0) return;
+            // 绑定触摸事件（仅绑一次）
+            if (!strip.dataset.swipedBound) {
+                strip.dataset.swipedBound = '1';
+                strip.addEventListener('touchstart', e => {
+                    if (!e.touches || !e.touches[0]) return;
+                    _entryPosterTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY, moved: false };
+                }, { passive: true });
+                strip.addEventListener('touchend', e => {
+                    const t = _entryPosterTouch; _entryPosterTouch = null;
+                    if (!t) return;
+                    const c = e.changedTouches && e.changedTouches[0];
+                    if (!c) return;
+                    const dx = c.clientX - t.x;
+                    const dy = c.clientY - t.y;
+                    if (Math.abs(dx) > Math.max(50, Math.abs(dy))) {
+                        // 左滑 -> 下一张；右滑 -> 上一张
+                        _showRandomEntryPoster(dx < 0 ? 'next' : 'prev');
+                    }
+                }, { passive: true });
+            }
+            // 首次随机渲染一张
+            _showRandomEntryPoster('rand');
+            // 启动定时器（清除旧的避免重复）
+            if (_entryPosterTimer) clearInterval(_entryPosterTimer);
+            _entryPosterTimer = setInterval(() => _showRandomEntryPoster('rand'), 10000);
+        }
+        function _updatePosterDots(activeIndex) {
+            const dots = document.querySelectorAll('#tmdb-poster .poster-dots .dot');
+            if (!dots.length) return;
+            dots.forEach((d, i) => d.classList.toggle('active', i === activeIndex));
+        }
+        function _showRandomEntryPoster(mode) {
+            const strip = document.getElementById('tmdb-poster');
+            if (!strip || _entryPosterItems.length === 0) return;
+            const n = _entryPosterItems.length;
+            let idx;
+            if (mode === 'next') {
+                idx = (_entryPosterLastIdx + 1 + n) % n;
+            } else if (mode === 'prev') {
+                idx = (_entryPosterLastIdx - 1 + n) % n;
+            } else {
+                if (n === 1) { idx = 0; }
+                else { do { idx = Math.floor(Math.random() * n); } while (idx === _entryPosterLastIdx); }
+            }
+            _entryPosterLastIdx = idx;
+            const i = _entryPosterItems[idx];
+            // 始终保留 3 点指示器结构在 img 外层（strip 里有 innerHTML 覆盖）
+            strip.innerHTML = `
+                <img src="https://image.tmdb.org/t/p/w780${i.poster_path}" alt="${escapeHtml(i.title)}" loading="lazy"
+                     style="transition: opacity 0.6s ease;">
+                <div class="poster-dots" aria-hidden="true">
+                    <span class="dot active"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>`;
+            // 淡入
+            const img = strip.querySelector('img');
+            if (img) {
+                img.style.opacity = '0';
+                requestAnimationFrame(() => { img.style.opacity = '1'; });
+            }
+            // 3 点指示：当前位置 active —— 由于实际海报池里数量远大于 3，此处用 idx mod 3 映射，表达"在三张轮换中的位置"
+            _updatePosterDots(((idx % 3) + 3) % 3);
         }
 
         async function loadTmdb(force, silent) {
@@ -3235,49 +3231,24 @@
         }
 
         function toggleDrawer() {
-            document.getElementById('drawer').classList.toggle('open');
+            const drawer = document.getElementById('drawer');
+            const overlay = document.getElementById('drawerOverlay');
+            if (!drawer) return;
+            const isOpen = drawer.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('show', isOpen);
         }
         // 点击侧边栏（抽屉）之外关闭
         document.addEventListener('click', function (e) {
             const drawer = document.getElementById('drawer');
             if (!drawer || !drawer.classList.contains('open')) return;
-            if (!drawer.contains(e.target)) {
+            const overlay = document.getElementById('drawerOverlay');
+            if (!drawer.contains(e.target) && (!overlay || !overlay.contains(e.target))) {
                 drawer.classList.remove('open');
+                if (overlay) overlay.classList.remove('show');
             }
         });
 
-        // ============ 移动端底部 Tab Bar / "更多"弹层 ============
-        // 当前激活页签（从 .tab-panel.active 的 id 推导）
-        function getCurrentTab() {
-            const panel = document.querySelector('.tab-panel.active');
-            return panel ? panel.id.replace('tab-', '') : 'system';
-        }
-        // 同步底部 Tab Bar 高亮：常驻槽位高亮对应项，否则高亮"设置"
-        function syncTabbarActive(tab) {
-            document.querySelectorAll('.tabbar-item').forEach(n => n.classList.remove('active'));
-            const tbi = document.querySelector(`.tabbar-item[data-tab="${tab}"]`);
-            if (tbi) {
-                tbi.classList.add('active');
-            } else {
-                const more = document.getElementById('tabbar-more');
-                if (more) more.classList.add('active');
-            }
-        }
-        function openMoreSheet() {
-            const overlay = document.getElementById('moreSheetOverlay');
-            if (!overlay) return;
-            overlay.classList.add('open');
-            document.getElementById('tabbar-more').classList.add('active');
-        }
-        function closeMoreSheet() {
-            const overlay = document.getElementById('moreSheetOverlay');
-            if (!overlay) return;
-            overlay.classList.remove('open');
-            // 关闭后按当前页签重新同步高亮（点"保存配置/取消"时回到对应槽位）
-            syncTabbarActive(getCurrentTab());
-        }
-
-        // Esc 关闭最上层弹层：详情/查重 > 订阅探索> 底部弹层 > 抽屉
+        // Esc 关闭最上层弹层：详情/查重 > 订阅探索 > 抽屉
         document.addEventListener('keydown', function (e) {
             if (e.key !== 'Escape') return;
             if (document.querySelector('.tmdb-modal-overlay')) {
@@ -3287,12 +3258,14 @@
             }
             const panel = document.getElementById('tmdb-overlay');
             if (panel && panel.style.display !== 'none') { closeTmdbPanel(); return; }
-            const sheet = document.getElementById('moreSheetOverlay');
-            if (sheet && sheet.classList.contains('open')) { closeMoreSheet(); return; }
             const npanel = document.getElementById('notifPanel');
             if (npanel && npanel.classList.contains('open')) { toggleNotifPanel(); return; }
             const drawer = document.getElementById('drawer');
-            if (drawer && drawer.classList.contains('open')) drawer.classList.remove('open');
+            const ov = document.getElementById('drawerOverlay');
+            if (drawer && drawer.classList.contains('open')) {
+                drawer.classList.remove('open');
+                if (ov) ov.classList.remove('show');
+            }
         });
 
         // ============ 日志动态：桌面端右上角面板 + 移动端日志页 ============
@@ -4236,7 +4209,9 @@
             if (_bgLoaded && !force) return;
             const grid = document.getElementById('bg-tasks-grid');
             if (!grid) return;
-            if (!force && !_bgLoaded) grid.innerHTML = '<div style="color: var(--text-400); padding: 12px 0;">加载中...</div>';
+            if (!force && !_bgLoaded) {
+                if (grid.innerHTML.trim() === '') grid.innerHTML = '<div style="color: var(--text-400); padding: 12px 0;">加载中...</div>';
+            }
             try {
                 _bgTasks = await api('/api/tasks/status');
                 _bgLoaded = true;
@@ -4298,8 +4273,8 @@
             grid.innerHTML = `
                 <div class="bg-task-row">
                     <div class="bg-task-row-top">
-                        <span class="bg-task-name"><i class="fas fa-broadcast-tower bg-task-icon${_taskActive.channel ? ' active' : ''}" id="bg-icon-channel"></i>频道监控</span>
-                        <span class="bg-task-time" id="bg-next-channel"></span>
+                        <span class="bg-task-name"><i class="fas fa-broadcast-tower bg-task-icon${_taskActive.channel ? ' active' : ''}" data-bg-icon="channel"></i>频道监控</span>
+                        <span class="bg-task-time" data-bg-next="channel"></span>
                     </div>
                     <div class="bg-task-state-row">
                         ${chState}
@@ -4308,8 +4283,8 @@
                 </div>
                 <div class="bg-task-row">
                     <div class="bg-task-row-top">
-                        <span class="bg-task-name"><i class="fas fa-folder-tree bg-task-icon${_taskActive.transfer ? ' active' : ''}" id="bg-icon-transfer"></i>定时整理</span>
-                        <span class="bg-task-time" id="bg-next-transfer"></span>
+                        <span class="bg-task-name"><i class="fas fa-folder-tree bg-task-icon${_taskActive.transfer ? ' active' : ''}" data-bg-icon="transfer"></i>定时整理</span>
+                        <span class="bg-task-time" data-bg-next="transfer"></span>
                     </div>
                     <div class="bg-task-state-row">
                         ${tfState}
@@ -4318,8 +4293,8 @@
                 </div>
                 <div class="bg-task-row">
                     <div class="bg-task-row-top">
-                        <span class="bg-task-name"><i class="fas fa-sync-alt bg-task-icon${_taskActive.strm ? ' active' : ''}" id="bg-icon-strm"></i>全量同步 STRM</span>
-                        <span class="bg-task-time" id="bg-next-strm"></span>
+                        <span class="bg-task-name"><i class="fas fa-sync-alt bg-task-icon${_taskActive.strm ? ' active' : ''}" data-bg-icon="strm"></i>全量同步 STRM</span>
+                        <span class="bg-task-time" data-bg-next="strm"></span>
                     </div>
                     <div class="bg-task-state-row">
                         ${stState}
@@ -4338,11 +4313,12 @@
                 ['strm', 'strm_full_sync', 'next_run'],
             ];
             tasks.forEach(([key, section, field]) => {
-                const el = document.getElementById('bg-next-' + key);
-                if (!el || !_bgTasks[section]) return;
+                const els = document.querySelectorAll('[data-bg-next="' + key + '"]');
+                if (!els.length || !_bgTasks[section]) return;
                 const ts = _bgTasks[section][field];
                 const next = ts ? new Date(ts).getTime() : NaN;
-                el.innerHTML = isNaN(next) ? '' : (next - now > 0 ? fmtCountdownHtml(next - now) : '<span class="bg-time-num" style="font-size:12px;color:var(--text-500);">due</span>');
+                const val = isNaN(next) ? '' : (next - now > 0 ? fmtCountdownHtml(next - now) : '<span class="bg-time-num" style="font-size:12px;color:var(--text-500);">due</span>');
+                els.forEach(el => el.innerHTML = val);
             });
         }
 
@@ -4352,13 +4328,14 @@
 
         async function loadEmbyUsage() {
             const body = document.getElementById('emby-usage-body');
-            const btn = document.getElementById('emby-usage-load');
+            const btns = Array.from(document.querySelectorAll('.emby-usage-load-btn'));
             if (!body) return;
-            if (btn) {
-                btn.disabled = true;
-                btn.style.color = 'var(--text-400)';
-                btn.style.opacity = '0.6';
-            }
+            // 禁用按钮
+            btns.forEach(b => {
+                b.disabled = true;
+                b.style.color = 'var(--text-400)';
+                b.style.opacity = '0.6';
+            });
             body.innerHTML = '<div style="color: var(--text-400); padding: 12px 0;">正在获取观看数据...</div>';
             try {
                 const data = await api('/api/emby/usage?days=7' + (_embyUsage ? '&refresh=1' : ''));
@@ -4375,11 +4352,11 @@
             } catch (e) {
                 body.innerHTML = `<div class="empty-row">观看数据加载失败: ${escapeHtml(e.message)}</div>`;
             } finally {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.style.color = '';
-                    btn.style.opacity = '';
-                }
+                btns.forEach(b => {
+                    b.disabled = false;
+                    b.style.color = '';
+                    b.style.opacity = '';
+                });
             }
         }
 
@@ -4780,6 +4757,61 @@
 
         // ============ 初始化 ============
         (async function init() {
+            // 移动端：页面左右滑动切换 system / bg 两个主 Tab（编辑态和其他 Tab 下拦截无效）
+            (function bindSwipe() {
+                const mq = window.matchMedia('(max-width: 768px)');
+                const SWIPE = { x: 0, y: 0, startX: 0, startY: 0, tracking: false, triggered: false, subScroll: false };
+                const TH_X = 70;   // 横向阈值（px）
+                const TH_Y_RATIO = 0.5; // 纵向/横向比例：纵/横 > 0.5 视为纵向滚动，不切换
+
+                function currentTab() {
+                    return (location.hash || '#system').replace('#', '') || 'system';
+                }
+                function getCurrentMainTab() {
+                    const t = currentTab();
+                    if (t === 'system') return 'system';
+                    if (t === 'bg') return 'bg';
+                    return null; // 次级 Tab / logs 等不参与滑动
+                }
+                window.addEventListener('touchstart', (e) => {
+                    if (!mq.matches) return;
+                    const t = getCurrentMainTab();
+                    if (!t) return;
+                    if (e.touches.length !== 1) return;
+                    SWIPE.startX = SWIPE.x = e.touches[0].clientX;
+                    SWIPE.startY = SWIPE.y = e.touches[0].clientY;
+                    SWIPE.tracking = true; SWIPE.triggered = false; SWIPE.subScroll = false;
+                }, { passive: true });
+                window.addEventListener('touchmove', (e) => {
+                    if (!mq.matches || !SWIPE.tracking || SWIPE.triggered) return;
+                    const t0 = e.touches[0];
+                    const dx = t0.clientX - SWIPE.startX;
+                    const dy = t0.clientY - SWIPE.startY;
+                    // 如果初始方向是竖向为主，按普通滚动处理
+                    if (Math.abs(dy) > Math.abs(dx) * TH_Y_RATIO) { SWIPE.tracking = false; return; }
+                    SWIPE.x = t0.clientX; SWIPE.y = t0.clientY;
+                    // 局部元素横向滚动（如海报列表）时不拦截：检测起点目标
+                    // 这里简化：只要滑动距离达到就尝试切换（不 preventDefault，由系统处理）
+                }, { passive: true });
+                window.addEventListener('touchend', (e) => {
+                    if (!mq.matches || !SWIPE.tracking || SWIPE.triggered) return;
+                    SWIPE.tracking = false;
+                    const dx = (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : SWIPE.x) - SWIPE.startX;
+                    const dy = (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : SWIPE.y) - SWIPE.startY;
+                    if (Math.abs(dx) < TH_X) return;
+                    if (Math.abs(dy) > Math.abs(dx) * TH_Y_RATIO) return;
+                    const cur = getCurrentMainTab();
+                    if (!cur) return;
+                    SWIPE.triggered = true;
+                    // 向左滑（dx < 0）→ 进入右侧「后台」；向右滑（dx > 0）→ 回到左侧「系统」
+                    if (dx < 0) {
+                        if (cur === 'system') switchTab('bg');
+                    } else {
+                        if (cur === 'bg') switchTab('system');
+                    }
+                });
+            })();
+
             const hash = (location.hash || '').replace('#', '');
             const validTabs = ['system', 'user', 'transfer-save', 'transfer', 'strm', 'mediawarp', 'logs', 'bg'];
             const initialTab = validTabs.includes(hash) ? hash : 'system';

@@ -10,7 +10,6 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="theme-color" content="#F8FAFC">
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#2842FC">
     <link rel="apple-touch-icon" href="/static/icon-180.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -20,8 +19,7 @@
             box-sizing: border-box;
         }
 
-        /* 深色模式下让原生表单控件（下拉/滚动条/自动填充）跟随系统配色 */
-        :root { color-scheme: light dark; }
+        :root { color-scheme: light; }
 
         input:-webkit-autofill {
             -webkit-box-shadow: 0 0 0 1000px rgba(60, 40, 120, 0.9) inset;
