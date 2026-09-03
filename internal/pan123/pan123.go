@@ -1,4 +1,4 @@
-﻿// Package pan123 实现 123 云盘客户端。
+// Package pan123 实现 123 云盘客户端。
 //
 // 认证：默认使用 Web 账号密码登录（POST /api/user/sign_in 获取 access_token）；
 // OAuth/115秒传123 使用开放平台 access_token（POST /api/v1/access_token）。
@@ -38,6 +38,9 @@ type Client struct {
 
 	mu   sync.Mutex
 	http *httpx.Client
+
+	shareMu sync.Mutex // share/get 接口全局限速
+	shareAt time.Time  // 上次 share/get 请求时间
 }
 
 // New 用已有 token 创建客户端。
@@ -97,6 +100,36 @@ type Response struct {
 	Code    int             `json:"code"`
 	Message json.RawMessage `json:"message"`
 	Data    json.RawMessage `json:"data"`
+}
+
+// UnmarshalJSON 兼容 123 风控返回的字符串 code（如 {"code":"429","message":"分享界面操作频繁，请稍候再试"}）。
+func (r *Response) UnmarshalJSON(b []byte) error {
+	var raw struct {
+		Code    json.RawMessage `json:"code"`
+		Message json.RawMessage `json:"message"`
+		Data    json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+	r.Code = codeAsInt(raw.Code)
+	r.Message = raw.Message
+	r.Data = raw.Data
+	return nil
+}
+
+// codeAsInt 把 code 字段（数字或数字字符串）解析为 int，解析不出时返回 0。
+func codeAsInt(raw json.RawMessage) int {
+	var n int
+	if json.Unmarshal(raw, &n) == nil {
+		return n
+	}
+	var s string
+	if json.Unmarshal(raw, &s) == nil {
+		n, _ = strconv.Atoi(s)
+		return n
+	}
+	return 0
 }
 
 func (r *Response) MessageString() string {
@@ -261,16 +294,16 @@ type FileInfo struct {
 // FSList 获取目录文件列表（yun Web 接口）。
 func (c *Client) FSList(ctx context.Context, parentFileID any) ([]FileInfo, error) {
 	params := map[string]string{
-		"parentFileId":        toStr(parentFileID),
-		"limit":               "100",
-		"driveId":             "0",
-		"Page":                "1",
-		"orderBy":             "file_id",
-		"orderDirection":      "asc",
-		"trashed":             "false",
-		"inDirectSpace":       "false",
-		"fileCategory":        "0",
-		"event":               "homeListFile",
+		"parentFileId":         toStr(parentFileID),
+		"limit":                "100",
+		"driveId":              "0",
+		"Page":                 "1",
+		"orderBy":              "file_id",
+		"orderDirection":       "asc",
+		"trashed":              "false",
+		"inDirectSpace":        "false",
+		"fileCategory":         "0",
+		"event":                "homeListFile",
 		"OnlyLookAbnormalFile": "0",
 	}
 	headers := map[string]string{"platform": "web"}
@@ -552,25 +585,59 @@ type ShareGetResp struct {
 	} `json:"data"`
 }
 
+// shareGetPace share/get 全局限速。123 对分享界面接口有频率限制：连发请求（大分享
+// 逐目录递归抓取、多消息并发转存）会触发 429"分享界面操作频繁"，且冷却期内新分享
+// 的第一页也会被拒。与 IterDir 遍历目录列表的 1 秒冷却同一策略。
+func (c *Client) shareGetPace() {
+	c.shareMu.Lock()
+	if wait := time.Second - time.Since(c.shareAt); wait > 0 {
+		time.Sleep(wait)
+	}
+	c.shareAt = time.Now()
+	c.shareMu.Unlock()
+}
+
 // ShareGet 获取分享文件列表（yun Web 接口）。
 func (c *Client) ShareGet(ctx context.Context, shareKey, sharePwd string, parentFileID any, page int) (*ShareGetResp, error) {
 	params := map[string]string{
-		"ShareKey":        shareKey,
-		"SharePwd":        sharePwd,
-		"parentFileId":    toStr(parentFileID),
-		"Page":            strconv.Itoa(page),
-		"limit":           "100",
-		"next":            "0",
-		"event":           "homeListFile",
-		"orderBy":         "file_name",
-		"orderDirection":  "asc",
+		"ShareKey":       shareKey,
+		"SharePwd":       sharePwd,
+		"parentFileId":   toStr(parentFileID),
+		"Page":           strconv.Itoa(page),
+		"limit":          "100",
+		"next":           "0",
+		"event":          "homeListFile",
+		"orderBy":        "file_name",
+		"orderDirection": "asc",
 	}
+	c.shareGetPace()
 	raw, status, err := c.http.Get(ctx, YunBase+"/api/share/get?"+encodeQuery(params), map[string]string{"Authorization": "Bearer " + c.Token})
 	if err != nil {
 		return nil, err
 	}
 	if status != 200 {
 		return nil, fmt.Errorf("123 share/get HTTP %d: %s", status, string(raw))
+	}
+	return parseShareGetResponse(raw)
+}
+
+// parseShareGetResponse 解析 share/get 响应。123 风控的响应 code 为字符串、data 为字符串
+// "null"（如 {"code":"429","message":"分享界面操作频繁，请稍候再试","data":"null"}），
+// 按 int 结构体直接解析会报 JSON 错；这里先宽松解析业务码，失败时返回带真实 message 的错误。
+func parseShareGetResponse(raw []byte) (*ShareGetResp, error) {
+	var head struct {
+		Code    json.RawMessage `json:"code"`
+		Message json.RawMessage `json:"message"`
+	}
+	if err := json.Unmarshal(raw, &head); err != nil {
+		return nil, fmt.Errorf("解析 share/get 响应失败: %v, body: %s", err, string(raw))
+	}
+	if c := codeAsInt(head.Code); c != 0 && c != 200 {
+		var msg string
+		if len(head.Message) > 0 {
+			json.Unmarshal(head.Message, &msg) // 忽略非字符串 message
+		}
+		return nil, &APIError{Code: c, Message: msg}
 	}
 	var resp ShareGetResp
 	if err := json.Unmarshal(raw, &resp); err != nil {
