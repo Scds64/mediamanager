@@ -1850,8 +1850,8 @@
         </div>
     </nav>
 
-    <!-- ============ 移动端"更多"ActionSheet 弹层（仅 ≤768px 显示） ============ -->
-    <div class="more-sheet-overlay open" id="moreSheetOverlay" onclick="closeMoreSheet()">
+    <!-- ============ 移动端"更多"ActionSheet 弹层（仅 ≤768px 显示，默认隐藏，点击"设置"时打开） ============ -->
+    <div class="more-sheet-overlay" id="moreSheetOverlay" onclick="closeMoreSheet()">
         <div class="more-sheet" onclick="event.stopPropagation()">
             <div class="sheet-item" onclick="switchTab('user'); closeMoreSheet()">
                 <i class="fas fa-user-cog"></i><span>用户配置</span><i class="fas fa-chevron-right"></i>
