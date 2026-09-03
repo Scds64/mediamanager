@@ -31,61 +31,67 @@
             --info: #0EA5E9;               /* sky-500 */
             --info-soft: #F0F9FF;
 
-            --text-900: #0F172A;           /* slate-900 */
-            --text-700: #334155;           /* slate-700 */
-            --text-600: #475569;           /* slate-600 */
-            --text-500: #64748B;           /* slate-500 */
-            --text-400: #94A3B8;           /* slate-400 */
-            --text-300: #CBD5E1;           /* slate-300 */
+            --text-900: #18181B;           /* zinc-900 冷墨黑、无蓝感 */
+            --text-700: #3F3F46;           /* zinc-700 深中性灰 */
+            --text-600: #52525B;           /* zinc-600 中深灰 */
+            --text-500: #71717A;           /* zinc-500 中级灰 */
+            --text-400: #A1A1AA;           /* zinc-400 浅灰 */
+            --text-300: #D4D4D8;           /* zinc-300 线框浅灰 */
+            --text-muted: var(--text-500); /* 语义别名：次级/未激活文字 */
+            --text: var(--text-900);       /* 语义别名：正文主色 */
 
-            --bg: #F1F5F9;                 /* slate-100 页面底色略深，衬托白色卡片 */
+            --bg: #F4F4F5;                 /* zinc-100 冷中性底、不发蓝不发黄 */
             --surface: #FFFFFF;
-            --border: #E2E8F0;             /* slate-200 */
-            --border-strong: #CBD5E1;      /* slate-300 */
-            --card-hi-light: rgba(148, 163, 184, 0.14);   /* 卡片顶部内高光（亮色，偏灰） */
-            --tray-bg: linear-gradient(160deg, #EEF2FF 0%, #E6ECF9 100%);  /* 海报卡片淡彩底（柔和区别于白卡） */
-            --shadow-1: 0 1px 2px 0 rgba(66, 77, 114, 0.05), 0 1px 3px 0 rgba(66, 77, 114, 0.06);
-            --shadow-2: 0 1px 3px 0 rgba(66, 77, 114, 0.06), 0 4px 12px -2px rgba(66, 77, 114, 0.09);
-            --shadow-3: 0 2px 8px -1px rgba(66, 77, 114, 0.08), 0 10px 28px -6px rgba(66, 77, 114, 0.12);
+            --border: #E4E4E7;             /* zinc-200 */
+            --border-strong: #D4D4D8;      /* zinc-300 */
+            --card-hi-light: rgba(161, 161, 170, 0.14);   /* 卡片顶部内高光（冷灰，无蓝味） */
+            --tray-bg: linear-gradient(160deg, #EEF2FF 0%, #F1F1F4 100%);  /* 海报底只保留一抹蓝+中性灰 */
+            --shadow-1: 0 1px 2px 0 rgba(24, 24, 27, 0.04), 0 1px 3px 0 rgba(24, 24, 27, 0.05);
+            --shadow-2: 0 1px 3px 0 rgba(24, 24, 27, 0.05), 0 4px 12px -2px rgba(24, 24, 27, 0.08);
+            --shadow-3: 0 2px 8px -1px rgba(24, 24, 27, 0.07), 0 10px 28px -6px rgba(24, 24, 27, 0.11);
 
             --radius-sm: 10px;
             --radius: 12px;
             --radius-card: 14px;
 
-            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Roboto, 'Helvetica Neue', sans-serif;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Roboto, 'Helvetica Neue', sans-serif;
             --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, 'Consolas', 'Courier New', monospace;
 
-            /* 统一字阶：卡片标题 > 卡片小标题 > 字段标签 */
-            --fs-title: 14px;
-            --fs-subtitle: 13px;
-            --fs-label: 12.5px;
-            --fs-read: 13px;
+            /* 高端字阶：从默认 12.5/13/14 → 12/13.5/15 三档拉开，
+               段按钮与卡片标题走标题字距，主正文行高收紧到 1.55 更利落 */
+            --fs-title: 15px;
+            --fs-subtitle: 13.5px;
+            --fs-label: 12px;
+            --fs-read: 13.5px;
+            /* 段控字号：略大于标题、作为页级标题的角色 */
+            --fs-seg: 16px;
         }
         body {
             font-family: var(--font-sans);
             background:
                 linear-gradient(var(--bg), var(--bg) calc(60px + env(safe-area-inset-top)), transparent calc(60px + env(safe-area-inset-top))),
-                radial-gradient(1200px 600px at 15% 40%, rgba(99,102,241,0.06), transparent 60%),
-                radial-gradient(900px 500px at 100% 45%, rgba(14,165,233,0.05), transparent 55%),
+                radial-gradient(1200px 600px at 15% 40%, rgba(99,102,241,0.045), transparent 60%),
+                radial-gradient(900px 500px at 100% 45%, rgba(14,165,233,0.03), transparent 55%),
                 var(--bg);
             color: var(--text-900);
             min-height: 100vh;
-            line-height: 1.6;
+            line-height: 1.55;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             text-rendering: optimizeLegibility;
+            letter-spacing: 0.005em;
         }
-        ::selection { background: rgba(99, 102, 241, 0.18); }
+        ::selection { background: rgba(99, 102, 241, 0.16); }
         ::-webkit-scrollbar { width: 10px; height: 10px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb {
-            background: rgba(100, 116, 139, 0.35);
+            background: rgba(82, 82, 91, 0.30);
             border-radius: 999px;
             border: 3px solid transparent;
             background-clip: content-box;
         }
-        ::-webkit-scrollbar-thumb:hover { background-color: rgba(100, 116, 139, 0.55); background-clip: content-box; }
-        * { scrollbar-width: thin; scrollbar-color: rgba(100, 116, 139, 0.4) transparent; }
+        ::-webkit-scrollbar-thumb:hover { background-color: rgba(82, 82, 91, 0.48); background-clip: content-box; }
+        * { scrollbar-width: thin; scrollbar-color: rgba(82, 82, 91, 0.35) transparent; }
 
         /* ============ 侧边栏品牌区（替代原顶部栏） ============ */
         .drawer-brand {
@@ -296,10 +302,10 @@
             pointer-events: none;
         }
         .card-title {
-            font-size: 15px;
-            font-weight: 700;
+            font-size: var(--fs-title);
+            font-weight: 600;
             color: var(--text-700);
-            letter-spacing: 0.03em;
+            letter-spacing: 0.035em;
             margin: 0 0 10px 0;
             padding: 0;
             display: flex;
@@ -1079,22 +1085,26 @@
                 padding: 0;
             }
             /* 顶部工具行：默认态（汉堡/分段/日志） vs 编辑态（返回/空/保存） */
-            #topToolbar:not(.mode-edit) .mode-edit-left,
-            #topToolbar:not(.mode-edit) .mode-edit-right { display: none; }
+            #topToolbar:not(.mode-edit):not(.mode-log) .mode-edit-left,
+            #topToolbar:not(.mode-edit):not(.mode-log) .mode-edit-right { display: none; }
             #topToolbar.mode-edit .mode-default-left,
             #topToolbar.mode-edit .mode-default-right,
             #topToolbar.mode-edit .mode-default-center { display: none; }
-            /* 中间分段按钮：扁平化高端样式 —— 去胶囊背景/白底凸起/彩色主色，只用字重+细线 underline 表达状态
-               —— wrapper 透明无背景，按钮作为 inline 标签并列，active 用 text 黑色 600 + 1.5px 中线 underline
-               —— 宽度自适应（不给左右大量 padding），underline 只比字面宽 10%（不充满按钮），居中对齐
+            /* 按钮层级保证：避免兄弟元素（分段、搜索框、长页面元素）在特定滚动/阴影下遮挡触摸区域 */
+            #topToolbar { position: relative; z-index: 10; }
+            #hamburgerBtn, #topToolbar .back-btn, #topToolbar .logs-btn, #topToolbar .save-btn { position: relative; z-index: 20; }
+            /* 中间分段按钮：高端 inline-tab —— 视觉上是"页级标题"角色，不是"胶囊控件"。
+               —— 无胶囊、无背景、无边框；字距拉开，字号 16px，inactive 走锌 500 细线体
+               —— active：墨黑 + 语义字重 600 + 下划线 2px × 字面 72% × 方头，极简无圆润
+               —— 切换时有 180ms cubic 过渡（颜色/下划线），避免"塑料感"
             */
             .top-seg {
                 display: inline-flex;
-                align-items: center;
+                align-items: baseline;     /* 中文基线对齐 */
                 background: none;
                 border-radius: 0;
                 padding: 0;
-                gap: 18px;
+                gap: 22px;
                 flex-shrink: 1;
                 justify-content: center;
             }
@@ -1102,36 +1112,46 @@
                 position: relative;
                 border: none;
                 background: none;
-                padding: 8px 2px 10px;
+                padding: 6px 1px 10px;
                 border-radius: 0;
-                font-size: 14px;
-                font-weight: 500;
+                font-size: var(--fs-seg);   /* 16px 页级标题尺寸 */
+                font-weight: 400;           /* inactive 常规细线 */
                 cursor: pointer;
                 color: var(--text-muted);
                 font-family: inherit;
-                letter-spacing: 0.01em;
-                transition: color 0.18s ease;
+                letter-spacing: 0.06em;     /* 标题字距拉开 */
+                line-height: 1.2;
+                transition: color 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+                -webkit-tap-highlight-color: transparent;
             }
             .top-seg button:hover { color: var(--text-700); }
             .top-seg button.on {
                 background: none;
-                color: var(--text);
+                color: var(--text);         /* zinc-900 浓墨黑 */
                 box-shadow: none;
-                font-weight: 600;
+                font-weight: 600;           /* 600 = 中黑，不激进 700 */
+                letter-spacing: 0.05em;     /* active 略收字距，避免粗体显膨胀 */
             }
             .top-seg button.on::after {
                 content: "";
                 position: absolute;
                 left: 50%;
-                bottom: 0px;
+                bottom: 1px;
                 transform: translateX(-50%);
-                width: 64%;
-                height: 1.5px;
-                background: var(--text);
-                border-radius: 2px;
+                width: 72%;
+                height: 2px;
+                background: var(--text);    /* 主色 = 文字色，统一感 */
+                border-radius: 0;           /* 方头直线 = 高端出版风 */
             }
             /* 次级页面：搜索框吸收，不再显示 */
             body.toolbar-mode-edit .hero-search { display: none; }
+            /* logs 页面：顶部只显示左返回按钮（汉堡、分段、日志、保存全隐藏），搜索框也隐藏 */
+            #topToolbar.mode-log .hamburger-btn,
+            #topToolbar.mode-log .logs-btn,
+            #topToolbar.mode-log .save-btn,
+            #topToolbar.mode-log .top-seg { display: none !important; }
+            #topToolbar.mode-log .back-btn { display: inline-flex !important; }
+            body.toolbar-mode-log .hero-search { display: none; }
             /* 移动端：drawer 中隐藏「系统状态/日志动态/后台任务/保存配置」——这 4 项入口在顶部按钮与默认页内 */
             .drawer-hide-mobile { display: none !important; }
             /* 移动端：drawer 遮罩层 */
@@ -1182,9 +1202,9 @@
             .ratio-label, .ratio-box { font-size: 15px; }
             /* 移动端：放大三个操作按钮字号 */
             .btn-action { font-size: 15px; }
-            /* 移动端：放大卡片标题文字和左侧图标 */
-            .card-title { font-size: 15px; }
-            /* 移动端：卡片内输入框/分组标签字号各+1px */
+            /* 移动端：卡片标题 —— 桌面端基础已是 15px，这里只做视觉对齐不重复放大 */
+            .card-title { font-size: var(--fs-title); }
+            /* 移动端：卡片内输入框/分组标签字号统一为 13.5px（比桌面 fs-label=12 更易读） */
             .form-group > label { font-size: 13.5px; }
             .group-card .form-group > label { font-size: 13.5px; }
             .cfg-card-label { font-size: 13.5px; }
@@ -2356,12 +2376,17 @@
             // 侧边栏"保存配置"按钮始终显示（不随 tab 隐藏）
 
             // 移动端：进入 5 个设置类 Tab 时切换顶部工具行：汉堡/分段/日志 → 返回/空/保存；同时隐藏搜索框
+            // 进入 logs tab 时：只显示左返回按钮，其余全部隐藏
             const SUB_TABS = { user: 1, 'transfer-save': 1, transfer: 1, strm: 1, mediawarp: 1 };
             const toolbar = document.getElementById('topToolbar');
             if (toolbar) {
                 toolbar.classList.toggle('mode-edit', !!SUB_TABS[tab]);
+                toolbar.classList.toggle('mode-log', tab === 'logs');
             }
-            try { document.body.classList.toggle('toolbar-mode-edit', !!SUB_TABS[tab]); } catch (e) {}
+            try {
+                document.body.classList.toggle('toolbar-mode-edit', !!SUB_TABS[tab]);
+                document.body.classList.toggle('toolbar-mode-log', tab === 'logs');
+            } catch (e) {}
 
             // 顶部中间分段按钮高亮：system / bg
             const topSeg = document.getElementById('topSeg');
@@ -2993,7 +3018,9 @@
         function renderEntryPosters(items) {
             const strip = document.getElementById('tmdb-poster');
             if (!strip || !items) return;
-            _entryPosterItems = items.filter(i => i.poster_path);
+            // 横版海报（backdrop_path 16:9 landscape），同时过滤掉没横版的；保留顺序
+            const filtered = items.filter(i => i.backdrop_path);
+            _entryPosterItems = filtered.length ? filtered : items.filter(i => i.poster_path);
             if (_entryPosterItems.length === 0) return;
             // 绑定触摸事件（仅绑一次）
             if (!strip.dataset.swipedBound) {
@@ -3042,8 +3069,11 @@
             _entryPosterLastIdx = idx;
             const i = _entryPosterItems[idx];
             // 始终保留 3 点指示器结构在 img 外层（strip 里有 innerHTML 覆盖）
+            const imgSrc = i.backdrop_path
+                ? `https://image.tmdb.org/t/p/w780${i.backdrop_path}`
+                : `https://image.tmdb.org/t/p/w780${i.poster_path}`;
             strip.innerHTML = `
-                <img src="https://image.tmdb.org/t/p/w780${i.poster_path}" alt="${escapeHtml(i.title)}" loading="lazy"
+                <img src="${imgSrc}" alt="${escapeHtml(i.title)}" loading="lazy"
                      style="transition: opacity 0.6s ease;">
                 <div class="poster-dots" aria-hidden="true">
                     <span class="dot active"></span>
@@ -4773,60 +4803,7 @@
 
         // ============ 初始化 ============
         (async function init() {
-            // 移动端：页面左右滑动切换 system / bg 两个主 Tab（编辑态和其他 Tab 下拦截无效）
-            (function bindSwipe() {
-                const mq = window.matchMedia('(max-width: 768px)');
-                const SWIPE = { x: 0, y: 0, startX: 0, startY: 0, tracking: false, triggered: false, subScroll: false };
-                const TH_X = 70;   // 横向阈值（px）
-                const TH_Y_RATIO = 0.5; // 纵向/横向比例：纵/横 > 0.5 视为纵向滚动，不切换
-
-                function currentTab() {
-                    return (location.hash || '#system').replace('#', '') || 'system';
-                }
-                function getCurrentMainTab() {
-                    const t = currentTab();
-                    if (t === 'system') return 'system';
-                    if (t === 'bg') return 'bg';
-                    return null; // 次级 Tab / logs 等不参与滑动
-                }
-                window.addEventListener('touchstart', (e) => {
-                    if (!mq.matches) return;
-                    const t = getCurrentMainTab();
-                    if (!t) return;
-                    if (e.touches.length !== 1) return;
-                    SWIPE.startX = SWIPE.x = e.touches[0].clientX;
-                    SWIPE.startY = SWIPE.y = e.touches[0].clientY;
-                    SWIPE.tracking = true; SWIPE.triggered = false; SWIPE.subScroll = false;
-                }, { passive: true });
-                window.addEventListener('touchmove', (e) => {
-                    if (!mq.matches || !SWIPE.tracking || SWIPE.triggered) return;
-                    const t0 = e.touches[0];
-                    const dx = t0.clientX - SWIPE.startX;
-                    const dy = t0.clientY - SWIPE.startY;
-                    // 如果初始方向是竖向为主，按普通滚动处理
-                    if (Math.abs(dy) > Math.abs(dx) * TH_Y_RATIO) { SWIPE.tracking = false; return; }
-                    SWIPE.x = t0.clientX; SWIPE.y = t0.clientY;
-                    // 局部元素横向滚动（如海报列表）时不拦截：检测起点目标
-                    // 这里简化：只要滑动距离达到就尝试切换（不 preventDefault，由系统处理）
-                }, { passive: true });
-                window.addEventListener('touchend', (e) => {
-                    if (!mq.matches || !SWIPE.tracking || SWIPE.triggered) return;
-                    SWIPE.tracking = false;
-                    const dx = (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : SWIPE.x) - SWIPE.startX;
-                    const dy = (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : SWIPE.y) - SWIPE.startY;
-                    if (Math.abs(dx) < TH_X) return;
-                    if (Math.abs(dy) > Math.abs(dx) * TH_Y_RATIO) return;
-                    const cur = getCurrentMainTab();
-                    if (!cur) return;
-                    SWIPE.triggered = true;
-                    // 向左滑（dx < 0）→ 进入右侧「后台」；向右滑（dx > 0）→ 回到左侧「系统」
-                    if (dx < 0) {
-                        if (cur === 'system') switchTab('bg');
-                    } else {
-                        if (cur === 'bg') switchTab('system');
-                    }
-                });
-            })();
+            // ⚠ 用户要求：取消手动滑动切换 system / bg（2026-09-04），原 bindSwipe 整段删除
 
             const hash = (location.hash || '').replace('#', '');
             const validTabs = ['system', 'user', 'transfer-save', 'transfer', 'strm', 'mediawarp', 'logs', 'bg'];
