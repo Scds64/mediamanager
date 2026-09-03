@@ -689,7 +689,7 @@
         .card:has(.mem-chart-wrap) { display: flex; flex-direction: column; }
         .mem-chart-wrap {
             position: relative;
-            padding-left: 36px;
+            padding-left: 26px;
             flex: 1;
             margin-top: 10px;   /* 上边距 10px，与标题下边距合计为内容区上间距 20px */
         }
@@ -729,15 +729,15 @@
             /* 按 viewBox 内边距比例定位，SVG 显示高度变化时仍与网格线对齐 */
             top: 5.714%;      /* 8 / 140 */
             bottom: 8.571%;   /* 12 / 140 */
-            width: 32px;
-            font-size: 10px;
+            width: 22px;
+            font-size: 9.5px;
             color: var(--text-400);
             font-variant-numeric: tabular-nums;
         }
         /* 每个刻度文字绝对定位到对应网格线 y 上并垂直居中，避免随行高/space-between 间距漂移导致文字与刻度线错位 */
         .mem-y-axis span {
             position: absolute;
-            right: 4px;
+            right: 2px;
             line-height: 1;
             transform: translateY(-50%);
         }
