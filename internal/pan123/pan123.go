@@ -38,6 +38,9 @@ type Client struct {
 
 	mu   sync.Mutex
 	http *httpx.Client
+
+	uidMu    sync.Mutex
+	uidCache map[string]int64 // shareKey → 上传者 UID（share.123pan.com 三级域名）
 }
 
 // New 用已有 token 创建客户端。
@@ -582,8 +585,58 @@ type ShareGetResp struct {
 	} `json:"data"`
 }
 
-// ShareGet 获取分享文件列表（yun Web 接口）。
+// shareUID 解析分享 key 对应的上传者 UID（按 key 缓存，一次转存只解析一次）。
+// 网页版分享页（phoenix-share）先调 /gsb/s/share-key 解析 UID，再跳转到
+// <uid>.share.123pan.com 加载文件列表与转存；该三级域名不受旧接口的热门分享风控影响。
+func (c *Client) shareUID(ctx context.Context, shareKey string) (int64, error) {
+	c.uidMu.Lock()
+	if c.uidCache == nil {
+		c.uidCache = make(map[string]int64)
+	}
+	if uid, ok := c.uidCache[shareKey]; ok {
+		c.uidMu.Unlock()
+		return uid, nil
+	}
+	c.uidMu.Unlock()
+
+	raw, status, err := c.http.Get(ctx, "https://www.123pan.cn/gsb/s/share-key?shareKey="+shareKey, nil)
+	if err != nil {
+		return 0, err
+	}
+	if status != 200 {
+		return 0, fmt.Errorf("123 share-key HTTP %d: %s", status, string(raw))
+	}
+	var r struct {
+		Info struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+			Data    struct {
+				UserID int64 `json:"UserID"`
+			} `json:"data"`
+		} `json:"info"`
+	}
+	if err := json.Unmarshal(raw, &r); err != nil {
+		return 0, fmt.Errorf("解析 share-key 响应失败: %v, body: %s", err, string(raw))
+	}
+	if r.Info.Code != 0 {
+		return 0, &APIError{Code: r.Info.Code, Message: r.Info.Message}
+	}
+	c.uidMu.Lock()
+	c.uidCache[shareKey] = r.Info.Data.UserID
+	c.uidMu.Unlock()
+	return r.Info.Data.UserID, nil
+}
+
+// ShareGet 获取分享文件列表。2026-09-03 起改走新版分享域名：
+// 先解析上传者 UID，再请求 https://<uid>.share.123pan.com/api/share/get
+// （参数与响应结构与旧版一致）。旧域名 yun.123pan.com/api/share/get 对热门分享
+// 会被 123 风控返回 429"分享界面操作频繁"（网页前端早已迁移，不受影响），
+// 实测同一分享同一时刻：yun.123pan.com 429、<uid>.share.123pan.com code 0 秒回。
 func (c *Client) ShareGet(ctx context.Context, shareKey, sharePwd string, parentFileID any, page int) (*ShareGetResp, error) {
+	uid, err := c.shareUID(ctx, shareKey)
+	if err != nil {
+		return nil, err
+	}
 	params := map[string]string{
 		"ShareKey":       shareKey,
 		"SharePwd":       sharePwd,
@@ -595,7 +648,11 @@ func (c *Client) ShareGet(ctx context.Context, shareKey, sharePwd string, parent
 		"orderBy":        "file_name",
 		"orderDirection": "asc",
 	}
-	raw, status, err := c.http.Get(ctx, YunBase+"/api/share/get?"+encodeQuery(params), map[string]string{"Authorization": "Bearer " + c.Token})
+	base := fmt.Sprintf("https://%d.share.123pan.com", uid)
+	raw, status, err := c.http.Get(ctx, base+"/api/share/get?"+encodeQuery(params), map[string]string{
+		"Authorization": "Bearer " + c.Token,
+		"Referer":       base + "/123pan/" + shareKey,
+	})
 	if err != nil {
 		return nil, err
 	}
