@@ -71,6 +71,7 @@ func (b *Bot) transferSharedLinkOptimize(targetURL string, targetPID int) bool {
 	}
 
 	if err := recursiveFetch(0); err != nil {
+		log.Printf("[转存] 获取资源结构失败: %v", err)
 		b.SubmitSend(func() { b.SendMessage(fmt.Sprintf("获取资源结构失败: %v", err)) })
 		return false
 	}
@@ -120,6 +121,7 @@ func (b *Bot) transferSharedLinkOptimize(targetURL string, targetPID int) bool {
 	}
 
 	if err := createDirs(0); err != nil {
+		log.Printf("[转存] 创建目录结构失败: %v", err)
 		b.SubmitSend(func() { b.SendMessage(fmt.Sprintf("创建目录结构失败: %v", err)) })
 		return false
 	}

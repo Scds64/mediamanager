@@ -38,9 +38,6 @@ type Client struct {
 
 	mu   sync.Mutex
 	http *httpx.Client
-
-	shareMu sync.Mutex // share/get 接口全局限速
-	shareAt time.Time  // 上次 share/get 请求时间
 }
 
 // New 用已有 token 创建客户端。
@@ -585,18 +582,6 @@ type ShareGetResp struct {
 	} `json:"data"`
 }
 
-// shareGetPace share/get 全局限速。123 对分享界面接口有频率限制：连发请求（大分享
-// 逐目录递归抓取、多消息并发转存）会触发 429"分享界面操作频繁"，且冷却期内新分享
-// 的第一页也会被拒。与 IterDir 遍历目录列表的 1 秒冷却同一策略。
-func (c *Client) shareGetPace() {
-	c.shareMu.Lock()
-	if wait := time.Second - time.Since(c.shareAt); wait > 0 {
-		time.Sleep(wait)
-	}
-	c.shareAt = time.Now()
-	c.shareMu.Unlock()
-}
-
 // ShareGet 获取分享文件列表（yun Web 接口）。
 func (c *Client) ShareGet(ctx context.Context, shareKey, sharePwd string, parentFileID any, page int) (*ShareGetResp, error) {
 	params := map[string]string{
@@ -610,7 +595,6 @@ func (c *Client) ShareGet(ctx context.Context, shareKey, sharePwd string, parent
 		"orderBy":        "file_name",
 		"orderDirection": "asc",
 	}
-	c.shareGetPace()
 	raw, status, err := c.http.Get(ctx, YunBase+"/api/share/get?"+encodeQuery(params), map[string]string{"Authorization": "Bearer " + c.Token})
 	if err != nil {
 		return nil, err
