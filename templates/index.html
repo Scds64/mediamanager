@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<html lang="zh-CN"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>MediaManager 配置管理</title>
@@ -189,11 +188,11 @@
         }
         .more-sheet {
             position: absolute;
-            left: 8px; right: 8px; bottom: 0;
+            left: 0; right: 0; bottom: 0;
             background: rgba(255, 255, 255, 0.95);
             -webkit-backdrop-filter: saturate(180%) blur(20px);
             backdrop-filter: saturate(180%) blur(20px);
-            border-radius: 14px 14px 0 0;
+            border-radius: 18px 18px 0 0;
             padding: 8px 0 calc(8px + env(safe-area-inset-bottom));   /* iOS：面板上下留白 + 底部安全区 */
             transform: translateY(105%);
             transition: transform 0.25s ease;
@@ -1122,9 +1121,6 @@
             .cfg-grid { grid-template-columns: 1fr; }
             .form-row { grid-template-columns: 1fr; gap: 14px; }
             .notification { right: 12px; left: 12px; max-width: none; top: calc(16px + env(safe-area-inset-top)); }
-            /* 移动端：弹窗贴近屏幕左右边缘（去掉 overlay 的 20px 内边距），并放大圆角 */
-            body .tmdb-modal-overlay { padding: 0; }
-            .tmdb-modal-overlay .tmdb-modal { border-radius: 22px; }
             .tmdb-grid { grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 3px; }
             .tmdb-search { width: 100%; margin-left: 0; }
             .tmdb-search input { flex: 1; width: auto; }
@@ -1847,13 +1843,13 @@
         <div class="tabbar-item" data-tab="bg" onclick="switchTab('bg')">
             <i class="fas fa-tasks"></i><span>后台</span>
         </div>
-        <div class="tabbar-item" id="tabbar-more" onclick="openMoreSheet()">
+        <div class="tabbar-item active" id="tabbar-more" onclick="openMoreSheet()">
             <i class="fas fa-gear"></i><span>设置</span>
         </div>
     </nav>
 
     <!-- ============ 移动端"更多"ActionSheet 弹层（仅 ≤768px 显示） ============ -->
-    <div class="more-sheet-overlay" id="moreSheetOverlay" onclick="closeMoreSheet()">
+    <div class="more-sheet-overlay open" id="moreSheetOverlay" onclick="closeMoreSheet()">
         <div class="more-sheet" onclick="event.stopPropagation()">
             <div class="sheet-item" onclick="switchTab('user'); closeMoreSheet()">
                 <i class="fas fa-user-cog"></i><span>用户配置</span><i class="fas fa-chevron-right"></i>
@@ -1943,11 +1939,9 @@
                     <div class="card">
                         <div class="card-title">
                             <i class="fas fa-chart-line"></i>Emby 观看时长
-                            <button class="card-title-icon-btn" id="emby-usage-load" style="margin-left:auto;" onclick="loadEmbyUsage()" title="刷新观看数据" aria-label="刷新观看数据"><i class="fas fa-rotate-right"></i></button>
+                            <button class="card-title-icon-btn" id="emby-usage-load" style="margin-left: auto;" onclick="loadEmbyUsage()" title="刷新观看数据" aria-label="刷新观看数据"><i class="fas fa-rotate-right"></i></button>
                         </div>
-                        <div id="emby-usage-body">
-                            <div style="color: var(--text-400); padding: 12px 0;">正在加载各用户近 7 天每日观看时长...</div>
-                        </div>
+                        <div id="emby-usage-body"><div class="empty-row">观看数据加载失败: Failed to fetch</div></div>
                     </div>
                     <div class="card">
                         <div class="card-title">
@@ -2026,9 +2020,7 @@
                                     <th>操作</th>
                                 </tr>
                             </thead>
-                            <tbody id="historyBody">
-                                <tr><td colspan="6" class="empty-row">加载中...</td></tr>
-                            </tbody>
+                            <tbody id="historyBody"><tr><td colspan="6" class="empty-row">加载失败: Failed to fetch</td></tr></tbody>
                         </table>
                     </div>
                     <div class="pager" id="history-pager"></div>
@@ -2048,14 +2040,13 @@
                     <div class="card-title">
                         <i class="fas fa-key"></i>LitePan OAuth 认证
                     </div>
-                    <div id="oauth-status-container">
-                        <div class="oauth-banner">
-                            <div class="oauth-icon"><i class="fas fa-spinner fa-spin"></i></div>
-                            <div class="oauth-text">
-                                <div class="title">加载中...</div>
-                            </div>
-                        </div>
+                    <div id="oauth-status-container"><div class="oauth-banner err">
+                    <div class="oauth-icon"><i class="fas fa-times-circle"></i></div>
+                    <div class="oauth-text">
+                        <div class="title">读取状态失败</div>
+                        <div class="meta">Failed to fetch</div>
                     </div>
+                </div></div>
                     <div class="info-callout">
                         <div class="ic-title"><i class="fas fa-info-circle"></i>认证说明</div>
                         OAuth 认证用于 115 网盘分享秒传至 123 云盘，认证需通过 Telegram 触发：<br>
@@ -2076,7 +2067,7 @@
                                 <input type="checkbox" id="env-authorization" data-section="资源转存" data-key="ENV_AUTHORIZATION" data-comment="是否开启频道监控（1=开启，0=关闭）">
                                 <span class="switch-track"><span class="switch-thumb"></span></span>
                                 <span class="switch-label">
-                            </label>
+                            </span></label>
                         </span>
                     </div>
 
@@ -2100,11 +2091,11 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>检查新消息间隔（分钟）</label>
-                                <input type="number" data-section="资源转存" data-key="ENV_CHECK_INTERVAL" data-comment="检查新消息的时间间隔（分钟）" value=""placeholder="60">
+                                <input type="number" data-section="资源转存" data-key="ENV_CHECK_INTERVAL" data-comment="检查新消息的时间间隔（分钟）" value="" placeholder="60">
                             </div>
                             <div class="form-group">
                                 <label>每秒保存文件数量</label>
-                                <input type="number" data-section="资源转存" data-key="ENV_FILE_PER_SECOND" data-comment="每秒保存文件数量（JSON秒传，默认5，建议≤10避免风控）" value=""placeholder="5，建议≤10避免风控">
+                                <input type="number" data-section="资源转存" data-key="ENV_FILE_PER_SECOND" data-comment="每秒保存文件数量（JSON秒传，默认5，建议≤10避免风控）" value="" placeholder="5，建议≤10避免风控">
                             </div>
                         </div>
 
@@ -2175,7 +2166,7 @@
                                 <input type="checkbox" id="cfg-enabled">
                                 <span class="switch-track"><span class="switch-thumb"></span></span>
                                 <span class="switch-label">
-                            </label>
+                            </span></label>
                         </span>
                     </div>
                     <div class="form-row">
@@ -2221,7 +2212,7 @@
                     </div>
 
                     <label class="switch" style="display: flex; margin: 12px 0 10px; align-items: center;">
-                        <input type="checkbox" id="cfg-pv-enable" checked>
+                        <input type="checkbox" id="cfg-pv-enable" checked="">
                         <span class="switch-track"><span class="switch-thumb"></span></span>
                         <span class="switch-label">版本优先替换<span class="ratio-ex" id="ratio-ex">（例外：体积 ≥<span class="ratio-box" id="ratio-box"><span id="ratio-current">关闭</span>
                                 <select id="cfg-size-ratio">
@@ -2264,7 +2255,7 @@
                                 <input type="checkbox" id="strm-enabled">
                                 <span class="switch-track"><span class="switch-thumb"></span></span>
                                 <span class="switch-label">
-                            </label>
+                            </span></label>
                         </span>
                     </div>
 
@@ -2338,14 +2329,14 @@
                                 <input type="checkbox" id="mw-enabled">
                                 <span class="switch-track"><span class="switch-thumb"></span></span>
                                 <span class="switch-label">
-                            </label>
+                            </span></label>
                         </span>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label for="mw-port">反代端口</label>
-                            <input type="text" id="mw-port" value=""placeholder="如9000，可修改">
+                            <input type="text" id="mw-port" value="" placeholder="如9000，可修改">
                         </div>
                         <div class="form-group">
                             <label for="mw-type">上游媒体服务器类型</label>
@@ -2379,7 +2370,7 @@
         </main>
     </div>
 
-    <div id="notification" class="notification"></div>
+    <div id="notification" class="notification error"><i class="fas fa-exclamation-circle"></i> 加载媒体洗版状态失败: Failed to fetch</div>
     <div id="loading" class="loading">
         <div class="loading-card">
             <div class="spinner"></div>
@@ -4793,5 +4784,6 @@
             layoutBgTasks();  // 桌面端把后台任务两个卡片并入「系统状态」Tab（整理历史上方）
         })();
     </script>
-</body>
-</html>
+
+
+</body></html>
