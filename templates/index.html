@@ -558,7 +558,6 @@
             background: none;
             box-shadow: none;
             overflow: hidden;
-            border: 2px solid #fff;
             box-sizing: border-box;
         }
         #tab-system .tmdb-entry-poster img {
@@ -1085,33 +1084,51 @@
             #topToolbar.mode-edit .mode-default-left,
             #topToolbar.mode-edit .mode-default-right,
             #topToolbar.mode-edit .mode-default-center { display: none; }
-            /* 中间分段按钮：对齐订阅探索 .tmdb-seg 样式 */
+            /* 中间分段按钮：扁平化高端样式 —— 去胶囊背景/白底凸起/彩色主色，只用字重+细线 underline 表达状态
+               —— wrapper 透明无背景，按钮作为 inline 标签并列，active 用 text 黑色 600 + 1.5px 中线 underline
+               —— 宽度自适应（不给左右大量 padding），underline 只比字面宽 10%（不充满按钮），居中对齐
+            */
             .top-seg {
                 display: inline-flex;
-                background: #F1F5F9;
-                border-radius: 10px;
-                padding: 3px;
-                gap: 2px;
+                align-items: center;
+                background: none;
+                border-radius: 0;
+                padding: 0;
+                gap: 18px;
                 flex-shrink: 1;
+                justify-content: center;
             }
             .top-seg button {
+                position: relative;
                 border: none;
-                background: transparent;
-                padding: 7px 14px;
-                border-radius: 8px;
-                font-size: 13px;
+                background: none;
+                padding: 8px 2px 10px;
+                border-radius: 0;
+                font-size: 14px;
                 font-weight: 500;
                 cursor: pointer;
-                color: var(--text-600);
+                color: var(--text-muted);
                 font-family: inherit;
-                transition: all 0.18s ease;
+                letter-spacing: 0.01em;
+                transition: color 0.18s ease;
             }
-            .top-seg button:hover { color: var(--text-900); }
+            .top-seg button:hover { color: var(--text-700); }
             .top-seg button.on {
-                background: #fff;
-                color: var(--primary-hover);
+                background: none;
+                color: var(--text);
                 box-shadow: none;
                 font-weight: 600;
+            }
+            .top-seg button.on::after {
+                content: "";
+                position: absolute;
+                left: 50%;
+                bottom: 0px;
+                transform: translateX(-50%);
+                width: 64%;
+                height: 1.5px;
+                background: var(--text);
+                border-radius: 2px;
             }
             /* 次级页面：搜索框吸收，不再显示 */
             body.toolbar-mode-edit .hero-search { display: none; }
@@ -1183,7 +1200,6 @@
             padding: 0;
             border-radius: 14px;
             background: none;
-            border: 2px solid #fff;
             box-sizing: border-box;
             overflow: hidden;
             cursor: pointer;
