@@ -610,11 +610,10 @@
             /* 桌面端隐藏移动端"更多"ActionSheet 弹层（该弹层 HTML 默认带 open，且不受 tabbar 隐藏影响，需显式隐藏） */
             .more-sheet-overlay { display: none !important; }
         }
-        /* 订阅探索海报：横向 12:7，高度与媒体信息圆环等高（内容区上下间距均为 20px） */
+        /* 订阅探索海报：横向 12:7（设计目标比例），桌面端不锁 aspect-ratio，由同行媒体信息圆环高度撑开，保持三卡等高节奏 */
         #tab-system .tmdb-entry-card {
             display: flex;
             flex-direction: column;
-            aspect-ratio: 12 / 7;    /* 桌面端锁 12:7，与注释设计目标一致，避免靠内容撑起高度导致比例跳动/偏扁 */
         }
         /* 订阅探索：全出血媒体横幅 —— 海报铺满整卡，无托盘无嵌套，标题悬浮左上 */
         #tab-system .tmdb-entry-card.card {
