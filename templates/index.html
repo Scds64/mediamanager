@@ -607,6 +607,8 @@
         /* 后台任务的两个卡片（桌面端并入「系统状态」Tab 整理历史上方）保持原两列布局 */
         @media (min-width: 769px) {
             #tab-system #bg-cards-row { grid-template-columns: minmax(0, 1fr) 340px; }
+            /* 桌面端隐藏移动端"更多"ActionSheet 弹层（该弹层 HTML 默认带 open，且不受 tabbar 隐藏影响，需显式隐藏） */
+            .more-sheet-overlay { display: none !important; }
         }
         /* 订阅探索海报：横向 12:7，高度与媒体信息圆环等高（内容区上下间距均为 20px） */
         #tab-system .tmdb-entry-card { display: flex; flex-direction: column; }  /* flex 阻止标题/海报外边距折叠，保证卡高由海报撑起 */
