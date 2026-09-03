@@ -610,11 +610,8 @@
             /* 桌面端隐藏移动端"更多"ActionSheet 弹层（该弹层 HTML 默认带 open，且不受 tabbar 隐藏影响，需显式隐藏） */
             .more-sheet-overlay { display: none !important; }
         }
-        /* 订阅探索海报：横向 12:7（设计目标比例），桌面端不锁 aspect-ratio，由同行媒体信息圆环高度撑开，保持三卡等高节奏 */
-        #tab-system .tmdb-entry-card {
-            display: flex;
-            flex-direction: column;
-        }
+        /* 订阅探索海报：横向 12:7，高度与媒体信息圆环等高（内容区上下间距均为 20px） */
+        #tab-system .tmdb-entry-card { display: flex; flex-direction: column; }  /* flex 阻止标题/海报外边距折叠，保证卡高由海报撑起 */
         /* 订阅探索：全出血媒体横幅 —— 海报铺满整卡，无托盘无嵌套，标题悬浮左上 */
         #tab-system .tmdb-entry-card.card {
             position: relative;      /* 标题 absolute 的锚点 */
@@ -1120,9 +1117,8 @@
             .drawer { display: none; }
             .content { padding: calc(20px + env(safe-area-inset-top)) 16px 110px; }
             .card { padding: 18px; }
-            /* 移动端：订阅探索保留全出血横幅（不被通用 .card padding 覆盖），并把卡片整体比例从 12:7 改为 16:9 更接近手机横幅视觉 */
+            /* 移动端：订阅探索保留全出血横幅（不被通用 .card padding 覆盖） */
             #tab-system .tmdb-entry-card.card { padding: 0; }
-            #tab-system .tmdb-entry-card { aspect-ratio: 16 / 9; }
             .cards-row { grid-template-columns: minmax(0, 1fr); }
             #tab-system .cards-row { grid-template-columns: minmax(0, 1fr); }
             #tab-bg .cards-row { grid-template-columns: minmax(0, 1fr); }
