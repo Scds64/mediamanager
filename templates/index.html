@@ -517,6 +517,8 @@
             /* 桌面端隐藏移动端汉堡按钮和 drawer 遮罩 */
             .hamburger-btn { display: none !important; }
             .drawer-overlay { display: none !important; }
+            /* 桌面端顶部工具行（系统/后台、返回、日志、保存）是移动端专用，桌面用左侧导航，整行隐藏 */
+            .top-toolbar { display: none !important; }
         }
         /* 订阅探索海报：横向 12:7，高度与媒体信息圆环等高（内容区上下间距均为 20px） */
         #tab-system .tmdb-entry-card { display: flex; flex-direction: column; }  /* flex 阻止标题/海报外边距折叠，保证卡高由海报撑起 */
@@ -556,6 +558,7 @@
             font-size: 12px;
         }
         #tab-system .tmdb-entry-poster {
+            position: relative;      /* 作为图片堆叠的锚点，支持交叉淡入淡出 */
             width: 100%;
             flex: 1;               /* 撑满整卡（卡片为 flex 列布局，padding:0） */
             display: block;
@@ -566,13 +569,18 @@
             overflow: hidden;
             box-sizing: border-box;
         }
-        #tab-system .tmdb-entry-poster img {
+        /* 海报图绝对铺叠：opacity 0→1 过渡实现交叉淡化（旧图保留在下方，切换不挖空） */
+        #tab-system .tmdb-entry-poster img.entry-img {
+            position: absolute;
+            inset: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
             border-radius: 0;
-            display: block;
+            opacity: 0;
+            transition: opacity 0.5s ease;
         }
+        #tab-system .tmdb-entry-poster img.entry-img.show { opacity: 1; }
         #tab-system .tmdb-entry-card.card:hover {
             box-shadow: 0 14px 30px -14px rgba(15, 23, 42, 0.55);
         }
@@ -601,16 +609,17 @@
             display: flex; align-items: center;
             height: 52px;
             background: var(--surface);
-            border: 1px solid var(--border);
+            border: none;                       /* 去描边，改用柔和阴影，贴合卡片化 */
+            box-shadow: 0 1px 2px rgba(24,24,27,0.05), 0 6px 16px -8px rgba(24,24,27,0.12);
             border-radius: 999px;
             padding: 0 18px 0 48px;
             margin: 8px 0 18px;
-            transition: border-color .2s, box-shadow .2s;
+            transition: box-shadow .2s;
         }
         .hero-search .search-ico {
-            position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
-            font-size: 16px;
-            color: var(--text-400);
+            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+            font-size: 15px;               /* 与右侧多功能按钮图标大小一致 */
+            color: var(--text-500);
         }
         .hero-search .hero-search-input {
             flex: 1; height: 100%;
@@ -620,13 +629,49 @@
             padding: 0;
         }
         .hero-search .hero-search-input::placeholder { color: var(--text-400); }
-        .hero-search .search-filter {
-            width: 38px; height: 38px; border-radius: 999px;
+
+        /* 搜索多功能图标 + 作用域菜单：右侧图标点击弹出「影视/整理」 */
+        .search-filter {
+            margin-left: 10px;
+            flex-shrink: 0;
+            width: 34px; height: 34px;
+            border-radius: 999px;
             display: inline-flex; align-items: center; justify-content: center;
-            background: rgba(99, 102, 241, 0.10);
-            color: var(--primary);
+            color: var(--text-500);
             font-size: 15px;
+            cursor: pointer;
+            transition: background .2s, color .2s;
+            -webkit-tap-highlight-color: transparent;
         }
+        .search-filter:hover { color: var(--primary); background: rgba(99,102,241,0.08); }
+        .search-filter:active { opacity: .7; }
+        /* 作用域下拉菜单 */
+        .scope-menu {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            z-index: 40;
+            display: none;
+            min-width: 132px;
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px -8px rgba(24,24,27,0.18), 0 2px 6px rgba(24,24,27,0.06);
+            padding: 4px;
+        }
+        .scope-menu.open { display: block; }
+        .scope-opt {
+            display: block; width: 100%; text-align: left;
+            border: none; background: transparent;
+            color: var(--text-600);
+            font-size: 13px; font-weight: 500;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .scope-opt.on { background: rgba(99,102,241,0.10); color: var(--primary); }
+        .scope-opt:hover { background: rgba(24,24,27,0.05); }
+        .scope-opt.on:hover { background: rgba(99,102,241,0.14); }
 
         /* ============ 媒体信息（环形图 + 扇区标签） ============ */
         .emby-stats {
@@ -706,9 +751,6 @@
         .mem-y-axis span:nth-child(3) { top: 50%; }
         .mem-y-axis span:nth-child(4) { top: 75%; }
         .mem-y-axis span:nth-child(5) { top: 100%; }
-        .mem-x-axis {
-            display: none;
-        }
         /* 版本优先替换 chips */
         .pv-chips {
             display: flex;
@@ -1067,12 +1109,20 @@
             .brand-title .t1 { font-size: 17px; }
             .brand-title .t2 { font-size: 11px; letter-spacing: 2px; }
             .btn { padding: 0 14px; font-size: 13px; height: 36px; }
-            /* 移动端：顶部工具行 —— 左汉堡、右日志图标，中间占位 */
+            /* 移动端：顶部工具行 —— 左汉堡、右日志图标，中间占位。
+               工具栏 sticky 磁吸贴在状态栏下沿（safe-area 保证不被刘海遮挡），滚动时卡片滑入其下 */
             .top-toolbar {
+                position: sticky;
+                top: 0;
+                z-index: 40;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                margin-bottom: 8px;
+                margin: 0 -16px 8px;                    /* 横向出血铺满屏宽，底边距留给首张卡片 */
+                padding: calc(env(safe-area-inset-top) + 6px) 16px 4px;
+                /* 纯色与 body 顶部状态栏区块完全同色（var(--bg)），顶部无缝衔接、无边界线；
+                   滚动时卡片被不透明背景干净遮盖，底部也不会出现淡出交接的细线 */
+                background: var(--bg);
             }
             .toolbar-icon-btn {
                 width: 48px; height: 48px;
@@ -1091,7 +1141,7 @@
             #topToolbar.mode-edit .mode-default-right,
             #topToolbar.mode-edit .mode-default-center { display: none; }
             /* 按钮层级保证：避免兄弟元素（分段、搜索框、长页面元素）在特定滚动/阴影下遮挡触摸区域 */
-            #topToolbar { position: relative; z-index: 10; }
+            #topToolbar { position: sticky; z-index: 10; }   /* sticky，保持与状态栏磁吸，滚动时不随之滚走 */
             #hamburgerBtn, #topToolbar .back-btn, #topToolbar .logs-btn, #topToolbar .save-btn { position: relative; z-index: 20; }
             /* 中间分段按钮：高端 inline-tab —— 视觉上是"页级标题"角色，不是"胶囊控件"。
                —— 无胶囊、无背景、无边框；字距拉开，字号 16px，inactive 走锌 500 细线体
@@ -1143,15 +1193,12 @@
                 background: var(--text);    /* 主色 = 文字色，统一感 */
                 border-radius: 0;           /* 方头直线 = 高端出版风 */
             }
-            /* 次级页面：搜索框吸收，不再显示 */
-            body.toolbar-mode-edit .hero-search { display: none; }
-            /* logs 页面：顶部只显示左返回按钮（汉堡、分段、日志、保存全隐藏），搜索框也隐藏 */
+            /* logs 页面：顶部只显示左返回按钮（汉堡、分段、日志、保存全隐藏） */
             #topToolbar.mode-log .hamburger-btn,
             #topToolbar.mode-log .logs-btn,
             #topToolbar.mode-log .save-btn,
             #topToolbar.mode-log .top-seg { display: none !important; }
             #topToolbar.mode-log .back-btn { display: inline-flex !important; }
-            body.toolbar-mode-log .hero-search { display: none; }
             /* 移动端：drawer 中隐藏「系统状态/日志动态/后台任务/保存配置」——这 4 项入口在顶部按钮与默认页内 */
             .drawer-hide-mobile { display: none !important; }
             /* 移动端：drawer 遮罩层 */
@@ -1165,7 +1212,9 @@
                 transition: opacity 0.28s;
             }
             .drawer-overlay.show { display: block; opacity: 1; }
-            /* 移动端：drawer 从左侧 fixed 滑出 */
+            /* 移动端：drawer 从左侧 fixed 滑出。
+               收起状态用 visibility:hidden 彻底不参与绘制 —— 否则即便 translateX(-100%) 移出屏幕，
+               其 box-shadow 仍会渲染到屏幕最左缘，形成一条"自上而下的黑线"（刷新有时会消失）。 */
             .drawer {
                 display: flex;
                 position: fixed;
@@ -1173,26 +1222,36 @@
                 z-index: 200;
                 width: 260px;
                 transform: translateX(-100%);
-                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 2px 0 16px rgba(0,0,0,0.12);
+                visibility: hidden;
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.28s;
+                box-shadow: none;                   /* 收起时不带阴影 */
             }
-            .drawer.open { transform: translateX(0); }
-            .content { padding: calc(20px + env(safe-area-inset-top)) 16px 24px; }
+            .drawer.open {
+                transform: translateX(0);
+                visibility: visible;
+                box-shadow: 2px 0 16px rgba(0,0,0,0.12);  /* 只在展开时投影 */
+            }
+            /* 移动端：保存配置被隐藏，改用 footer 自身吸底，让「重启系统」始终贴在最底部 */
+            .drawer .drawer-footer {
+                margin-top: auto;
+                padding-top: 14px;
+                border-top: 1px solid var(--border);
+            }
+            .content {
+                overflow-x: clip;                       /* 裁掉横向溢出但不产生滚动容器，保证 sticky 生效 */
+                padding: 0 16px 24px;                   /* 顶部留白由 toolbar 的 safe-area padding 承担 */
+            }
             .card { padding: 18px; }
             /* 移动端：订阅探索保留全出血横幅（不被通用 .card padding 覆盖） */
             #tab-system .tmdb-entry-card.card { padding: 0; }
+            /* 移动端：海报区给个最小高度兜底，首图预加载/加载失败时卡片也不塌陷、不跳动 */
+            #tab-system .tmdb-entry-poster { min-height: 170px; }
             .cards-row { grid-template-columns: minmax(0, 1fr); }
             #tab-system .cards-row { grid-template-columns: minmax(0, 1fr); }
             #tab-bg .cards-row { grid-template-columns: minmax(0, 1fr); }
             .cfg-grid { grid-template-columns: 1fr; }
             .form-row { grid-template-columns: 1fr; gap: 14px; }
             .notification { right: 12px; left: 12px; max-width: none; top: calc(16px + env(safe-area-inset-top)); }
-            .tmdb-grid { grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 3px; }
-            .tmdb-search { width: 100%; margin-left: 0; }
-            .tmdb-search input { flex: 1; width: auto; }
-            /* 移动端：整理历史搜索框占满整行 */
-            .history-search { max-width: 100%; }
-            .history-search.open { width: 100%; }
             /* 移动端：放大 switch 开关尺寸，更易点击 */
             .switch-track { width: 56px; height: 30px; border-radius: 15px; }
             .switch-thumb { width: 24px; height: 24px; top: 3px; left: 3px; }
@@ -1360,91 +1419,6 @@
         }
         .tmdb-search input:not(:placeholder-shown) ~ .tmdb-search-clear { display: inline-flex; }
         .tmdb-search-clear:hover { background: var(--primary-soft); color: var(--text-900); }
-        /* 整理历史搜索：折叠态为一个放大镜图标，点它就地展开为输入框；点击外部收起并清空 */
-        .history-search {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            margin-left: auto;
-            height: 36px;
-            border: 1px solid transparent;
-            border-radius: 8px;
-            transition: width 0.2s ease, border-color 0.18s ease, background 0.18s ease;
-            width: 34px;
-            overflow: hidden;
-        }
-        .history-search.open {
-            width: 260px;
-            border-color: var(--primary);
-            background: #FAFAFB;
-            box-shadow: 0 0 0 3px var(--primary-soft);
-        }
-        .history-search-trigger {
-            flex: 0 0 auto;
-            width: 34px;
-            height: 100%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
-            border: none;
-            color: var(--primary);
-            font-size: 16px;
-            cursor: pointer;
-            opacity: 1;
-            transition: opacity 0.15s ease;
-        }
-        .history-search.open .history-search-trigger { opacity: 0; pointer-events: none; position: absolute; }
-        .history-search input {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            padding: 0 34px 0 36px;
-            border: none;
-            outline: none;
-            font-size: 13px;
-            font-family: inherit;
-            background: transparent;
-            color: var(--text-700);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.15s ease;
-        }
-        .history-search.open input { opacity: 1; pointer-events: auto; }
-        .history-search input::placeholder { color: var(--text-400); }
-        /* 输入框内左侧放大镜 + 右侧清除 */
-        .history-search .input-zoom {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-400);
-            font-size: 13px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.15s ease;
-        }
-        .history-search.open .input-zoom { opacity: 1; }
-        .history-search-clear {
-            position: absolute;
-            right: 6px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            color: var(--text-400);
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.18s, color 0.18s;
-        }
-        .history-search.open input:not(:placeholder-shown) ~ .history-search-clear { display: inline-flex; }
-        .history-search-clear:hover { background: var(--primary-soft); color: var(--text-900); }
         .tmdb-subscribe-btn {
             position: absolute;
             bottom: 8px;
@@ -1597,16 +1571,6 @@
             display: block;
         }
         .tmdb-meta { font-size: 12px; color: var(--text-500); margin-top: 2px; }
-        .tmdb-overview {
-            font-size: 12px;
-            line-height: 1.55;
-            color: var(--text-500);
-            margin-top: 0;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
         .tmdb-modal-overlay {
             position: fixed;
             inset: 0;
@@ -1856,13 +1820,13 @@
         </aside>
 
         <!-- 移动端 drawer 遮罩层（点击关闭 drawer） -->
-        <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+        <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer(event)"></div>
 
         <main class="content">
             <!-- 移动端顶部工具行（系统/后台 tab：左汉堡+中间分段+右日志；设置类 tab：左返回+空+右保存） -->
             <div class="top-toolbar" id="topToolbar">
                 <!-- 汉堡（默认态） -->
-                <button class="toolbar-icon-btn hamburger-btn mode-default-left" id="hamburgerBtn" onclick="toggleDrawer()" aria-label="打开菜单">
+                <button class="toolbar-icon-btn hamburger-btn mode-default-left" id="hamburgerBtn" onclick="toggleDrawer(event)" aria-label="打开菜单">
                     <i class="fas fa-bars"></i>
                 </button>
                 <!-- 返回（编辑态） -->
@@ -1882,12 +1846,6 @@
                 <button class="toolbar-icon-btn save-btn mode-edit-right" onclick="saveTopConfig()" aria-label="保存配置">
                     <i class="fas fa-save"></i>
                 </button>
-            </div>
-            <!-- 通用搜索框（占位，后续接功能） -->
-            <div class="hero-search">
-                <i class="fas fa-magnifying-glass search-ico"></i>
-                <input type="text" class="hero-search-input" placeholder="搜索影视、整理记录、任务..." disabled>
-                <i class="fas fa-sliders search-filter"></i>
             </div>
             <!-- ============ 日志动态 ============ -->
             <section class="tab-panel" id="tab-logs">
@@ -1928,8 +1886,27 @@
             <section class="tab-panel active" id="tab-system">
                 <div id="transfer-alert"></div>
 
-                <!-- 1. 订阅探索（单张横向海报，无角标，右下角3点；桌面端与移动端都作为首卡） -->
+                <!-- 搜索卡片：仅系统页面显示（其它 Tab 不渲染）
+                        右侧多功能图标点击弹出作用域菜单：「影视」过滤订阅探索海报，「整理」回车过滤整理历史 -->
+                <div class="hero-search">
+                    <i class="fas fa-magnifying-glass search-ico"></i>
+                    <input type="text" class="hero-search-input" placeholder="搜索影视资源..."
+                           autocomplete="off"
+                           oninput="heroSearchLiveScoped(this.value)"
+                           onkeydown="if(event.key==='Enter') heroSearchHistory()">
+                    <i class="fas fa-sliders search-filter scope-toggle" id="scopeBtn" title="搜索范围" onclick="toggleScopeMenu(event)"></i>
+                    <div class="scope-menu" id="scopeMenu">
+                        <button class="scope-opt on" data-scope="media"   type="button" onclick="scopePick('media', this)">影视资源</button>
+                        <button class="scope-opt"      data-scope="history" type="button" onclick="scopePick('history', this)">整理记录</button>
+                    </div>
+                </div>
+
+                <!-- 1. 订阅探索（单张横向海报；左上角标签栏 + 右下角3点；桌面端与移动端都作为首卡） -->
                 <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
+                    <div class="card-title tmdb-entry-title">
+                        <i class="fas fa-fire"></i>订阅探索
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
                     <div id="tmdb-poster" class="tmdb-entry-poster">
                         <div class="poster-dots" aria-hidden="true">
                             <span class="dot active"></span>
@@ -1974,12 +1951,6 @@
                 <div class="card" id="history-card">
                     <div class="card-title">
                         <i class="fas fa-history"></i>整理历史
-                        <span class="history-search" id="history-search-wrap" title="搜索整理历史">
-                            <button class="history-search-trigger" id="history-search-toggle" onclick="historySearchOpen(event)" aria-label="搜索整理历史"><i class="fas fa-magnifying-glass"></i></button>
-                            <i class="fas fa-magnifying-glass input-zoom"></i>
-                            <input type="text" id="history-search-input" placeholder="搜索标题/文件名/路径..." onkeydown="if(event.key==='Enter') historySearch()">
-                            <i class="fas fa-times history-search-clear" onclick="historySearchClear()"></i>
-                        </span>
                     </div>
                     <div class="history-wrap">
                         <table class="history-table">
@@ -2383,10 +2354,6 @@
                 toolbar.classList.toggle('mode-edit', !!SUB_TABS[tab]);
                 toolbar.classList.toggle('mode-log', tab === 'logs');
             }
-            try {
-                document.body.classList.toggle('toolbar-mode-edit', !!SUB_TABS[tab]);
-                document.body.classList.toggle('toolbar-mode-log', tab === 'logs');
-            } catch (e) {}
 
             // 顶部中间分段按钮高亮：system / bg
             const topSeg = document.getElementById('topSeg');
@@ -2444,10 +2411,6 @@
         }
 
         // ============ 后台任务卡片：桌面端与移动端一致，都放在「后台」Tab 页面 ============
-        function isDesktopLayout() {
-            return !window.matchMedia('(max-width: 768px)').matches;
-        }
-
         function layoutBgTasks() {
             // 取消之前把后台 2 张卡（Emby 观看时长 + 后台任务）并入系统状态的逻辑
             // 现在两者都放在「后台」Tab 页面，桌面/移动端一致
@@ -2590,7 +2553,6 @@
 
         // ============ 已订阅剧集更新日期条（横向滑动选日期，下方显示该日更新海报，仅电视剧） ============
         let _calData = null;               // /api/media/calendar 返回：{today, shows, dates}
-        let _calPosterMap = {};            // tmdb_id -> poster_path（复用已订阅缓存海报）
         let _calItemMap = {};              // tmdb_id -> 已订阅海报条目（渲染海报卡片与详情）
         const _CN_WEEK = ['日', '一', '二', '三', '四', '五', '六'];
         let _calSelected = '';             // 日期条当前选中的日期（YYYY-MM-DD）
@@ -2627,10 +2589,8 @@
             }
             // 订阅片单中 tmdb_id -> 海报条目（渲染海报卡片，含点击看详情）
             _calItemMap = {};
-            _calPosterMap = {};
             tvItems.forEach(it => {
                 _calItemMap[String(it.id)] = it;
-                _calPosterMap[String(it.id)] = it.poster_path || '';
             });
             renderDateStrip(content);
         }
@@ -3011,7 +2971,8 @@
         }
 
         // 订阅探索入口海报：单张横向海报，每 10 秒随机切换；支持左右滑动/3 点指示
-        let _entryPosterItems = [];
+        let _entryPosterItems = [];   // 当前轮换池（搜索过滤后可能只是全集的子集）
+        let _entryPosterAll = [];    // 全量海报池（搜索清空时还原用）
         let _entryPosterTimer = null;
         let _entryPosterLastIdx = -1;
         let _entryPosterTouch = null;     // 记录滑动起点
@@ -3021,6 +2982,7 @@
             // 横版海报（backdrop_path 16:9 landscape），同时过滤掉没横版的；保留顺序
             const filtered = items.filter(i => i.backdrop_path);
             _entryPosterItems = filtered.length ? filtered : items.filter(i => i.poster_path);
+            _entryPosterAll = _entryPosterItems.slice();   // 记录全量池，供搜索清空后还原
             if (_entryPosterItems.length === 0) return;
             // 绑定触摸事件（仅绑一次）
             if (!strip.dataset.swipedBound) {
@@ -3068,26 +3030,30 @@
             }
             _entryPosterLastIdx = idx;
             const i = _entryPosterItems[idx];
-            // 始终保留 3 点指示器结构在 img 外层（strip 里有 innerHTML 覆盖）
+            // 切换不用硬切 src：预加载就绪后新建一张绝对铺叠的新图淡入（旧图保留在其下交叉淡化），
+            // 过渡完成再移除旧图 —— 既无空窗、也不再"生硬"
             const imgSrc = i.backdrop_path
                 ? `https://image.tmdb.org/t/p/w780${i.backdrop_path}`
                 : `https://image.tmdb.org/t/p/w780${i.poster_path}`;
-            strip.innerHTML = `
-                <img src="${imgSrc}" alt="${escapeHtml(i.title)}" loading="lazy"
-                     style="transition: opacity 0.6s ease;">
-                <div class="poster-dots" aria-hidden="true">
-                    <span class="dot active"></span>
-                    <span class="dot"></span>
-                    <span class="dot"></span>
-                </div>`;
-            // 淡入
-            const img = strip.querySelector('img');
-            if (img) {
-                img.style.opacity = '0';
-                requestAnimationFrame(() => { img.style.opacity = '1'; });
-            }
-            // 3 点指示：当前位置 active —— 由于实际海报池里数量远大于 3，此处用 idx mod 3 映射，表达"在三张轮换中的位置"
-            _updatePosterDots(((idx % 3) + 3) % 3);
+            const apply = () => {
+                const dots = strip.querySelector('.poster-dots');
+                const img = document.createElement('img');
+                img.className = 'entry-img';
+                img.src = imgSrc;
+                img.alt = escapeHtml(i.title);
+                if (dots) strip.insertBefore(img, dots); else strip.appendChild(img);
+                // 下一帧再加 .show，触发 opacity 0→1 过渡，与旧图完成交叉淡化
+                requestAnimationFrame(() => img.classList.add('show'));
+                // 过渡（0.5s）结束后清理旧图
+                const olds = Array.from(strip.querySelectorAll('img.entry-img.show')).filter(o => o !== img);
+                setTimeout(() => olds.forEach(o => o.remove()), 520);
+                // 3 点指示：当前位置 active —— 由于实际海报池里数量远大于 3，此处用 idx mod 3 映射，表达"在三张轮换中的位置"
+                _updatePosterDots(((idx % 3) + 3) % 3);
+            };
+            const pre = new Image();
+            pre.onload = apply;
+            pre.onerror = () => {};   // 加载失败静默：不做刺眼的图替，保持当前画面
+            pre.src = imgSrc;
         }
 
         async function loadTmdb(force, silent) {
@@ -3276,7 +3242,9 @@
             } catch (e) { /* 忽略，下次轮询重试 */ }
         }
 
-        function toggleDrawer() {
+        function toggleDrawer(e) {
+            // 阻止冒泡：避免同一次点击（汉堡/遮罩）被外层的"点击外部关闭"监听立刻反向关闭
+            if (e && e.stopPropagation) e.stopPropagation();
             const drawer = document.getElementById('drawer');
             const overlay = document.getElementById('drawerOverlay');
             if (!drawer) return;
@@ -3997,45 +3965,86 @@
             }
         }
 
-        // ============ 整理历史搜索 ============
-        function historySearchOpen() {
-            const wrap = document.getElementById('history-search-wrap');
-            const input = document.getElementById('history-search-input');
-            if (!wrap) return;
-            wrap.classList.add('open');
-            if (input) input.focus();
+        // ============ 顶部搜索卡片：① 订阅探索海报 ② 整理记录 ============
+        // 作用域：media=影视(海报) / history=整理(历史)，由右侧多功能图标弹出的菜单选择
+        let _searchScope = 'media';
+        function setSearchScope(scope) {
+            _searchScope = scope;
+            try { localStorage.setItem('search_scope', scope); } catch (e) {}   // 记住上次选择
+            document.querySelectorAll('.scope-opt').forEach(b =>
+                b.classList.toggle('on', b.dataset.scope === scope));
+            const inp = document.querySelector('.hero-search .hero-search-input');
+            if (inp) {
+                inp.placeholder = scope === 'history' ? '搜索整理记录...' : '搜索影视资源...';
+                heroSearchLiveScoped(inp.value);   // 切回影视时立即应用海报过滤
+            }
         }
-        function historySearchClose() {
-            const wrap = document.getElementById('history-search-wrap');
-            const input = document.getElementById('history-search-input');
-            if (!wrap) return;
-            wrap.classList.remove('open');
-            if (input) input.value = '';
-            historyKeyword = '';
-            historyPage = 1;
-            loadHistory(1);
+        // 多功能图标：开合作用域菜单
+        function toggleScopeMenu(e) {
+            if (e) e.stopPropagation();   // 避免立即被外部点击关闭逻辑收起
+            const m = document.getElementById('scopeMenu');
+            if (m) m.classList.toggle('open');
         }
-        function historySearch() {
-            const input = document.getElementById('history-search-input');
-            const kw = (input && input.value || '').trim();
-            if (kw === historyKeyword.trim()) return;
+        function scopePick(scope, btn) {
+            setSearchScope(scope);
+            const m = document.getElementById('scopeMenu');
+            if (m) m.classList.remove('open');
+        }
+        // 清空顶部搜索：输入框文字清空，影视海报还原全量、整理历史还原全量
+        function _clearHeroSearch() {
+            const inp = document.querySelector('.hero-search .hero-search-input');
+            if (inp) inp.value = '';
+            heroSearchLive('');                     // 影视过滤还原全量海报
+            if (_searchScope === 'history' && historyKeyword) {
+                historyKeyword = '';
+                historyPage = 1;
+                loadHistory(1);                     // 整理历史还原全量
+            }
+        }
+        // 点击作用域菜单外部：收起；点击搜索卡片外：清空搜索
+        document.addEventListener('click', function (e) {
+            const m = document.getElementById('scopeMenu');
+            if (m && m.classList.contains('open')) m.classList.remove('open');
+            const ses = document.querySelector('.hero-search');
+            if (ses && !ses.contains(e.target)) _clearHeroSearch();
+        });
+        // 输入分发：整理 scope 下不实时过滤海报，只等回车
+        function heroSearchLiveScoped(kw) {
+            if (_searchScope === 'history') return;
+            heroSearchLive(kw);
+        }
+        // 重开/重置海报轮换定时器
+        function _restartEntryPoster() {
+            if (_entryPosterTimer) clearInterval(_entryPosterTimer);
+            _entryPosterTimer = setInterval(() => _showRandomEntryPoster('rand'), 10000);
+        }
+        // ① 实时过滤订阅探索海报（标题包含匹配）；清空时还原全量池
+        function heroSearchLive(kw) {
+            kw = (kw || '').trim().toLowerCase();
+            if (!kw) {
+                _entryPosterItems = _entryPosterAll.slice();
+                _restartEntryPoster();
+                _showRandomEntryPoster('rand');
+                return;
+            }
+            const matches = _entryPosterAll.filter(i =>
+                (i.title || i.name || '').toLowerCase().includes(kw));
+            if (!matches.length) return;         // 无匹配：保持当前画面不动
+            _entryPosterItems = matches;
+            _restartEntryPoster();
+            _showRandomEntryPoster('rand');
+        }
+        // ② 按回车过滤整理历史（后端 keyword 过滤），并将历史卡片滚入视野；影视 scope 下回车不动整理
+        function heroSearchHistory() {
+            if (_searchScope === 'media') return;
+            const inp = document.querySelector('.hero-search .hero-search-input');
+            const kw = (inp && inp.value || '').trim();
             historyKeyword = kw;
             historyPage = 1;
             loadHistory(1);
+            const card = document.getElementById('history-card');
+            if (card && kw) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-        function historySearchClear() {
-            const input = document.getElementById('history-search-input');
-            if (input) input.value = '';
-            historyKeyword = '';
-            historyPage = 1;
-            loadHistory(1);
-        }
-        // 点击搜索框外部：清空当前搜索并收起放大镜
-        document.addEventListener('click', function (e) {
-            const wrap = document.getElementById('history-search-wrap');
-            if (!wrap || !wrap.classList.contains('open')) return;
-            if (!wrap.contains(e.target)) historySearchClose();
-        });
 
         function renderHistoryPager(totalPages) {
             const pager = document.getElementById('history-pager');
@@ -4801,17 +4810,51 @@
             }
         }
 
+        // ============ 全局手指滑动：切换「系统 / 后台」页 ============
+        // 滑动落在订阅探索海报卡片上时只切海报（海报自身已绑定滑动），不切整页；
+        // 弹层/抽屉打开、或处于设置子页/日志页时不响应。
+        function bindPageSwipe() {
+            let sx = 0, sy = 0, se = null;
+            document.addEventListener('touchstart', (e) => {
+                const t = e.touches && e.touches[0];
+                const segEl = document.getElementById('topSeg');
+                const blocked =
+                    !!document.querySelector('.tmdb-overlay.show, .tmdb-modal-overlay.show') ||
+                    (document.getElementById('drawer') && document.getElementById('drawer').classList.contains('open')) ||
+                    (segEl && getComputedStyle(segEl).display === 'none'); // 设置子页/日志页
+                if (blocked || !t) { sx = 0; return; }
+                sx = t.clientX; sy = t.clientY; se = e.target;
+            }, { passive: true });
+            document.addEventListener('touchend', (e) => {
+                if (!sx) return;
+                const c = e.changedTouches && e.changedTouches[0];
+                if (!c) return;
+                const dx = c.clientX - sx, dy = c.clientY - sy;
+                sx = 0;
+                if (Math.abs(dx) < 60 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
+                // 手指起点在订阅探索海报卡片上：只让海报自己切换，不切整页
+                if (se && se.closest && (se.closest('#tmdb-poster') || se.closest('.tmdb-entry-card'))) return;
+                const onBtn = document.querySelector('#topSeg button.on');
+                const cur = onBtn ? (onBtn.getAttribute('data-seg-tab') || 'system') : 'system';
+                switchTab(dx < 0 ? 'bg' : 'system');
+            }, { passive: true });
+        }
+
         // ============ 初始化 ============
         (async function init() {
-            // ⚠ 用户要求：取消手动滑动切换 system / bg（2026-09-04），原 bindSwipe 整段删除
-
             const hash = (location.hash || '').replace('#', '');
             const validTabs = ['system', 'user', 'transfer-save', 'transfer', 'strm', 'mediawarp', 'logs', 'bg'];
             const initialTab = validTabs.includes(hash) ? hash : 'system';
             await loadEnv();
             loadOAuthStatus();
+            // 恢复搜索作用域上次选择（影视/整理），避免每次重选
+            try {
+                const saved = localStorage.getItem('search_scope');
+                if (saved === 'media' || saved === 'history') setSearchScope(saved);
+            } catch (e) {}
             loadTmdb(false, true);  // 静默预取榜单，填充订阅探索入口海报
             startLogsPolling();
+            bindPageSwipe();
             switchTab(initialTab);
             layoutBgTasks();  // 桌面端把后台任务两个卡片并入「系统状态」Tab（整理历史上方）
         })();
