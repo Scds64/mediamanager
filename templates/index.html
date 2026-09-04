@@ -519,6 +519,8 @@
             .drawer-overlay { display: none !important; }
             /* 桌面端顶部工具行（系统/后台、返回、日志、保存）是移动端专用，桌面用左侧导航，整行隐藏 */
             .top-toolbar { display: none !important; }
+            /* 桌面端订阅探索与媒体信息/内存占用同行，随 grid 行高拉伸等高（标题/图片为绝对定位，卡自身需 stretch 撑满行） */
+            #tab-system .tmdb-entry-card { height: 100%; }
         }
         /* 订阅探索海报：横向 12:7，高度与媒体信息圆环等高（内容区上下间距均为 20px） */
         #tab-system .tmdb-entry-card { display: flex; flex-direction: column; }  /* flex 阻止标题/海报外边距折叠，保证卡高由海报撑起 */
@@ -1899,23 +1901,22 @@
                     </div>
                 </div>
 
-                <!-- 1. 订阅探索（单张横向海报；左上角标签栏 + 右下角3点；桌面端与移动端都作为首卡） -->
-                <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
-                    <div class="card-title tmdb-entry-title">
-                        <i class="fas fa-fire"></i>订阅探索
-                        <i class="fas fa-chevron-right"></i>
-                    </div>
-                    <div id="tmdb-poster" class="tmdb-entry-poster">
-                        <div class="poster-dots" aria-hidden="true">
-                            <span class="dot active"></span>
-                            <span class="dot"></span>
-                            <span class="dot"></span>
+                <!-- 2. 订阅探索 + 媒体信息 + 内存占用 并排一行（桌面端三卡等高，海报由同行撑起高度） -->
+                <div class="cards-row">
+                    <!-- 1. 订阅探索（单张横向海报；左上角标签栏 + 右下角3点；移动端为首卡，桌面端为同行首列） -->
+                    <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
+                        <div class="card-title tmdb-entry-title">
+                            <i class="fas fa-fire"></i>订阅探索
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                        <div id="tmdb-poster" class="tmdb-entry-poster">
+                            <div class="poster-dots" aria-hidden="true">
+                                <span class="dot active"></span>
+                                <span class="dot"></span>
+                                <span class="dot"></span>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- 2. 媒体信息 + 内存占用 + (桌面)订阅探索 并排一行 -->
-                <div class="cards-row">
                     <div class="card clickable-card" onclick="openEmbyModal()" role="button" title="打开媒体查重">
                         <div class="card-title">
                             <i class="fas fa-chart-pie"></i>媒体信息
