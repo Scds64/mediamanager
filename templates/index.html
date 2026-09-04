@@ -1856,7 +1856,7 @@
                     <span class="seg-dot" data-seg-tab="bg" onclick="switchTab('bg')"></span>
                 </div>
                 <!-- 日志（默认态） -->
-                <button class="toolbar-icon-btn logs-btn mode-default-right" onclick="switchTab('logs')" aria-label="日志动态">
+                <button class="toolbar-icon-btn logs-btn mode-default-right" onclick="clearLogsFilter(); switchTab('logs')" aria-label="日志动态">
                     <i class="fas fa-terminal"></i>
                 </button>
                 <!-- 保存（编辑态） -->
@@ -3332,10 +3332,13 @@
             let data = null;
             try { data = await api('/api/logs?lines=300'); } catch (e) { return; }
             const lines = (data && data.lines) || [];
-            if (_logsPanelOpen) renderLogLines(document.getElementById('notif-list'), lines);
+            // 搜索日志后：持续应用过滤关键词，防止 15s 轮询把过滤结果冲刷成全量（"只打开样但没定位到匹配"）
+            const kw = window._logsFilterKey;
+            const shown = kw ? lines.filter(l => (l || '').toLowerCase().includes(kw)) : lines;
+            if (_logsPanelOpen) renderLogLines(document.getElementById('notif-list'), shown);
             const page = document.getElementById('logs-page-list');
             if (page && document.getElementById('tab-logs').classList.contains('active')) {
-                renderLogLines(page, lines);
+                renderLogLines(page, shown);
             }
         }
 
@@ -4046,9 +4049,11 @@
             _entryPosterTimer = setInterval(() => _showRandomEntryPoster('rand'), 10000);
         }
         // ① 实时过滤订阅探索海报（标题包含匹配）；清空时还原全量池
+        let _lastMediaMatches = -1;   // 记录上次匹配数，0→N 或 N→0 变化时才提示，避免打字刷屏
         function heroSearchLive(kw) {
             kw = (kw || '').trim().toLowerCase();
             if (!kw) {
+                _lastMediaMatches = -1;
                 _entryPosterItems = _entryPosterAll.slice();
                 _restartEntryPoster();
                 _showRandomEntryPoster('rand');
@@ -4056,10 +4061,25 @@
             }
             const matches = _entryPosterAll.filter(i =>
                 (i.title || i.name || '').toLowerCase().includes(kw));
-            if (!matches.length) return;         // 无匹配：保持当前画面不动
+            if (!matches.length) {
+                if (_lastMediaMatches !== 0) {
+                    _lastMediaMatches = 0;
+                    showNotification(`未找到匹配的影视「${escapeHtml(kw)}」`, 'info');
+                }
+                return;              // 无匹配：保持当前画面不动
+            }
+            _lastMediaMatches = matches.length;
             _entryPosterItems = matches;
             _restartEntryPoster();
             _showRandomEntryPoster('rand');
+            // 海报若在视口区外（页面已滚走、搜索条脱流浮在顶部），滚到可见让用户看到过滤结果
+            const ps = document.getElementById('tmdb-poster');
+            if (ps) {
+                const r = ps.getBoundingClientRect();
+                if (r.top > window.innerHeight || r.bottom < 0) {
+                    ps.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
         }
         // ② 按回车执行搜索（按当前作用域分发）：影视→滚动到海报并清空；整理→过滤历史并清空；日志→跳转日志页并前端过滤
         function heroSearchCommit() {
@@ -4067,8 +4087,7 @@
             const kw = (inp && inp.value || '').trim();
             if (!kw) return;
             if (_searchScope === 'media') {
-                const card = document.getElementById('tmdb-poster');
-                if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                openTmdbSearch(kw);          // 打开订阅探索弹窗并搜索该关键词
                 if (inp) inp.value = '';
             } else if (_searchScope === 'history') {
                 historyKeyword = kw;
@@ -4082,8 +4101,21 @@
                 if (inp) inp.value = '';
             }
         }
-        // 搜索日志：切到日志页 + 后端全文件关键词过滤
+        // 打开订阅探索弹窗并搜索该关键词（影视作用域回车时触发，弹窗展示匹配影片）
+        function openTmdbSearch(kw) {
+            if (_tmdbView !== 'list') { _tmdbView = 'list'; _applyToolbarMode(); }
+            const overlay = document.getElementById('tmdb-overlay');
+            if (overlay) {
+                overlay.style.display = '';
+                overlay.onclick = function (e) { if (e.target === overlay) closeTmdbPanel(); };
+            }
+            // 不在前端显示自动填词：搜索框保持为空，仅语言内部带关键词搜索，安静展示结果
+            _tmdbQuery = kw;
+            loadTmdb();
+        }
+        // 搜索日志：打开日志页 + 后端全文件关键词过滤；记录过滤词避免轮询冲刷掉结果
         async function heroSearchLogs(kw) {
+            window._logsFilterKey = kw.toLowerCase();
             switchTab('logs');
             let lines = [];
             try {
@@ -4098,6 +4130,10 @@
                     renderLogLines(page, lines);
                 }
             }
+        }
+        // 手动打开日志页：清除过滤词，回到全量日志
+        function clearLogsFilter() {
+            window._logsFilterKey = '';
         }
 
         function renderHistoryPager(totalPages) {
