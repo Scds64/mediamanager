@@ -281,6 +281,11 @@
         .tab-panel { display: none; animation: fadeIn 0.28s ease; }
         .tab-panel.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        /* 系统/后台 切换：带方向的横向滑入动画（由 switchTab 依据切换方向添加对应 class） */
+        @keyframes slideInL { from { opacity: 0; transform: translateX(-42px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideInR { from { opacity: 0; transform: translateX(42px); } to { opacity: 1; transform: translateX(0); } }
+        .tab-panel.active.slide-l { animation: slideInL .34s cubic-bezier(0.2, 0.7, 0.2, 1); }
+        .tab-panel.active.slide-r { animation: slideInR .34s cubic-bezier(0.2, 0.7, 0.2, 1); }
 
         /* ============ 卡片（克制的平板面层） ============ */
         .card {
@@ -1249,6 +1254,9 @@
                 visibility: visible;
                 box-shadow: 2px 0 16px rgba(0,0,0,0.12);  /* 只在展开时投影 */
             }
+            /* 移动端：汉堡打开时，左侧任务栏「推着」内容里的卡片整体右移（iOS 式推入） */
+            .content { transition: transform 0.32s cubic-bezier(0.2, 0.7, 0.2, 1); }
+            .content.drawer-push { transform: translateX(70%); }
             /* 移动端：保存配置被隐藏，改用 footer 自身吸底，让「重启系统」始终贴在最底部 */
             .drawer .drawer-footer {
                 margin-top: auto;
@@ -2359,10 +2367,18 @@
 
         // ============ Tab 切换 ============
         function switchTab(tab) {
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            const prevTab = switchTab._last;
+            switchTab._last = tab;
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active', 'slide-l', 'slide-r'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             const panel = document.getElementById('tab-' + tab);
-            if (panel) panel.classList.add('active');
+            if (panel) {
+                // 系统↔后台 切换：按方向加横向滑入动画（左进/右进），其余 Tab 用默认淡入
+                if ((tab === 'system' && prevTab === 'bg') || (tab === 'bg' && prevTab === 'system')) {
+                    panel.classList.add(tab === 'bg' ? 'slide-r' : 'slide-l');
+                }
+                panel.classList.add('active');
+            }
             const nav = document.querySelector(`.nav-item[data-tab="${tab}"]`);
             if (nav) nav.classList.add('active');
             // 侧边栏"保存配置"按钮始终显示（不随 tab 隐藏）
@@ -2383,10 +2399,8 @@
                 dots.forEach(b => b.classList.toggle('on', (b.dataset.segTab === tab)));
             }
 
-            // 关闭移动端抽屉和遮罩
-            document.getElementById('drawer').classList.remove('open');
-            const _ov = document.getElementById('drawerOverlay');
-            if (_ov) _ov.classList.remove('show');
+            // 关闭移动端抽屉和遮罩（含内容卡片推恢复位）
+            setDrawer(false);
             // 更新 URL hash
             if (location.hash !== '#' + tab) {
                 history.replaceState(null, '', '#' + tab);
@@ -3271,14 +3285,22 @@
             } catch (e) { /* 忽略，下次轮询重试 */ }
         }
 
+        // 统一设置抽屉开关状态：同步 drawer / 遮罩 / 内容卡片推移动画
+        function setDrawer(open) {
+            const drawer = document.getElementById('drawer');
+            if (!drawer) return;
+            drawer.classList.toggle('open', open);
+            const overlay = document.getElementById('drawerOverlay');
+            if (overlay) overlay.classList.toggle('show', open);
+            const content = document.querySelector('main.content');
+            if (content) content.classList.toggle('drawer-push', open);
+        }
         function toggleDrawer(e) {
             // 阻止冒泡：避免同一次点击（汉堡/遮罩）被外层的"点击外部关闭"监听立刻反向关闭
             if (e && e.stopPropagation) e.stopPropagation();
             const drawer = document.getElementById('drawer');
-            const overlay = document.getElementById('drawerOverlay');
             if (!drawer) return;
-            const isOpen = drawer.classList.toggle('open');
-            if (overlay) overlay.classList.toggle('show', isOpen);
+            setDrawer(!drawer.classList.contains('open'));
         }
         // 点击侧边栏（抽屉）之外关闭
         document.addEventListener('click', function (e) {
@@ -3286,8 +3308,7 @@
             if (!drawer || !drawer.classList.contains('open')) return;
             const overlay = document.getElementById('drawerOverlay');
             if (!drawer.contains(e.target) && (!overlay || !overlay.contains(e.target))) {
-                drawer.classList.remove('open');
-                if (overlay) overlay.classList.remove('show');
+                setDrawer(false);
             }
         });
 
@@ -3304,10 +3325,8 @@
             const npanel = document.getElementById('notifPanel');
             if (npanel && npanel.classList.contains('open')) { toggleNotifPanel(); return; }
             const drawer = document.getElementById('drawer');
-            const ov = document.getElementById('drawerOverlay');
             if (drawer && drawer.classList.contains('open')) {
-                drawer.classList.remove('open');
-                if (ov) ov.classList.remove('show');
+                setDrawer(false);
             }
         });
 
