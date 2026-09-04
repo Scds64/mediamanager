@@ -375,17 +375,18 @@
         }
         .card.clickable-card { cursor: pointer; }
         /* 媒体信息卡：flex 列布局，让底部扫描时间自然贴底 */
-        .card.emby-media-card { display: flex; flex-direction: column; }
+        .card.emby-media-card { display: flex; flex-direction: column; position: relative; }
         .emby-stats-footer {
-            margin-top: auto;
-            text-align: right;
-            padding-top: 8px;
+            position: absolute;
+            bottom: 18px;           /* 与卡片下内边距对齐 */
+            right: 24px;            /* 与卡片右内边距对齐 */
+            text-align: right;      /* 文字右对齐，贴合右下角 */
             line-height: 1.6;
         }
         .emby-stats-footer .esf-label,
         .emby-stats-footer .esf-time {
-            font-size: 12px;
-            color: var(--text-500);
+            font-size: 9px;
+            color: var(--text-400);
             font-weight: 400;
         }
 
