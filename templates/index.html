@@ -4065,22 +4065,20 @@
                 if (inp) inp.value = '';
             }
         }
-        // 搜索日志：切到日志页 + 加载日志 + 前端过滤高亮
+        // 搜索日志：切到日志页 + 后端全文件关键词过滤
         async function heroSearchLogs(kw) {
             switchTab('logs');
             let lines = [];
             try {
-                const data = await api('/api/logs?lines=300');
+                const data = await api('/api/logs?keyword=' + encodeURIComponent(kw));
                 lines = (data && data.lines) || [];
             } catch (e) { lines = []; }
-            const lower = kw.toLowerCase();
-            const matches = lines.filter(l => l.toLowerCase().includes(lower));
             const page = document.getElementById('logs-page-list');
             if (page && document.getElementById('tab-logs').classList.contains('active')) {
-                if (!matches.length) {
+                if (!lines.length) {
                     page.innerHTML = `<div class="notif-empty">未找到包含 "${escapeHtml(kw)}" 的日志</div>`;
                 } else {
-                    renderLogLines(page, matches);
+                    renderLogLines(page, lines);
                 }
             }
         }
