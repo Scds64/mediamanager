@@ -1150,48 +1150,28 @@
             */
             .top-seg {
                 display: inline-flex;
-                align-items: baseline;     /* 中文基线对齐 */
+                align-items: center;        /* 点水平居中 */
                 background: none;
                 border-radius: 0;
                 padding: 0;
-                gap: 22px;
+                gap: 12px;                  /* 两点间距 */
                 flex-shrink: 1;
                 justify-content: center;
             }
-            .top-seg button {
-                position: relative;
-                border: none;
-                background: none;
-                padding: 6px 1px 10px;
-                border-radius: 0;
-                font-size: var(--fs-seg);   /* 16px 页级标题尺寸 */
-                font-weight: 400;           /* inactive 常规细线 */
+            /* 系统 / 后台 指示点：inactive 为淡灰圆点，active 拉伸为短横线（形似订阅探索右下角样式） */
+            .top-seg .seg-dot {
+                display: inline-block;
+                width: 6px; height: 6px;
+                border-radius: 999px;
+                background: var(--text-300);            /* 淡色点 */
                 cursor: pointer;
-                color: var(--text-muted);
-                font-family: inherit;
-                letter-spacing: 0.06em;     /* 标题字距拉开 */
-                line-height: 1.2;
-                transition: color 200ms cubic-bezier(0.2, 0.7, 0.2, 1);
+                transition: width 240ms cubic-bezier(0.2, 0.7, 0.2, 1),
+                            background 240ms ease;
                 -webkit-tap-highlight-color: transparent;
             }
-            .top-seg button:hover { color: var(--text-700); }
-            .top-seg button.on {
-                background: none;
-                color: var(--text);         /* zinc-900 浓墨黑 */
-                box-shadow: none;
-                font-weight: 600;           /* 600 = 中黑，不激进 700 */
-                letter-spacing: 0.05em;     /* active 略收字距，避免粗体显膨胀 */
-            }
-            .top-seg button.on::after {
-                content: "";
-                position: absolute;
-                left: 50%;
-                bottom: 1px;
-                transform: translateX(-50%);
-                width: 72%;
-                height: 2px;
-                background: var(--text);    /* 主色 = 文字色，统一感 */
-                border-radius: 0;           /* 方头直线 = 高端出版风 */
+            .top-seg .seg-dot.on {
+                width: 18px;                            /* active 变短横线 */
+                background: var(--text-500);            /* 略深但仍淡，保持克制 */
             }
             /* logs 页面：顶部只显示左返回按钮（汉堡、分段、日志、保存全隐藏） */
             #topToolbar.mode-log .hamburger-btn,
@@ -1833,10 +1813,10 @@
                 <button class="toolbar-icon-btn back-btn mode-edit-left" onclick="switchTab('system')" aria-label="返回系统状态">
                     <i class="fas fa-chevron-left"></i>
                 </button>
-                <!-- 中间分段：系统 / 后台（只有在默认态显示，编辑态隐藏） -->
-                <div class="top-seg mode-default-center" id="topSeg">
-                    <button class="on" data-seg-tab="system" onclick="switchTab('system')">系统</button>
-                    <button data-seg-tab="bg" onclick="switchTab('bg')">后台</button>
+                <!-- 中间分段指示：系统 / 后台 两个淡色点，当前页的点变为短横线（形似订阅探索右下角） -->
+                <div class="top-seg mode-default-center" id="topSeg" role="tablist">
+                    <span class="seg-dot on" data-seg-tab="system" onclick="switchTab('system')"></span>
+                    <span class="seg-dot" data-seg-tab="bg" onclick="switchTab('bg')"></span>
                 </div>
                 <!-- 日志（默认态） -->
                 <button class="toolbar-icon-btn logs-btn mode-default-right" onclick="switchTab('logs')" aria-label="日志动态">
@@ -2355,11 +2335,11 @@
                 toolbar.classList.toggle('mode-log', tab === 'logs');
             }
 
-            // 顶部中间分段按钮高亮：system / bg
+            // 顶部中间指示点高亮：system / bg
             const topSeg = document.getElementById('topSeg');
             if (topSeg) {
-                const buttons = topSeg.querySelectorAll('button');
-                buttons.forEach(b => b.classList.toggle('on', (b.dataset.segTab === tab)));
+                const dots = topSeg.querySelectorAll('.seg-dot');
+                dots.forEach(b => b.classList.toggle('on', (b.dataset.segTab === tab)));
             }
 
             // 关闭移动端抽屉和遮罩
@@ -4834,7 +4814,7 @@
                 if (Math.abs(dx) < 60 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
                 // 手指起点在订阅探索海报卡片上：只让海报自己切换，不切整页
                 if (se && se.closest && (se.closest('#tmdb-poster') || se.closest('.tmdb-entry-card'))) return;
-                const onBtn = document.querySelector('#topSeg button.on');
+                const onBtn = document.querySelector('#topSeg .seg-dot.on');
                 const cur = onBtn ? (onBtn.getAttribute('data-seg-tab') || 'system') : 'system';
                 switchTab(dx < 0 ? 'bg' : 'system');
             }, { passive: true });
