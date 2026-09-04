@@ -1139,6 +1139,23 @@
                    滚动时卡片被不透明背景干净遮盖，底部也不会出现淡出交接的细线 */
                 background: var(--bg);
             }
+            /* 手机端搜索条：脱流吸顶浮现（fixed 不占文档流 → 隐藏时下方卡片紧贴、无间距） */
+            .hero-search {
+                position: fixed;
+                top: calc(env(safe-area-inset-top) + 58px);   /* 贴合工具行下沿 */
+                left: 16px; right: 16px;                     /* 对齐内容左右内边距 */
+                z-index: 5;
+                margin: 0;
+                transition: transform .28s cubic-bezier(0.2, 0.7, 0.2, 1),
+                            opacity .24s ease,
+                            box-shadow .2s;
+            }
+            .hero-search.search-collapsed {
+                transform: translateY(calc(-100% - 120px));   /* 完全移出视口顶部，不占位 */
+                opacity: 0;
+                pointer-events: none;
+                visibility: hidden;
+            }
             .toolbar-icon-btn {
                 width: 48px; height: 48px;
                 display: flex; align-items: center; justify-content: center;
@@ -4879,6 +4896,40 @@
             }, { passive: true });
         }
 
+        // 手机端搜索条手势显隐：手指下拉并悬停1s → 浮现；手指上滑 → 立即隐藏
+        function bindSearchReveal() {
+            if (window.matchMedia('(min-width: 769px)').matches) return; // 仅手机端
+            const bar = document.querySelector('.hero-search');
+            if (!bar) return;
+            const setVis = (hide) => bar.classList.toggle('search-collapsed', hide);
+            setVis(true); // 默认隐藏
+            const sys = document.getElementById('tab-system');
+            const inSys = () => sys && sys.classList.contains('active'); // 仅系统页面响应手势
+            let startY = null, holdTimer = null;
+            const clearHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
+            document.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) return;
+                if (!inSys()) { startY = null; clearHold(); return; }
+                startY = e.touches[0].clientY;
+                clearHold();
+            }, { passive: true });
+            document.addEventListener('touchmove', (e) => {
+                if (startY === null) return;
+                const dy = e.touches[0].clientY - startY;
+                if (dy > 36) {                 // 下拉 → 启动悬停计时，1s 后浮现
+                    if (!holdTimer) holdTimer = setTimeout(() => { setVis(false); holdTimer = null; }, 1000);
+                } else if (dy < -36) {         // 上滑 → 立即隐藏
+                    clearHold();
+                    setVis(true);
+                }
+            }, { passive: true });
+            document.addEventListener('touchend', (e) => {
+                if (startY === null) return;
+                clearHold();                   // 未悬停满1s 就抬起 → 维持隐藏
+                startY = null;
+            }, { passive: true });
+        }
+
         // ============ 初始化 ============
         (async function init() {
             const hash = (location.hash || '').replace('#', '');
@@ -4894,6 +4945,7 @@
             loadTmdb(false, true);  // 静默预取榜单，填充订阅探索入口海报
             startLogsPolling();
             bindPageSwipe();
+            bindSearchReveal();
             switchTab(initialTab);
             layoutBgTasks();  // 桌面端把后台任务两个卡片并入「系统状态」Tab（整理历史上方）
         })();
