@@ -286,6 +286,11 @@
         @keyframes slideInR { from { opacity: 0; transform: translateX(42px); } to { opacity: 1; transform: translateX(0); } }
         .tab-panel.active.slide-l { animation: slideInL .34s cubic-bezier(0.2, 0.7, 0.2, 1); }
         .tab-panel.active.slide-r { animation: slideInR .34s cubic-bezier(0.2, 0.7, 0.2, 1); }
+        /* 手机端系统/后台：整屏滑动翻页（全宽平移 + 淡入，方向跟随切换方向；时长放慢更自然） */
+        @keyframes slideInFullL { from { opacity: 0; transform: translateX(-100%); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes slideInFullR { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+        .tab-panel.active.slide-fl { animation: slideInFullL .44s cubic-bezier(0.16, 0.68, 0.22, 1); }
+        .tab-panel.active.slide-fr { animation: slideInFullR .44s cubic-bezier(0.16, 0.68, 0.22, 1); }
 
         /* ============ 卡片（克制的平板面层） ============ */
         .card {
@@ -1270,16 +1275,6 @@
                 overflow-x: clip;                       /* 裁掉横向溢出但不产生滚动容器，保证 sticky 生效 */
                 padding: 0 16px 24px;                   /* 顶部留白由 toolbar 的 safe-area padding 承担 */
             }
-            /* 系统↔后台 iOS 桌面式推动：两页同位绝对定位、同向水平滑动（由 pushTabPanels 驱动） */
-            .tab-push-host { position: relative; }
-            .tab-push-host > .tab-panel.tab-pushing {
-                position: absolute;
-                margin: 0;
-                animation: none;            /* 覆盖 .tab-panel 的 fadeIn，避免与位移过渡打架 */
-                will-change: transform;
-                pointer-events: none;       /* 动画期间不可点，避免误触 */
-                backface-visibility: hidden;
-            }
             .card { padding: 18px; }
             /* 移动端：订阅探索保留全出血横幅（不被通用 .card padding 覆盖） */
             #tab-system .tmdb-entry-card.card { padding: 0; }
@@ -1735,41 +1730,13 @@
             .tmdb-modal-hero img { max-height: 260px; object-fit: contain; }
         }
 
-        /* ============ 日志动态：桌面端右上角按钮 + 下拉面板 ============ */
-        .notif-bell {
-            position: fixed; top: 18px; right: 24px; z-index: 200;
-            width: 42px; height: 42px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            background: var(--surface); color: var(--text-600);
-            border: 1px solid var(--border); box-shadow: var(--shadow-2);
-            cursor: pointer; font-size: 16px;
-            transition: color .15s, border-color .15s;
-        }
-        .notif-bell:hover { color: var(--primary); border-color: var(--primary); }
-        .notif-bell i { pointer-events: none; }
+        /* ============ 日志动态：移动端日志页列表样式（桌面右上角弹窗已移除，样式不再需要） ============ */
 
-        .notif-panel {
-            position: fixed; top: 70px; right: 24px; z-index: 200;
-            width: 400px; max-width: calc(100vw - 32px);
-            max-height: 480px; display: flex; flex-direction: column;
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: var(--radius); box-shadow: var(--shadow-3);
-            opacity: 0; visibility: hidden; transform: translateY(-6px);
-            transition: opacity .15s, transform .15s, visibility .15s;
-        }
-        .notif-panel.open { opacity: 1; visibility: visible; transform: translateY(0); }
-        .notif-panel-head {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 16px; border-bottom: 1px solid var(--border);
-            font-size: 13px; font-weight: 600; color: var(--text-700);
-        }
-        .notif-panel-head .hint { font-size: 11px; font-weight: 400; color: var(--text-400); }
-        .notif-list { overflow-y: auto; padding: 4px 0; }
+        .notif-empty { padding: 28px 16px; text-align: center; color: var(--text-400); font-size: 13px; }
         .notif-line {
             display: flex; gap: 10px; padding: 6px 16px; font-size: 12px;
             line-height: 1.5; cursor: default;
         }
-        .notif-line:hover { background: var(--primary-soft); }
         .notif-line .t {
             flex-shrink: 0; color: var(--text-400); font-size: 11px;
             font-family: ui-monospace, Consolas, monospace; padding-top: 1px;
@@ -1780,7 +1747,6 @@
             -webkit-line-clamp: 1;
             overflow: hidden; color: var(--text-700);
         }
-        .notif-empty { padding: 28px 16px; text-align: center; color: var(--text-400); font-size: 13px; }
         /* 超长日志行：点击展开/收起全文。展开时重置为块级布局，
            脱离 -webkit-box/line-clamp（移动端 WebView 残留截断会显示不全） */
         .notif-line.expandable { cursor: pointer; }
@@ -1796,23 +1762,10 @@
         #tab-logs .notif-line { padding-left: 0; padding-right: 0; }
         #tab-logs .notif-line .m { -webkit-line-clamp: 2; }
 
-        @media (max-width: 768px) { .notif-bell, .notif-panel { display: none; } }
     </style>
 </head>
 <body>
-    <!-- ============ 日志动态：桌面端右上角按钮 + 下拉面板（移动端入口在侧栏导航） ============ -->
-    <button class="notif-bell" id="notifBell" onclick="toggleNotifPanel()" title="日志动态">
-        <i class="fas fa-terminal"></i>
-    </button>
-    <div class="notif-panel" id="notifPanel">
-        <div class="notif-panel-head">
-            <span><i class="fas fa-terminal"></i> 日志动态</span>
-            <span class="hint">仅显示最近 300 行</span>
-        </div>
-        <div class="notif-list" id="notif-list">
-            <div class="notif-empty">暂无日志</div>
-        </div>
-    </div>
+    <!-- 桌面端右上角日志弹窗入口已移除：日志动态统一由左侧导航「日志动态」页进入 -->
 
     <div class="layout">
         <aside class="drawer" id="drawer">
@@ -2376,64 +2329,45 @@
         ];
 
         // ============ Tab 切换 ============
-        // ============ 系统↔后台 页面推动切换（iOS 桌面式） ============
-        let _tabPush = null;
-        function clearTabPushStyles(el) {
-            if (!el) return;
-            el.classList.remove('tab-pushing');
-            ['transition', 'transform', 'left', 'right', 'top'].forEach(k => el.style[k] = '');
+        // 切换前把内容区高度稳住：系统/后台两页高度不同，直接用更高者挡住瞬间塌缩，
+        // 下一帧再平滑过渡到新页自然高度 —— 比做两页滑动推动更稳，彻底去掉"跳动感"。
+        function measurePanel(el) {
+            if (!el) return 0;
+            const prev = { display: el.style.display, position: el.style.position, left: el.style.left, right: el.style.right, top: el.style.top, visibility: el.style.visibility };
+            el.style.display = 'block'; el.style.position = 'absolute';
+            el.style.left = '-9999px'; el.style.right = 'auto'; el.style.top = '0'; el.style.visibility = 'hidden';
+            const h = el.offsetHeight;
+            Object.assign(el.style, prev);
+            return h;
         }
-        function finishTabPush() {
-            const p = _tabPush; _tabPush = null;
-            if (!p) return;
-            clearTimeout(p.timer);
-            clearTabPushStyles(p.from); clearTabPushStyles(p.to);
-            p.from.classList.remove('active');
-            p.host.classList.remove('tab-push-host');
-            p.host.style.minHeight = '';
-        }
-        // 手机端系统↔后台：两页同位绝对定位、同向滑动 —— 新页从侧外推入，旧页被同向推出（iOS 桌面切换感）
-        function pushTabPanels(from, to, toRight) {
-            finishTabPush();                        // 上一段动画未走完则先收尾，防叠加
-            const host = from.parentElement;
-            host.classList.add('tab-push-host');    // position:relative，作两页绝对定位的参照
-            void host.offsetHeight;                 // 强制布局后再测量
-            const top = from.offsetTop;             // 两页共用旧页当前垂直槽位
-            host.style.minHeight = host.offsetHeight + 'px';   // 动画期间保持整页高度，避免跳动
-            const cs = getComputedStyle(host);
-            const pl = parseFloat(cs.paddingLeft), pr = parseFloat(cs.paddingRight);
-            const hideL = `translateX(calc(-100% - ${pl}px))`, hideR = `translateX(calc(100% + ${pr}px))`;
-            [from, to].forEach(p => {
-                p.classList.add('active', 'tab-pushing');
-                p.classList.remove('slide-l', 'slide-r');
-                p.style.top = top + 'px';
-                p.style.left = pl + 'px';
-                p.style.right = pr + 'px';
-            });
-            to.style.transform = toRight ? hideR : hideL;   // 新页从进入方向外侧一屏起步
-            from.style.transform = 'translateX(0)';
-            void to.offsetWidth;                            // 先落好位再开过渡
-            [from, to].forEach(p => p.style.transition = 'transform .32s cubic-bezier(0.2, 0.7, 0.2, 1)');
-            to.style.transform = 'translateX(0)';
-            from.style.transform = toRight ? hideL : hideR; // 旧页被同向推出屏幕
-            _tabPush = { from, to, host, timer: setTimeout(finishTabPush, 360) };
-        }
-
         function switchTab(tab) {
             const prevTab = switchTab._last;
             switchTab._last = tab;
             const panel = document.getElementById('tab-' + tab);
             const prevPanel = prevTab ? document.getElementById('tab-' + prevTab) : null;
             const isSysBg = !!prevPanel && ((tab === 'system' && prevTab === 'bg') || (tab === 'bg' && prevTab === 'system'));
+            const host = document.querySelector('main.content');
+            // 高度稳住：先锁到 max(旧页, 新页)，避免切换瞬间内容区塌缩跳变；桌面端不做此处理
+            if (isSysBg && host && prevPanel && window.matchMedia('(max-width: 768px)').matches) {
+                const keep = Math.max(prevPanel.offsetHeight || 0, measurePanel(panel));
+                host.style.transition = 'none';
+                host.style.minHeight = keep + 'px';
+                requestAnimationFrame(() => {                       // 下一帧解锁，让高度平滑落回新页
+                    host.style.transition = 'min-height .4s ease';
+                    host.style.minHeight = '0px';
+                    setTimeout(() => { if (host.style.minHeight === '0px') { host.style.minHeight = ''; host.style.transition = ''; } }, 460);
+                });
+                window.scrollTo(0, 0);                              // 两页高度不同，切换归顶，避免残卷位移
+            }
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            if (isSysBg && window.matchMedia('(max-width: 768px)').matches) {
-                pushTabPanels(prevPanel, panel, tab === 'bg');   // 手机端：两页推动切换
-            } else {
-                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active', 'slide-l', 'slide-r'));
-                if (panel) {
-                    if (isSysBg) panel.classList.add(tab === 'bg' ? 'slide-r' : 'slide-l');  // 桌面端：横向滑入
-                    panel.classList.add('active');
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active', 'slide-l', 'slide-r', 'slide-fl', 'slide-fr'));
+            if (panel) {
+                if (isSysBg) {
+                    // 手机端整屏滑动翻页；桌面端原有的轻滑入
+                    const mobile = window.matchMedia('(max-width: 768px)').matches;
+                    panel.classList.add(tab === 'bg' ? (mobile ? 'slide-fr' : 'slide-r') : (mobile ? 'slide-fl' : 'slide-l'));
                 }
+                panel.classList.add('active');
             }
             const nav = document.querySelector(`.nav-item[data-tab="${tab}"]`);
             if (nav) nav.classList.add('active');
@@ -2462,16 +2396,21 @@
                 history.replaceState(null, '', '#' + tab);
             }
             // 首次进入各 Tab 时加载对应数据
+            // system / bg 之间切换时数据轮询常驻、不强行重载，避免切换时出现"刷新页面"的闪烁感
             if (tab === 'system') {
                 startUsagePolling();
                 startHistoryPolling();
-                loadHistory();
+                // history 仅首次进入时加载一次，之后由常驻轮询持续刷新，切换时不再重渲表格，避免跳动闪烁
+                if (!window._historyLoaded) {
+                    window._historyLoaded = true;
+                    loadHistory(historyPage, true);
+                }
                 if (!window._embyLoaded) {
                     window._embyLoaded = true;
                     loadEmbyStatus();
                 }
-                // Emby 观看时长图：首次进入「后台」Tab 自动加载（原来默认页也有，现在只保留后台页）
-            } else {
+            } else if (tab !== 'bg') {
+                // 仅进入其它设置类/日志页时才停轮询；回到 system/bg 时继续常驻
                 stopUsagePolling();
                 stopHistoryPolling();
             }
@@ -2494,7 +2433,7 @@
                     window._embyUsageAuto = true;
                     loadEmbyUsage();
                 }
-                loadBgTasks(true);
+                loadBgTasks();   // 后台任务由常驻轮询持续刷新，切换时读取缓存，不再强刷重渲
                 startBgCountdown();
             } else {
                 stopBgCountdown();
@@ -3378,8 +3317,6 @@
             }
             const panel = document.getElementById('tmdb-overlay');
             if (panel && panel.style.display !== 'none') { closeTmdbPanel(); return; }
-            const npanel = document.getElementById('notifPanel');
-            if (npanel && npanel.classList.contains('open')) { toggleNotifPanel(); return; }
             const drawer = document.getElementById('drawer');
             if (drawer && drawer.classList.contains('open')) {
                 setDrawer(false);
@@ -3387,8 +3324,6 @@
         });
 
         // ============ 日志动态：桌面端右上角面板 + 移动端日志页 ============
-        let _logsPanelOpen = false;
-
         // 渲染日志列表：拆出时间戳（HH:MM:SS）与内容；超长行默认截断，点击展开/收起全文
         function renderLogLines(container, lines) {
             if (!container) return;
@@ -3414,7 +3349,6 @@
             // 搜索日志后：持续应用过滤关键词，防止 15s 轮询把过滤结果冲刷成全量（"只打开样但没定位到匹配"）
             const kw = window._logsFilterKey;
             const shown = kw ? lines.filter(l => (l || '').toLowerCase().includes(kw)) : lines;
-            if (_logsPanelOpen) renderLogLines(document.getElementById('notif-list'), shown);
             const page = document.getElementById('logs-page-list');
             if (page && document.getElementById('tab-logs').classList.contains('active')) {
                 renderLogLines(page, shown);
@@ -3425,23 +3359,6 @@
             if (window._logsPollTimer) return;
             window._logsPollTimer = setInterval(loadLogs, 15000);
         }
-
-        function toggleNotifPanel() {
-            const p = document.getElementById('notifPanel');
-            if (!p) return;
-            _logsPanelOpen = !p.classList.contains('open');
-            p.classList.toggle('open', _logsPanelOpen);
-            if (_logsPanelOpen) loadLogs();
-        }
-        // 桌面端：点击日志面板外部自动收起
-        document.addEventListener('click', function (e) {
-            const panel = document.getElementById('notifPanel');
-            const bell = document.getElementById('notifBell');
-            if (!panel || !panel.classList.contains('open')) return;
-            if (panel.contains(e.target) || (bell && bell.contains(e.target))) return;
-            _logsPanelOpen = false;
-            panel.classList.remove('open');
-        });
 
         // ============ 通知与加载 ============
         function showNotification(message, type = 'success') {
@@ -4429,6 +4346,16 @@
             if (_bgCountTimer) { clearInterval(_bgCountTimer); _bgCountTimer = null; }
         }
 
+        // 后台任务数据常驻轮询（10s 间隔），tab 切换时不强刷，由轮询保持新鲜
+        let _bgTasksTimer = null;
+        function startBgTasksPolling() {
+            if (_bgTasksTimer) return;
+            _bgTasksTimer = setInterval(() => loadBgTasks(true), 10000);
+        }
+        function stopBgTasksPolling() {
+            if (_bgTasksTimer) { clearInterval(_bgTasksTimer); _bgTasksTimer = null; }
+        }
+
         async function loadBgTasks(force) {
             if (_bgLoaded && !force) return;
             const grid = document.getElementById('bg-tasks-grid');
@@ -4989,7 +4916,6 @@
                 const segEl = document.getElementById('topSeg');
                 const blocked =
                     !!document.querySelector('.tmdb-overlay.show, .tmdb-modal-overlay.show') ||
-                    (document.getElementById('drawer') && document.getElementById('drawer').classList.contains('open')) ||
                     (segEl && getComputedStyle(segEl).display === 'none'); // 设置子页/日志页
                 if (blocked || !t) { sx = 0; return; }
                 sx = t.clientX; sy = t.clientY; se = e.target;
@@ -5005,8 +4931,20 @@
                 if (se && se.closest && (se.closest('#tmdb-poster') || se.closest('.tmdb-entry-card'))) return;
                 // 手指起点在整理历史卡片内：该区有左右滑动分页，不切整页
                 if (se && se.closest && se.closest('#history-card')) return;
+                const drawer = document.getElementById('drawer');
+                const drawerOpen = !!drawer && drawer.classList.contains('open');
                 const onBtn = document.querySelector('#topSeg .seg-dot.on');
                 const cur = onBtn ? (onBtn.getAttribute('data-seg-tab') || 'system') : 'system';
+                if (drawerOpen) {
+                    // 抽屉已打开：手指右滑收起侧边栏
+                    if (dx > 0) setDrawer(false);
+                    return;
+                }
+                if (cur === 'system' && dx < 0) {
+                    // 系统页左滑：出现侧边栏（切后台改由顶部指示点/桌面跳转）
+                    setDrawer(true);
+                    return;
+                }
                 switchTab(dx < 0 ? 'bg' : 'system');
             }, { passive: true });
         }
@@ -5048,6 +4986,28 @@
             document.addEventListener('touchcancel', reset, { passive: true });
         }
 
+        // 手机端日志页：手指左滑返回（回到系统状态页）。日志页 topSeg 隐藏，页面级左右滑动已屏蔽，可独立判定
+        function bindLogsSwipeBack() {
+            if (window.matchMedia('(min-width: 769px)').matches) return; // 仅手机端
+            const logs = document.getElementById('tab-logs');
+            if (!logs) return;
+            let sx = 0, sy = 0;
+            document.addEventListener('touchstart', (e) => {
+                if (!logs.classList.contains('active') || e.touches.length !== 1) { sx = 0; return; }
+                const t = e.touches[0];
+                sx = t.clientX; sy = t.clientY;
+            }, { passive: true });
+            document.addEventListener('touchend', (e) => {
+                if (!sx) return;
+                const c = e.changedTouches && e.changedTouches[0];
+                if (!c) return;
+                const dx = c.clientX - sx, dy = c.clientY - sy;
+                sx = 0;
+                // 左滑（dx<0）、距离够、横向占主导才触发返回，避免与日志列表纵向滚动冲突
+                if (dx < -60 && Math.abs(dx) > Math.abs(dy) * 1.3) switchTab('system');
+            }, { passive: true });
+        }
+
         // ============ 初始化 ============
         (async function init() {
             const hash = (location.hash || '').replace('#', '');
@@ -5062,8 +5022,10 @@
             } catch (e) {}
             loadTmdb(false, true);  // 静默预取榜单，填充订阅探索入口海报
             startLogsPolling();
+            startBgTasksPolling();  // 后台任务常驻轮询，切换系统/后台时不强刷
             bindPageSwipe();
             bindSearchReveal();
+            bindLogsSwipeBack();
             switchTab(initialTab);
             layoutBgTasks();  // 桌面端把后台任务两个卡片并入「系统状态」Tab（整理历史上方）
         })();
