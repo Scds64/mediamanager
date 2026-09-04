@@ -512,8 +512,8 @@
             margin: 0 0 4px 0;
             padding: 0;
         }
-        /* 系统状态 Tab：媒体信息 + 内存占用 + 订阅探索 三卡并排（媒体信息/订阅探索等宽 340px） */
-        #tab-system .cards-row { grid-template-columns: 340px minmax(0, 1fr) 340px; }
+        /* 系统状态 Tab：媒体信息 + 内存占用 + 订阅探索 三卡并排（订阅探索/媒体信息等宽 340px，内存占用吃满剩余宽度） */
+        #tab-system .cards-row { grid-template-columns: 340px 340px minmax(0, 1fr); }
         /* 后台 Tab：Emby 观看时长占宽列（左），后台任务 340px（右） */
         #tab-bg .cards-row { grid-template-columns: minmax(0, 1fr) 340px; }
         /* 后台任务的两个卡片（桌面端并入「系统状态」Tab 整理历史上方）保持原两列布局 */
@@ -1269,6 +1269,16 @@
             .content {
                 overflow-x: clip;                       /* 裁掉横向溢出但不产生滚动容器，保证 sticky 生效 */
                 padding: 0 16px 24px;                   /* 顶部留白由 toolbar 的 safe-area padding 承担 */
+            }
+            /* 系统↔后台 iOS 桌面式推动：两页同位绝对定位、同向水平滑动（由 pushTabPanels 驱动） */
+            .tab-push-host { position: relative; }
+            .tab-push-host > .tab-panel.tab-pushing {
+                position: absolute;
+                margin: 0;
+                animation: none;            /* 覆盖 .tab-panel 的 fadeIn，避免与位移过渡打架 */
+                will-change: transform;
+                pointer-events: none;       /* 动画期间不可点，避免误触 */
+                backface-visibility: hidden;
             }
             .card { padding: 18px; }
             /* 移动端：订阅探索保留全出血横幅（不被通用 .card padding 覆盖） */
@@ -2366,18 +2376,64 @@
         ];
 
         // ============ Tab 切换 ============
+        // ============ 系统↔后台 页面推动切换（iOS 桌面式） ============
+        let _tabPush = null;
+        function clearTabPushStyles(el) {
+            if (!el) return;
+            el.classList.remove('tab-pushing');
+            ['transition', 'transform', 'left', 'right', 'top'].forEach(k => el.style[k] = '');
+        }
+        function finishTabPush() {
+            const p = _tabPush; _tabPush = null;
+            if (!p) return;
+            clearTimeout(p.timer);
+            clearTabPushStyles(p.from); clearTabPushStyles(p.to);
+            p.from.classList.remove('active');
+            p.host.classList.remove('tab-push-host');
+            p.host.style.minHeight = '';
+        }
+        // 手机端系统↔后台：两页同位绝对定位、同向滑动 —— 新页从侧外推入，旧页被同向推出（iOS 桌面切换感）
+        function pushTabPanels(from, to, toRight) {
+            finishTabPush();                        // 上一段动画未走完则先收尾，防叠加
+            const host = from.parentElement;
+            host.classList.add('tab-push-host');    // position:relative，作两页绝对定位的参照
+            void host.offsetHeight;                 // 强制布局后再测量
+            const top = from.offsetTop;             // 两页共用旧页当前垂直槽位
+            host.style.minHeight = host.offsetHeight + 'px';   // 动画期间保持整页高度，避免跳动
+            const cs = getComputedStyle(host);
+            const pl = parseFloat(cs.paddingLeft), pr = parseFloat(cs.paddingRight);
+            const hideL = `translateX(calc(-100% - ${pl}px))`, hideR = `translateX(calc(100% + ${pr}px))`;
+            [from, to].forEach(p => {
+                p.classList.add('active', 'tab-pushing');
+                p.classList.remove('slide-l', 'slide-r');
+                p.style.top = top + 'px';
+                p.style.left = pl + 'px';
+                p.style.right = pr + 'px';
+            });
+            to.style.transform = toRight ? hideR : hideL;   // 新页从进入方向外侧一屏起步
+            from.style.transform = 'translateX(0)';
+            void to.offsetWidth;                            // 先落好位再开过渡
+            [from, to].forEach(p => p.style.transition = 'transform .32s cubic-bezier(0.2, 0.7, 0.2, 1)');
+            to.style.transform = 'translateX(0)';
+            from.style.transform = toRight ? hideL : hideR; // 旧页被同向推出屏幕
+            _tabPush = { from, to, host, timer: setTimeout(finishTabPush, 360) };
+        }
+
         function switchTab(tab) {
             const prevTab = switchTab._last;
             switchTab._last = tab;
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active', 'slide-l', 'slide-r'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             const panel = document.getElementById('tab-' + tab);
-            if (panel) {
-                // 系统↔后台 切换：按方向加横向滑入动画（左进/右进），其余 Tab 用默认淡入
-                if ((tab === 'system' && prevTab === 'bg') || (tab === 'bg' && prevTab === 'system')) {
-                    panel.classList.add(tab === 'bg' ? 'slide-r' : 'slide-l');
+            const prevPanel = prevTab ? document.getElementById('tab-' + prevTab) : null;
+            const isSysBg = !!prevPanel && ((tab === 'system' && prevTab === 'bg') || (tab === 'bg' && prevTab === 'system'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (isSysBg && window.matchMedia('(max-width: 768px)').matches) {
+                pushTabPanels(prevPanel, panel, tab === 'bg');   // 手机端：两页推动切换
+            } else {
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active', 'slide-l', 'slide-r'));
+                if (panel) {
+                    if (isSysBg) panel.classList.add(tab === 'bg' ? 'slide-r' : 'slide-l');  // 桌面端：横向滑入
+                    panel.classList.add('active');
                 }
-                panel.classList.add('active');
             }
             const nav = document.querySelector(`.nav-item[data-tab="${tab}"]`);
             if (nav) nav.classList.add('active');
