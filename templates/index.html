@@ -1893,11 +1893,12 @@
                     <input type="text" class="hero-search-input" placeholder="搜索影视资源..."
                            autocomplete="off"
                            oninput="heroSearchLiveScoped(this.value)"
-                           onkeydown="if(event.key==='Enter') heroSearchHistory()">
+                           onkeydown="if(event.key==='Enter') heroSearchCommit()">
                     <i class="fas fa-sliders search-filter scope-toggle" id="scopeBtn" title="搜索范围" onclick="toggleScopeMenu(event)"></i>
                     <div class="scope-menu" id="scopeMenu">
                         <button class="scope-opt on" data-scope="media"   type="button" onclick="scopePick('media', this)">影视资源</button>
                         <button class="scope-opt"      data-scope="history" type="button" onclick="scopePick('history', this)">整理记录</button>
+                        <button class="scope-opt"      data-scope="logs"     type="button" onclick="scopePick('logs', this)">日志</button>
                     </div>
                 </div>
 
@@ -3982,7 +3983,9 @@
                 b.classList.toggle('on', b.dataset.scope === scope));
             const inp = document.querySelector('.hero-search .hero-search-input');
             if (inp) {
-                inp.placeholder = scope === 'history' ? '搜索整理记录...' : '搜索影视资源...';
+                inp.placeholder = scope === 'history' ? '搜索整理记录...'
+                    : scope === 'logs' ? '搜索日志...'
+                    : '搜索影视资源...';
                 heroSearchLiveScoped(inp.value);   // 切回影视时立即应用海报过滤
             }
         }
@@ -4015,9 +4018,9 @@
             const ses = document.querySelector('.hero-search');
             if (ses && !ses.contains(e.target)) _clearHeroSearch();
         });
-        // 输入分发：整理 scope 下不实时过滤海报，只等回车
+        // 输入分发：整理/日志 scope 下不实时过滤海报，只等回车
         function heroSearchLiveScoped(kw) {
-            if (_searchScope === 'history') return;
+            if (_searchScope === 'history' || _searchScope === 'logs') return;
             heroSearchLive(kw);
         }
         // 重开/重置海报轮换定时器
@@ -4041,16 +4044,45 @@
             _restartEntryPoster();
             _showRandomEntryPoster('rand');
         }
-        // ② 按回车过滤整理历史（后端 keyword 过滤），并将历史卡片滚入视野；影视 scope 下回车不动整理
-        function heroSearchHistory() {
-            if (_searchScope === 'media') return;
+        // ② 按回车执行搜索（按当前作用域分发）：影视→滚动到海报并清空；整理→过滤历史并清空；日志→跳转日志页并前端过滤
+        function heroSearchCommit() {
             const inp = document.querySelector('.hero-search .hero-search-input');
             const kw = (inp && inp.value || '').trim();
-            historyKeyword = kw;
-            historyPage = 1;
-            loadHistory(1);
-            const card = document.getElementById('history-card');
-            if (card && kw) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (!kw) return;
+            if (_searchScope === 'media') {
+                const card = document.getElementById('tmdb-poster');
+                if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (inp) inp.value = '';
+            } else if (_searchScope === 'history') {
+                historyKeyword = kw;
+                historyPage = 1;
+                loadHistory(1);
+                const card = document.getElementById('history-card');
+                if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (inp) inp.value = '';
+            } else if (_searchScope === 'logs') {
+                heroSearchLogs(kw);
+                if (inp) inp.value = '';
+            }
+        }
+        // 搜索日志：切到日志页 + 加载日志 + 前端过滤高亮
+        async function heroSearchLogs(kw) {
+            switchTab('logs');
+            let lines = [];
+            try {
+                const data = await api('/api/logs?lines=300');
+                lines = (data && data.lines) || [];
+            } catch (e) { lines = []; }
+            const lower = kw.toLowerCase();
+            const matches = lines.filter(l => l.toLowerCase().includes(lower));
+            const page = document.getElementById('logs-page-list');
+            if (page && document.getElementById('tab-logs').classList.contains('active')) {
+                if (!matches.length) {
+                    page.innerHTML = `<div class="notif-empty">未找到包含 "${escapeHtml(kw)}" 的日志</div>`;
+                } else {
+                    renderLogLines(page, matches);
+                }
+            }
         }
 
         function renderHistoryPager(totalPages) {
