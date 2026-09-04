@@ -1156,6 +1156,10 @@
                 pointer-events: none;
                 visibility: hidden;
             }
+            /* 搜索条浮现时（body.search-open）：把系统页首行卡片下推，避免固定条遮挡；
+               隐藏时类移除、padding 归零 → 卡片紧贴工具行、不占位 */
+            body.search-open #tab-system { padding-top: 60px; }   /* 52px 条高 + 间隙 */
+            #tab-system { transition: padding-top .28s cubic-bezier(0.2, 0.7, 0.2, 1); }
             .toolbar-icon-btn {
                 width: 48px; height: 48px;
                 display: flex; align-items: center; justify-content: center;
@@ -4932,38 +4936,41 @@
             }, { passive: true });
         }
 
-        // 手机端搜索条手势显隐：手指下拉并悬停1s → 浮现；手指上滑 → 立即隐藏
+        // 手机端搜索条手势显隐：手指下拉并按住悬停 0.5s → 浮现；手指上滑 → 立即隐藏
         function bindSearchReveal() {
             if (window.matchMedia('(min-width: 769px)').matches) return; // 仅手机端
             const bar = document.querySelector('.hero-search');
             if (!bar) return;
-            const setVis = (hide) => bar.classList.toggle('search-collapsed', hide);
+            const setVis = (hide) => {
+                bar.classList.toggle('search-collapsed', hide);
+                // 浮现时为系统页内容腾出固定条的高度，避免遮住下方卡片（隐藏时不占位）
+                document.body.classList.toggle('search-open', !hide);
+            };
             setVis(true); // 默认隐藏
             const sys = document.getElementById('tab-system');
             const inSys = () => sys && sys.classList.contains('active'); // 仅系统页面响应手势
             let startY = null, holdTimer = null;
             const clearHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
+            const reset = () => { startY = null; clearHold(); };
             document.addEventListener('touchstart', (e) => {
                 if (e.touches.length !== 1) return;
-                if (!inSys()) { startY = null; clearHold(); return; }
+                if (!inSys()) { reset(); return; }
                 startY = e.touches[0].clientY;
                 clearHold();
             }, { passive: true });
             document.addEventListener('touchmove', (e) => {
                 if (startY === null) return;
                 const dy = e.touches[0].clientY - startY;
-                if (dy > 36) {                 // 下拉 → 启动悬停计时，1s 后浮现
-                    if (!holdTimer) holdTimer = setTimeout(() => { setVis(false); holdTimer = null; }, 1000);
+                if (dy > 36) {                 // 下拉 → 按住悬停 0.5s 后浮现（悬停中再次触发不重复计时）
+                    if (!holdTimer) holdTimer = setTimeout(() => { holdTimer = null; setVis(false); }, 500);
                 } else if (dy < -36) {         // 上滑 → 立即隐藏
-                    clearHold();
+                    reset();
                     setVis(true);
                 }
             }, { passive: true });
-            document.addEventListener('touchend', (e) => {
-                if (startY === null) return;
-                clearHold();                   // 未悬停满1s 就抬起 → 维持隐藏
-                startY = null;
-            }, { passive: true });
+            // 抬起/取消统一复位：未悬停满 0.5s 就抬手 → 维持隐藏
+            document.addEventListener('touchend', reset, { passive: true });
+            document.addEventListener('touchcancel', reset, { passive: true });
         }
 
         // ============ 初始化 ============
