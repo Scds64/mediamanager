@@ -4936,16 +4936,16 @@
                 const onBtn = document.querySelector('#topSeg .seg-dot.on');
                 const cur = onBtn ? (onBtn.getAttribute('data-seg-tab') || 'system') : 'system';
                 if (drawerOpen) {
-                    // 抽屉已打开：手指右滑收起侧边栏
-                    if (dx > 0) setDrawer(false);
+                    // 侧边栏已打开：手指左滑收起
+                    if (dx < 0) setDrawer(false);
                     return;
                 }
-                if (cur === 'system' && dx < 0) {
-                    // 系统页左滑：出现侧边栏（切后台改由顶部指示点/桌面跳转）
+                if (cur === 'system' && dx > 0) {
+                    // 系统页右滑：出现侧边栏
                     setDrawer(true);
                     return;
                 }
-                switchTab(dx < 0 ? 'bg' : 'system');
+                switchTab(dx < 0 ? 'bg' : 'system');   // 左滑去后台、右滑回系统
             }, { passive: true });
         }
 
@@ -5003,8 +5003,8 @@
                 if (!c) return;
                 const dx = c.clientX - sx, dy = c.clientY - sy;
                 sx = 0;
-                // 左滑（dx<0）、距离够、横向占主导才触发返回，避免与日志列表纵向滚动冲突
-                if (dx < -60 && Math.abs(dx) > Math.abs(dy) * 1.3) switchTab('system');
+                // 右滑（dx>0）、距离够、横向占主导才触发返回，避免与日志列表纵向滚动冲突
+                if (dx > 60 && Math.abs(dx) > Math.abs(dy) * 1.3) switchTab('system');
             }, { passive: true });
         }
 
