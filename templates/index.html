@@ -374,6 +374,20 @@
             background: var(--primary-soft);
         }
         .card.clickable-card { cursor: pointer; }
+        /* 媒体信息卡：flex 列布局，让底部扫描时间自然贴底 */
+        .card.emby-media-card { display: flex; flex-direction: column; }
+        .emby-stats-footer {
+            margin-top: auto;
+            text-align: right;
+            padding-top: 8px;
+            line-height: 1.6;
+        }
+        .emby-stats-footer .esf-label,
+        .emby-stats-footer .esf-time {
+            font-size: 12px;
+            color: var(--text-500);
+            font-weight: 400;
+        }
 
         /* Toggle (Material switch) */
         .switch {
@@ -1913,13 +1927,16 @@
                             </div>
                         </div>
                     </div>
-                    <div class="card clickable-card" onclick="openEmbyModal()" role="button" title="打开媒体查重">
+                    <div class="card clickable-card emby-media-card" onclick="openEmbyModal()" role="button" title="打开媒体查重">
                         <div class="card-title">
                             <i class="fas fa-chart-pie"></i>媒体信息
-                            <span class="hint" id="emby-stats-hint"></span>
                         </div>
                         <div id="emby-stats-grid" class="emby-stats">
                             <div style="color: var(--text-400); padding: 12px 0;">完成查重扫描后显示媒体库统计</div>
+                        </div>
+                        <div id="emby-stats-footer" class="emby-stats-footer">
+                            <div class="esf-label">上次扫描</div>
+                            <div class="esf-time" id="emby-stats-time"></div>
                         </div>
                     </div>
                     <div class="card">
@@ -4728,14 +4745,11 @@
 
         function renderEmbyStats(stats, lastScan) {
             const grid = document.getElementById('emby-stats-grid');
-            const hint = document.getElementById('emby-stats-hint');
             if (!grid) return;
             if (!stats) {
-                hint.innerHTML = '';
                 grid.innerHTML = '<div style="color: var(--text-400); padding: 12px 0;">完成查重扫描后显示媒体库统计</div>';
                 return;
             }
-            hint.innerHTML = '';
             // 拆分容量字符串为 数字 + 单位（如 "86.3 TB" -> 86.3 / TB）
             const _split = s => {
                 const m = String(s).match(/^([\d.]+)\s*([A-Z]+)$/);
@@ -4790,8 +4804,13 @@
                     <text x="100" y="74" text-anchor="middle" font-size="9" fill="#64748B">${total.unit}</text>
                 </svg>
             `;
-            // 上次扫描时间：显示在标题行最右侧
-            hint.innerHTML = '上次扫描 ' + (lastScan || '-');
+            // 上次扫描时间：显示在卡片右下角，去掉年份
+            const timeEl = document.getElementById('emby-stats-time');
+            if (timeEl) {
+                const t = lastScan || '-';
+                // 去掉年份（如 "2026-09-04 15:30" → "09-04 15:30"）
+                timeEl.textContent = t.length >= 10 ? t.slice(5) : t;
+            }
         }
 
         function renderEmbyDup(s) {
