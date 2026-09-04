@@ -1214,6 +1214,8 @@
                 top: 0; left: 0; bottom: 0;
                 z-index: 200;
                 width: 260px;
+                height: 100vh;                 /* 兜底 */
+                height: 100dvh;                /* 动态视口：准确贴合去掉浏览器栏后的可见区 */
                 transform: translateX(-100%);
                 visibility: hidden;
                 transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.28s;
@@ -1229,6 +1231,9 @@
                 margin-top: auto;
                 padding-top: 14px;
                 border-top: 1px solid var(--border);
+                position: sticky;
+                bottom: 0;
+                background: var(--drawer-bg, #FAFAFB);  /* 随抽屉背景，避免内容透出 */
             }
             .content {
                 overflow-x: clip;                       /* 裁掉横向溢出但不产生滚动容器，保证 sticky 生效 */
