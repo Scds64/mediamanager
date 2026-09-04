@@ -4871,6 +4871,8 @@
                 if (Math.abs(dx) < 60 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
                 // 手指起点在订阅探索海报卡片上：只让海报自己切换，不切整页
                 if (se && se.closest && (se.closest('#tmdb-poster') || se.closest('.tmdb-entry-card'))) return;
+                // 手指起点在整理历史卡片内：该区有左右滑动分页，不切整页
+                if (se && se.closest && se.closest('#history-card')) return;
                 const onBtn = document.querySelector('#topSeg .seg-dot.on');
                 const cur = onBtn ? (onBtn.getAttribute('data-seg-tab') || 'system') : 'system';
                 switchTab(dx < 0 ? 'bg' : 'system');
