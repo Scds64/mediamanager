@@ -181,6 +181,12 @@ func (s *Server) handleStrmRun(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusAccepted, map[string]any{"success": true, "message": "任务 catalog 已触发"})
+	case "rewrite":
+		if !rt.TriggerRewrite() {
+			writeJSON(w, http.StatusConflict, map[string]any{"error": "STRM 改写正在执行中，请稍后再试"})
+			return
+		}
+		writeJSON(w, http.StatusAccepted, map[string]any{"success": true, "message": "本地 STRM 地址改写已触发"})
 	default:
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "未知操作: " + data.Action})
 	}

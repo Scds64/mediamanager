@@ -3,6 +3,7 @@
 package strm
 
 import (
+	"log"
 	"net/url"
 	"os"
 	"path"
@@ -10,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 )
 
@@ -25,9 +27,10 @@ type StrmMeta struct {
 
 // StrmInfo STRM 文件内容解析结果（重定向 URL 参数）。
 type StrmInfo struct {
-	Size int64
-	Name string
-	MD5  string
+	Size      int64
+	Name      string
+	MD5       string
+	S3KeyFlag string
 }
 
 // StrmGroup 按 (类型, 标题, 年份) 分组的 STRM 资源（/delete 候选）。
@@ -107,7 +110,66 @@ func ReadURL(strmPath string) StrmInfo {
 	}
 	info.Name = q.Get("name")
 	info.MD5 = q.Get("md5")
+	info.S3KeyFlag = q.Get("s3_key_flag")
 	return info
+}
+
+// RewriteStrmURLs 遍历本地 STRM 文件，用新的 serverAddress + apiKey 重写 URL。
+// 返回 (总文件数, 成功数, 失败数)。
+func RewriteStrmURLs(roots []string, serverAddress, apiKey string, concurrency int) (total, okCount, failCount int) {
+	serverAddress = strings.TrimRight(serverAddress, "/")
+	if concurrency < 1 {
+		concurrency = 1
+	}
+	type result struct {
+		path  string
+		ok    bool
+		reason string
+	}
+	ch := make(chan string, concurrency)
+	resCh := make(chan result, concurrency)
+	var wg sync.WaitGroup
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for p := range ch {
+				info := ReadURL(p)
+				if info.Name == "" || info.Size == 0 {
+					resCh <- result{p, false, "缺少关键参数"}
+					continue
+				}
+				s3KeyFlag := info.S3KeyFlag
+				if s3KeyFlag == "" {
+					s3KeyFlag = info.MD5
+				}
+				newURL := BuildRedirectURL(serverAddress, apiKey, info.Name, info.Size, info.MD5, s3KeyFlag)
+				if err := os.WriteFile(p, []byte(newURL), 0o644); err != nil {
+					resCh <- result{p, false, err.Error()}
+					continue
+				}
+				resCh <- result{p, true, ""}
+			}
+		}()
+	}
+	go func() {
+		IterStrmFiles(roots, func(p string) { ch <- p })
+		close(ch)
+	}()
+	go func() {
+		wg.Wait()
+		close(resCh)
+	}()
+	for r := range resCh {
+		total++
+		if r.ok {
+			okCount++
+		} else {
+			failCount++
+			log.Printf("【改写STRM】%s 失败: %s", r.path, r.reason)
+		}
+	}
+	return
 }
 
 // hasCJK 判断是否包含中文字符。

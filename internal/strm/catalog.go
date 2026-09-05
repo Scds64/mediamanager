@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"mmbot/internal/pan123"
@@ -68,54 +69,160 @@ func CatalogStrmToHistory(ctx context.Context, client *pan123.Client, strmPaths 
 		fullIndex, nameSizeIndex, idPathIndex, panTotal := buildPanIndex(ctx, client, panRootID, panDir, concurrency)
 		log.Printf("【STRM 梳理】网盘索引构建完成：%d 个文件", panTotal)
 
-		// 3. 遍历本地 STRM，逐个匹配
+		// 3. 收集本地 STRM 路径
 		localDir = strings.TrimRight(strings.ReplaceAll(localDir, "\\", "/"), "/")
 		roots := []string{localDir}
-		IterStrmFiles(roots, func(strmPath string) {
-			relPath := strings.TrimPrefix(strings.ReplaceAll(strmPath, "\\", "/"), localDir+"/")
-			if relPath == "" {
-				return
-			}
+		var strmPaths []string
+		IterStrmFiles(roots, func(p string) { strmPaths = append(strmPaths, p) })
+		log.Printf("【STRM 梳理】本地 STRM 文件数：%d", len(strmPaths))
 
-			info := ReadURL(strmPath)
-			meta := ParseMeta(relPath)
-
-			// Recognize 解析 parentDirs（从顶层到直接父目录）
-			parentDirs := splitPath(filepath.Dir(relPath))
-			filename := filepath.Base(relPath)
-			transferMeta := transfer.Recognize(filename, "", parentDirs)
-
-			// 匹配网盘 FileInfo
-			panFullPath := strings.TrimRight(panDir, "/") + "/" + relPath
-			matched, matchedPath := matchPanFile(panFullPath, info.Name, info.Size, fullIndex, nameSizeIndex, idPathIndex)
-
-			// 覆盖保护：如果 file_id 已经存在且不是 catalog 类型（比如 move 正常整理的），跳过
-			if matched != nil {
-				existing := history.GetByFileID(strconv.FormatInt(matched.FileID, 10))
-				if existing != nil && !strings.HasPrefix(existing.TransferType, "catalog") {
-					result.Skipped++
-					return
-				}
-			}
-
-			// 写 history
-			rec := buildHistoryRecord(meta, transferMeta, matchedPath, strmPath, matched)
-			if err := history.Add(rec); err != nil {
-				log.Printf("【STRM 梳理】写入 history 失败: %v", err)
-				return
-			}
-
-			if matched != nil {
-				result.Matched++
-			} else {
-				result.Orphan++
-			}
-		})
+		// 4. worker pool 并发处理 + channel 汇聚 + 批量事务写 DB
+		m, o, s := catalogLocalStrms(strmPaths, localDir, panDir, fullIndex, nameSizeIndex, idPathIndex, history, concurrency)
+		result.Matched += m
+		result.Orphan += o
+		result.Skipped += s
 	}
 
 	log.Printf("【STRM 梳理】完成：映射 %d 匹配 %d orphan %d 跳过 %d",
 		result.Mappings, result.Matched, result.Orphan, result.Skipped)
 	return result
+}
+
+// catalogLocalStrms 并发处理一批本地 STRM 文件，返回 (matched, orphan, skipped)。
+func catalogLocalStrms(strmPaths []string, localDir, panDir string,
+	fullIndex map[string]*pan123.FileInfo,
+	nameSizeIndex map[string][]*pan123.FileInfo,
+	idPathIndex map[int64]string,
+	history *transfer.TransferHistory,
+	concurrency int,
+) (matched, orphan, skipped int) {
+	type workItem struct {
+		rec     transfer.HistoryRecord
+		matched bool
+		skipped bool
+	}
+
+	// worker pool: 并发处理 ReadURL + ParseMeta + matchPanFile + buildHistoryRecord
+	ch := make(chan string, concurrency*2)
+	resCh := make(chan workItem, concurrency*2)
+	var wg sync.WaitGroup
+
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for strmPath := range ch {
+				relPath := strings.TrimPrefix(strings.ReplaceAll(strmPath, "\\", "/"), localDir+"/")
+				if relPath == "" {
+					continue
+				}
+
+				info := ReadURL(strmPath)
+				meta := ParseMeta(relPath)
+
+				parentDirs := splitPath(filepath.Dir(relPath))
+				filename := filepath.Base(relPath)
+				transferMeta := transfer.Recognize(filename, "", parentDirs)
+
+				panFullPath := strings.TrimRight(panDir, "/") + "/" + relPath
+				fmatched, matchedPath := matchPanFile(panFullPath, info.Name, info.Size, fullIndex, nameSizeIndex, idPathIndex)
+
+				// 覆盖保护：如果 file_id 已经存在且不是 catalog* 类型，跳过
+				if fmatched != nil {
+					existing := history.GetByFileID(strconv.FormatInt(fmatched.FileID, 10))
+					if existing != nil && !strings.HasPrefix(existing.TransferType, "catalog") {
+						resCh <- workItem{skipped: true}
+						continue
+					}
+				}
+
+				rec := buildHistoryRecord(meta, transferMeta, matchedPath, strmPath, fmatched)
+				resCh <- workItem{rec: rec, matched: fmatched != nil}
+			}
+		}()
+	}
+
+	// 投递任务
+	go func() {
+		for _, p := range strmPaths {
+			ch <- p
+		}
+		close(ch)
+	}()
+
+	// 等 worker 全部结束后关 resCh
+	go func() {
+		wg.Wait()
+		close(resCh)
+	}()
+
+	// 单 goroutine 批量事务写 DB
+	const batchSize = 500
+	batch := make([]transfer.HistoryRecord, 0, batchSize)
+	flush := func() {
+		if len(batch) == 0 {
+			return
+		}
+		if err := batchInsertOrReplace(history, batch); err != nil {
+			log.Printf("【STRM 梳理】批量写入失败: %v", err)
+		}
+		batch = batch[:0]
+	}
+	for item := range resCh {
+		if item.skipped {
+			skipped++
+			continue
+		}
+		if item.matched {
+			matched++
+		} else {
+			orphan++
+		}
+		batch = append(batch, item.rec)
+		if len(batch) >= batchSize {
+			flush()
+		}
+	}
+	flush()
+	return
+}
+
+// batchInsertOrReplace 批量 INSERT OR REPLACE。
+func batchInsertOrReplace(history *transfer.TransferHistory, batch []transfer.HistoryRecord) error {
+	if len(batch) == 0 {
+		return nil
+	}
+	// 用事务包裹批量 Exec 比单条快 10x+
+	tx, err := history.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare(`INSERT OR REPLACE INTO transfer_history
+		(file_id, file_name, source_pid, target_pid, target_path,
+		 media_title, media_year, media_type, tmdb_id, season, episode,
+		 status, error_msg, transfer_type, transfer_time, file_size, version)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	now := time.Now().Format(time.RFC3339)
+	for _, rec := range batch {
+		_, err := stmt.Exec(
+			rec.FileID, rec.FileName, rec.SourcePID, rec.TargetPID, rec.TargetPath,
+			rec.MediaTitle, rec.MediaYear, rec.MediaType,
+			catalogNullInt64(rec.TMDBID), catalogNullInt64(rec.Season), catalogNullInt64(rec.Episode),
+			rec.Status, rec.ErrorMsg, rec.TransferType, now,
+			rec.FileSize, rec.Version,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 // ---------- 网盘索引构建 ----------
@@ -266,4 +373,11 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func catalogNullInt64(n sql.NullInt64) any {
+	if !n.Valid {
+		return nil
+	}
+	return n.Int64
 }

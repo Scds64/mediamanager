@@ -41,6 +41,7 @@ type StrmRuntime struct {
 	mu               sync.Mutex
 	busy             bool
 	catalogBusy      bool
+	rewriteBusy      bool
 	stopCh           chan struct{}
 	nextFullSync     time.Time
 	nextCatalog      time.Time
@@ -184,6 +185,7 @@ func (r *StrmRuntime) Status() map[string]any {
 	r.mu.Lock()
 	busy := r.busy
 	catalogBusy := r.catalogBusy
+	rewriteBusy := r.rewriteBusy
 	nextFS := r.nextFullSync
 	nextCat := r.nextCatalog
 	lastRes := r.lastCatalogRes
@@ -226,6 +228,7 @@ func (r *StrmRuntime) Status() map[string]any {
 		"catalog_cron":       r.CatalogCron,
 		"busy":               busy,
 		"catalog_busy":       catalogBusy,
+		"rewrite_busy":       rewriteBusy,
 		"next_full_sync":     nextFullSync,
 		"next_catalog":       nextCatalog,
 		"transfer_linked":    r.TransferLinked,
@@ -440,6 +443,49 @@ func (r *StrmRuntime) runCatalog() {
 	}
 	transfer.Notify(fmt.Sprintf("📚 STRM 梳理完成：匹配 %d  orphan %d  跳过映射 %d",
 		result.Matched, result.Orphan, result.Skipped), "")
+}
+
+// TriggerRewrite 手动改写本地 STRM URL。
+func (r *StrmRuntime) TriggerRewrite() bool {
+	if r == nil {
+		return false
+	}
+	r.mu.Lock()
+	if r.rewriteBusy {
+		r.mu.Unlock()
+		return false
+	}
+	r.rewriteBusy = true
+	r.mu.Unlock()
+	go func() {
+		defer func() {
+			r.mu.Lock()
+			r.rewriteBusy = false
+			r.mu.Unlock()
+		}()
+		r.runRewrite()
+	}()
+	return true
+}
+
+// runRewrite 执行改写。
+func (r *StrmRuntime) runRewrite() {
+	if r.ServerAddress == "" {
+		log.Printf("【改写STRM】未配置 302 服务地址，跳过")
+		return
+	}
+	if r.Paths == "" {
+		log.Printf("【改写STRM】未配置 STRM 映射，跳过")
+		return
+	}
+	roots := LocalRoots(r.Paths)
+	if len(roots) == 0 {
+		log.Printf("【改写STRM】无本地目录映射")
+		return
+	}
+	total, okCount, failCount := RewriteStrmURLs(roots, r.ServerAddress, r.APIKey, r.Concurrency)
+	log.Printf("【改写STRM】完成：扫描 %d 成功 %d 失败 %d", total, okCount, failCount)
+	transfer.Notify(fmt.Sprintf("🔧 STRM 改写完成：共 %d 个，成功 %d，失败 %d", total, okCount, failCount), "")
 }
 
 func (r *StrmRuntime) storeCatalogResult(res CatalogResult) {

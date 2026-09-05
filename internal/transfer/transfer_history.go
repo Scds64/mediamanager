@@ -130,6 +130,11 @@ func (h *TransferHistory) Close() error {
 	return h.db.Close()
 }
 
+// Begin 开启一个事务，供批量写入使用。
+func (h *TransferHistory) Begin() (*sql.Tx, error) {
+	return h.db.Begin()
+}
+
 // Exists 检查文件是否已整理过。
 func (h *TransferHistory) Exists(fileID string) bool {
 	var one int

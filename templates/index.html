@@ -3871,7 +3871,7 @@
         // ============ 后台任务 - 手动触发（">" 按钮） ============
         // 点击后二次确认；触发中对应任务图标高亮（蓝色），结束恢复。
         // transfer/strm 为后台任务，触发成功后轮询状态接口，任务真正结束时图标恢复。
-        const _taskActive = { channel: false, transfer: false, strm: false };
+        const _taskActive = { channel: false, transfer: false, strm: false, catalog: false, rewrite: false };
         let _bgPollTimer = null;
 
         function startBgPoll() {
@@ -3893,6 +3893,7 @@
                 _taskActive.transfer = !!tf.scanning;
                 _taskActive.strm = !!sm.busy;
                 _taskActive.catalog = !!sm.catalog_busy;
+                _taskActive.rewrite = !!sm.rewrite_busy;
                 renderBgTasks();
                 renderBgCountdown();
                 if (_embyUsage) renderEmbyUsageChart();
@@ -3906,6 +3907,7 @@
                 transfer: { msg: '确认立即整理（扫描待整理目录）？' },
                 strm: { msg: '确认开始全量 STRM 同步？' },
                 catalog: { msg: '确认全量 STRM 入册？\n\n将扫描本地所有 STRM 文件，匹配/补全整理历史记录，为后续去重做准备。' },
+                rewrite: { msg: '确认改写本地 STRM 地址？\n\n将扫描所有本地 .strm 文件，用当前 302 地址重写 URL。' },
             };
             const cfg = cfgs[kind];
             if (!cfg || !confirm(cfg.msg)) return;
@@ -3966,13 +3968,30 @@
                         showNotification(r.message || '任务已触发', 'success');
                         startBgPoll();
                     }
+                } else if (kind === 'rewrite') {
+                    showLoading('正在改写本地 STRM 地址...');
+                    let r = null;
+                    try {
+                        r = await api('/api/strm/run', 'POST', { action: 'rewrite' });
+                    } catch (e2) {
+                        if (e2.message.includes('Failed to fetch') || e2.message.includes('NetworkError')) {
+                            showNotification('改写任务已触发，结果将通过 Telegram 通知', 'success');
+                            startBgPoll();
+                        } else {
+                            throw e2;
+                        }
+                    }
+                    if (r) {
+                        showNotification(r.message || '改写任务已触发', 'success');
+                        startBgPoll();
+                    }
                 }
             } catch (e) {
                 _taskActive[kind] = false;
                 renderBgTasks();
                 showNotification('触发失败: ' + e.message, 'error');
             } finally {
-                if (kind === 'channel' || kind === 'strm' || kind === 'catalog') hideLoading();
+                if (kind === 'channel' || kind === 'strm' || kind === 'catalog' || kind === 'rewrite') hideLoading();
                 loadBgTasks(true);
             }
         }
@@ -4428,6 +4447,7 @@
                 _taskActive.transfer = !!tf.scanning;
                 _taskActive.strm = !!sm.busy;
                 _taskActive.catalog = !!sm.catalog_busy;
+                _taskActive.rewrite = !!sm.rewrite_busy;
                 renderBgTasks();
                 renderBgCountdown();
                 // 后台任务卡片高度已确定 → 重绘 Emby 图表以适应
@@ -4489,6 +4509,13 @@
                 ctState = '<span class="bg-task-state off"><span class="bg-dot"></span>未开启</span>';
             }
 
+            let rwState;
+            if (st.rewrite_busy) {
+                rwState = '<span class="bg-task-state"><span class="bg-dot" style="background:#F59E0B;"></span>改写中</span>';
+            } else {
+                rwState = '<span class="bg-task-state off"><span class="bg-dot"></span>待执行</span>';
+            }
+
             grid.innerHTML = `
                 <div class="bg-task-row">
                     <div class="bg-task-row-top">
@@ -4528,6 +4555,16 @@
                     <div class="bg-task-state-row">
                         ${ctState}
                         <button class="bg-trigger-btn" onclick="triggerBgTask('catalog')" title="扫描本地+网盘 STRM，写入整理历史">></button>
+                    </div>
+                </div>
+                <div class="bg-task-row">
+                    <div class="bg-task-row-top">
+                        <span class="bg-task-name"><i class="fas fa-pen-to-square bg-task-icon${_taskActive.rewrite ? ' active' : ''}" data-bg-icon="rewrite"></i>改写本地 STRM 地址</span>
+                        <span class="bg-task-time"></span>
+                    </div>
+                    <div class="bg-task-state-row">
+                        ${rwState}
+                        <button class="bg-trigger-btn" onclick="triggerBgTask('rewrite')" title="用当前 302 地址重写本地所有 STRM 文件">></button>
                     </div>
                 </div>`;
             renderBgCountdown();
