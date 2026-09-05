@@ -360,8 +360,8 @@
             cursor: pointer;
             font-size: 15px;
             line-height: 1;
-            padding: 4px;
-            border-radius: 6px;
+            padding: 0;
+            border-radius: 0;
             width: auto;
             height: auto;
             box-shadow: none;
@@ -371,12 +371,9 @@
         }
         .card-title-icon-btn:hover:not(:disabled) {
             color: var(--primary-hover);
-            background: var(--primary-soft);
         }
-        /* 多选图标按钮：无背景框，默认灰色，选中态亮紫 */
+        /* 多选按钮：默认灰色，选中态亮紫 */
         .card-title-icon-btn.multi-select-btn {
-            padding: 0;
-            border-radius: 0;
             color: var(--title-icon-1);
         }
         .card-title-icon-btn.multi-select-btn:hover:not(:disabled) {
@@ -4344,7 +4341,7 @@
                 });
                 selectedHistoryIds.clear();
                 if (linked) {
-                    let msg = `深度删除完成，${r.success||0} 条成功`;
+                    let msg = `深度删除完成，${r.success||0} 条处理完成`;
                     if (r.fail_list && r.fail_list.length > 0) {
                         msg += `，${r.fail_list.length} 条失败`;
                         showTransferAlert(msg, 'warning');
