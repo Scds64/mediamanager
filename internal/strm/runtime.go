@@ -16,9 +16,9 @@ import (
 
 // 默认值
 const (
-	DefaultAPIKey      = "sscc123bot"
-	DefaultMediaext    = "mp4,mkv,ts,iso,rmvb,avi,mov,mpeg,mpg,wmv,3gp,asf,m4v,flv,m2ts,tp,f4v"
-	DefaultDL_Ext      = "srt,ssa,ass"
+	DefaultAPIKey   = "sscc123bot"
+	DefaultMediaext = "mp4,mkv,ts,iso,rmvb,avi,mov,mpeg,mpg,wmv,3gp,asf,m4v,flv,m2ts,tp,f4v"
+	DefaultDL_Ext   = "srt,ssa,ass"
 )
 
 // StrmRuntime STRM 功能运行时（全局单例）。
@@ -38,15 +38,15 @@ type StrmRuntime struct {
 	TransferLinked  bool
 	Concurrency     int
 
-	mu               sync.Mutex
-	busy             bool
-	catalogBusy      bool
-	rewriteBusy      bool
-	stopCh           chan struct{}
-	nextFullSync     time.Time
-	nextCatalog      time.Time
-	lastCatalogRes   *CatalogResult // 最近一次 catalog 结果（完成后非 nil）
-	lastCatalogTime  time.Time
+	mu              sync.Mutex
+	busy            bool
+	catalogBusy     bool
+	rewriteBusy     bool
+	stopCh          chan struct{}
+	nextFullSync    time.Time
+	nextCatalog     time.Time
+	lastCatalogRes  *CatalogResult // 最近一次 catalog 结果（完成后非 nil）
+	lastCatalogTime time.Time
 }
 
 // StrmConfig STRM 初始化配置。
@@ -245,18 +245,18 @@ func (r *StrmRuntime) Config() map[string]string {
 		return "0"
 	}
 	return map[string]string{
-		"ENV_STRM_ENABLED":          boolStr(r.Enabled),
-		"ENV_STRM_SERVER_ADDRESS":   r.ServerAddress,
-		"ENV_STRM_PATHS":            r.Paths,
-		"ENV_STRM_MEDIAEXT":         r.Mediaext,
-		"ENV_STRM_DL_EXT":           r.DlExt,
-		"ENV_STRM_OVERWRITE":        r.Overwrite,
-		"ENV_STRM_FULL_SYNC":        boolStr(r.FullSyncEnabled),
-		"ENV_STRM_FULL_SYNC_CRON":   r.FullSyncCron,
-		"ENV_STRM_CATALOG":          boolStr(r.CatalogEnabled),
-		"ENV_STRM_CATALOG_CRON":     r.CatalogCron,
-		"ENV_STRM_TRANSFER_LINKED":  boolStr(r.TransferLinked),
-		"ENV_STRM_CONCURRENCY":      strconv.Itoa(r.Concurrency),
+		"ENV_STRM_ENABLED":         boolStr(r.Enabled),
+		"ENV_STRM_SERVER_ADDRESS":  r.ServerAddress,
+		"ENV_STRM_PATHS":           r.Paths,
+		"ENV_STRM_MEDIAEXT":        r.Mediaext,
+		"ENV_STRM_DL_EXT":          r.DlExt,
+		"ENV_STRM_OVERWRITE":       r.Overwrite,
+		"ENV_STRM_FULL_SYNC":       boolStr(r.FullSyncEnabled),
+		"ENV_STRM_FULL_SYNC_CRON":  r.FullSyncCron,
+		"ENV_STRM_CATALOG":         boolStr(r.CatalogEnabled),
+		"ENV_STRM_CATALOG_CRON":    r.CatalogCron,
+		"ENV_STRM_TRANSFER_LINKED": boolStr(r.TransferLinked),
+		"ENV_STRM_CONCURRENCY":     strconv.Itoa(r.Concurrency),
 	}
 }
 
@@ -606,7 +606,7 @@ func SetupTransferDeleteCallback() {
 		if rt == nil {
 			// STRM 未启用时退化为仅网盘回收站 + 整理历史（与未注册回调时的兜底行为一致）
 			if ex := transfer.GetTransferExecutor(); ex != nil && ex.Client != nil {
-				ex.Client.TrashFile(ctx, oldFileID)
+				_, _ = ex.Client.TrashFile(ctx, oldFileID)
 			}
 			if history != nil {
 				history.DeleteByFileID(oldFileID)
@@ -622,9 +622,9 @@ func SetupTransferDeleteCallback() {
 		}
 		fid, _ := strconv.ParseInt(oldFileID, 10, 64)
 		items := []DeleteItem{{
-			ID:       oldFileID,
-			Name:     name,
-			PanPath:  oldTargetPath,
+			ID:        oldFileID,
+			Name:      name,
+			PanPath:   oldTargetPath,
 			PanFileID: fid,
 		}}
 		emby := GetEmbyRuntime()
@@ -635,8 +635,8 @@ func SetupTransferDeleteCallback() {
 // ---------- 全局实例管理 ----------
 
 var (
-	strmRuntime     *StrmRuntime
-	strmRuntimeMu   sync.RWMutex
+	strmRuntime   *StrmRuntime
+	strmRuntimeMu sync.RWMutex
 )
 
 // SetRuntime 设置全局 STRM 运行时。

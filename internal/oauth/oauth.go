@@ -1,4 +1,4 @@
-﻿// Package oauth 实现 LitePan OAuth 认证客户端（对应 Python oauth_client.py）。
+// Package oauth 实现 LitePan OAuth 认证客户端（对应 Python oauth_client.py）。
 package oauth
 
 import (
@@ -166,7 +166,7 @@ func (c *Client) DoRefreshToken(ctx context.Context) bool {
 	}
 	url := OAuthServerURL + "/api/oauth/refresh"
 	payload := map[string]any{
-		"driver_type":  c.DriverType,
+		"driver_type":   c.DriverType,
 		"refresh_token": c.RefreshToken,
 	}
 	raw, status, err := c.http.PostJSON(ctx, url, c.headers(), payload)

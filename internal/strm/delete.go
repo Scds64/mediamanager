@@ -293,11 +293,13 @@ func DeleteItems(ctx context.Context, client *pan123.Client, items []DeleteItem,
 					targetID = FindPanFileID(ctx, client, localPath, item.Size, mappings, dirIDCache, listingCache)
 				}
 				if targetID != 0 {
-					if client.TrashFile(ctx, targetID) {
+					if ok, err := client.TrashFile(ctx, targetID); ok {
 						log.Printf("[strm] 已删除网盘源文件: file_id=%d（%s）", targetID, name)
 						deletedFileIDs = append(deletedFileIDs, int64ToString(targetID))
+					} else if err != nil {
+						log.Printf("[strm] 删除网盘源文件失败: %s, 原因: %v", name, err)
 					} else {
-						log.Printf("[strm] 删除网盘源文件失败（可能已手动删除）: %s", name)
+						log.Printf("[strm] 删除网盘源文件未生效（已手动删除/已在回收站/无效id）: %s", name)
 					}
 				} else {
 					log.Printf("[strm] 未定位到网盘源文件: %s", name)

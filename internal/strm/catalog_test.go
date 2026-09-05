@@ -1,4 +1,4 @@
-﻿package strm
+package strm
 
 import (
 	"database/sql"
@@ -44,11 +44,11 @@ func TestCatalogMatchFlow(t *testing.T) {
 
 	fullIndex := map[string]*pan123.FileInfo{
 		panRoot + "/瑞奇宝宝 (2015) [tmdb=78579]/Season 1/瑞奇宝宝 第10集.mp4": fiA,
-		panRoot + "/庆余年 (2019)/Season 1/庆余年.10.mkv":                    fiB,
+		panRoot + "/庆余年 (2019)/Season 1/庆余年.10.mkv":                  fiB,
 	}
 	nameSizeIndex := map[string][]*pan123.FileInfo{
 		"瑞奇宝宝 第10集.mp4\x008589934592": {fiA},
-		"庆余年.10.mkv\x004294967296":       {fiB},
+		"庆余年.10.mkv\x004294967296":    {fiB},
 	}
 	idPathIndex := map[int64]string{
 		fiA.FileID: panRoot + "/瑞奇宝宝 (2015) [tmdb=78579]/Season 1/瑞奇宝宝 第10集.mp4",
@@ -60,7 +60,7 @@ func TestCatalogMatchFlow(t *testing.T) {
 		name            string
 		strmPath        string
 		expectMatched   bool
-		expectTMDBD      int
+		expectTMDBD     int
 		expectSeason    int
 		expectEpisode   int
 		expectMediaType string
@@ -201,48 +201,48 @@ func TestFindSameFallback(t *testing.T) {
 }
 
 func TestCatalogTimerSchedule(t *testing.T) {
-    r := &StrmRuntime{
-        Enabled:        true,
-        CatalogEnabled: true,
-        CatalogCron:    "* * * * *",
-    }
-    r.rescheduleNow()
-    r.mu.Lock()
-    defer r.mu.Unlock()
-    if r.nextCatalog.IsZero() {
-        t.Fatal("nextCatalog 应该被计算出来但为零值")
-    }
-    diff := time.Until(r.nextCatalog)
-    if diff < 0 || diff > time.Minute {
-        t.Errorf("nextCatalog 应该在 1 分钟内，实际差 %v", diff)
-    }
-    t.Logf("nextCatalog: %v (diff: %v)", r.nextCatalog, diff)
+	r := &StrmRuntime{
+		Enabled:        true,
+		CatalogEnabled: true,
+		CatalogCron:    "* * * * *",
+	}
+	r.rescheduleNow()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.nextCatalog.IsZero() {
+		t.Fatal("nextCatalog 应该被计算出来但为零值")
+	}
+	diff := time.Until(r.nextCatalog)
+	if diff < 0 || diff > time.Minute {
+		t.Errorf("nextCatalog 应该在 1 分钟内，实际差 %v", diff)
+	}
+	t.Logf("nextCatalog: %v (diff: %v)", r.nextCatalog, diff)
 }
 
 func TestCatalogTimerDisabledNoSchedule(t *testing.T) {
-    r := &StrmRuntime{
-        Enabled:        true,
-        CatalogEnabled: false,
-        CatalogCron:    "* * * * *",
-    }
-    r.rescheduleNow()
-    r.mu.Lock()
-    defer r.mu.Unlock()
-    if !r.nextCatalog.IsZero() {
-        t.Errorf("CatalogEnabled=false 时 nextCatalog 应该为零值，实际: %v", r.nextCatalog)
-    }
+	r := &StrmRuntime{
+		Enabled:        true,
+		CatalogEnabled: false,
+		CatalogCron:    "* * * * *",
+	}
+	r.rescheduleNow()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !r.nextCatalog.IsZero() {
+		t.Errorf("CatalogEnabled=false 时 nextCatalog 应该为零值，实际: %v", r.nextCatalog)
+	}
 }
 
 func TestCatalogTimerBadCron(t *testing.T) {
-    r := &StrmRuntime{
-        Enabled:        true,
-        CatalogEnabled: true,
-        CatalogCron:    "bad cron",
-    }
-    r.rescheduleNow()
-    r.mu.Lock()
-    defer r.mu.Unlock()
-    if !r.nextCatalog.IsZero() {
-        t.Errorf("cron 无效时 nextCatalog 应该为零值，实际: %v", r.nextCatalog)
-    }
+	r := &StrmRuntime{
+		Enabled:        true,
+		CatalogEnabled: true,
+		CatalogCron:    "bad cron",
+	}
+	r.rescheduleNow()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !r.nextCatalog.IsZero() {
+		t.Errorf("cron 无效时 nextCatalog 应该为零值，实际: %v", r.nextCatalog)
+	}
 }

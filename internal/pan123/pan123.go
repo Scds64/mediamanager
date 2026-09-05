@@ -377,7 +377,7 @@ func (c *Client) FSMkdir(ctx context.Context, name string, parentID any, duplica
 
 // TrashFile 把单个文件/目录移入回收站（yun Web 接口，驼峰键名）。
 // 失败/已删除返回 false，不抛异常。
-func (c *Client) TrashFile(ctx context.Context, fileID any) bool {
+func (c *Client) TrashFile(ctx context.Context, fileID any) (bool, error) {
 	body := map[string]any{
 		"driveId":   0,
 		"event":     "intoRecycle",
@@ -389,7 +389,7 @@ func (c *Client) TrashFile(ctx context.Context, fileID any) bool {
 	resp, err := c.req(ctx, "POST", YunBase+"/api/file/trash", nil, nil, body)
 	if err != nil {
 		log.Printf("[123] 移入回收站失败 file_id=%v: %v", fileID, err)
-		return false
+		return false, err
 	}
 	var data struct {
 		InfoList []any `json:"InfoList"`
@@ -399,9 +399,9 @@ func (c *Client) TrashFile(ctx context.Context, fileID any) bool {
 	}
 	if len(data.InfoList) == 0 {
 		log.Printf("[123] 移入回收站未生效 file_id=%v（已删除/已在回收站/无效id）", fileID)
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
 
 // FSTrash 批量删除文件至回收站（yun Web 接口）。

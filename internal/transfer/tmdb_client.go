@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	tmdbImageBaseURL = "https://image.tmdb.org/t/p/"
-	tmdbAPIBaseURL   = "https://api.themoviedb.org/3"
+	tmdbImageBaseURL  = "https://image.tmdb.org/t/p/"
+	tmdbAPIBaseURL    = "https://api.themoviedb.org/3"
 	defaultPosterSize = "w500"
 )
 
@@ -49,19 +49,19 @@ func NewTmdbClient(apiKey, language string) (*TmdbClient, error) {
 
 // searchResult 搜索结果项。
 type searchResult struct {
-	ID               int      `json:"id"`
-	Title            string   `json:"title"`
-	Name             string   `json:"name"`
-	OriginalTitle    string   `json:"original_title"`
-	OriginalName     string   `json:"original_name"`
-	ReleaseDate      string   `json:"release_date"`
-	FirstAirDate     string   `json:"first_air_date"`
-	PosterPath       string   `json:"poster_path"`
-	BackdropPath     string   `json:"backdrop_path"`
-	Overview         string   `json:"overview"`
-	VoteAverage      float64  `json:"vote_average"`
-	OriginalLanguage string   `json:"original_language"`
-	GenreIDs         []int    `json:"genre_ids"`
+	ID               int     `json:"id"`
+	Title            string  `json:"title"`
+	Name             string  `json:"name"`
+	OriginalTitle    string  `json:"original_title"`
+	OriginalName     string  `json:"original_name"`
+	ReleaseDate      string  `json:"release_date"`
+	FirstAirDate     string  `json:"first_air_date"`
+	PosterPath       string  `json:"poster_path"`
+	BackdropPath     string  `json:"backdrop_path"`
+	Overview         string  `json:"overview"`
+	VoteAverage      float64 `json:"vote_average"`
+	OriginalLanguage string  `json:"original_language"`
+	GenreIDs         []int   `json:"genre_ids"`
 }
 
 // Search 搜索媒体，返回第一个匹配的 MediaInfo。
@@ -285,19 +285,19 @@ type detailResponse struct {
 		ISO3166_1 string `json:"iso_3166_1"`
 		Name      string `json:"name"`
 	} `json:"production_countries"`
-	NumberOfEpisodes   int      `json:"number_of_episodes"`
-	NumberOfSeasons    int      `json:"number_of_seasons"`
-	Genres             []struct {
+	NumberOfEpisodes int `json:"number_of_episodes"`
+	NumberOfSeasons  int `json:"number_of_seasons"`
+	Genres           []struct {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
 	} `json:"genres"`
-	Overview           string   `json:"overview"`
-	PosterPath         string   `json:"poster_path"`
-	BackdropPath       string   `json:"backdrop_path"`
-	IMDBID             string   `json:"imdb_id"`
-	OriginalLanguage   string   `json:"original_language"`
-	Runtime            int      `json:"runtime"`
-	VoteAverage        float64  `json:"vote_average"`
+	Overview         string  `json:"overview"`
+	PosterPath       string  `json:"poster_path"`
+	BackdropPath     string  `json:"backdrop_path"`
+	IMDBID           string  `json:"imdb_id"`
+	OriginalLanguage string  `json:"original_language"`
+	Runtime          int     `json:"runtime"`
+	VoteAverage      float64 `json:"vote_average"`
 }
 
 // GetDetail 获取媒体详情。

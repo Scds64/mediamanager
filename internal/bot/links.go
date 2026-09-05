@@ -74,7 +74,7 @@ func extract115TargetURL(text string) []string {
 // extractKuakeTargetURL 提取夸克分享链接，自动附带 pwd（优先链接自带，其次文本提取码按序匹配）。
 func extractKuakeTargetURL(text string) []string {
 	type linkInfo struct {
-		shareID   string
+		shareID    string
 		builtInPwd string
 	}
 	processed := map[string]bool{}
@@ -174,11 +174,11 @@ func parseShareLink(shareLink string) []FileEntry {
 	}
 	log.Printf("解析秒传链接...")
 	const (
-		legacyV1   = "123FSLinkV1$"
-		legacyV2   = "123FSLinkV2$"
-		commonV1   = "123FLCPV1$"
-		commonV2   = "123FLCPV2$"
-		delimiter  = "%"
+		legacyV1  = "123FSLinkV1$"
+		legacyV2  = "123FSLinkV2$"
+		commonV1  = "123FLCPV1$"
+		commonV2  = "123FLCPV2$"
+		delimiter = "%"
 	)
 	isCommonPath := false
 	isV2Etag := false

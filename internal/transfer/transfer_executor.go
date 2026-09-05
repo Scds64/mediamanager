@@ -76,59 +76,59 @@ type groupKey struct {
 
 // TransferExecutor 整理执行器。
 type TransferExecutor struct {
-	Client   *pan123.Client
-	TMDB     *TmdbClient
+	Client    *pan123.Client
+	TMDB      *TmdbClient
 	DirHelper *DirectoryHelper
 	CatHelper *CategoryHelper
-	History  *TransferHistory
-	Scraper  *Scraper
+	History   *TransferHistory
+	Scraper   *Scraper
 
-	MovieFormat string
-	TVFormat    string
+	MovieFormat         string
+	TVFormat            string
 	DefaultTransferType string
-	SkipExts    map[string]bool
-	MinFilesize int64
-	EnableScrape bool
-	PriorityVersions map[string]bool
-	SizeOverrideRatio float64
+	SkipExts            map[string]bool
+	MinFilesize         int64
+	EnableScrape        bool
+	PriorityVersions    map[string]bool
+	SizeOverrideRatio   float64
 
 	// 目录 PID 缓存：(parentPID, dirName) -> childPID
-	dirPIDCache      map[string]int
-	dirPIDCacheMax   int
+	dirPIDCache    map[string]int
+	dirPIDCacheMax int
 	// 目标目录文件列表缓存（任务级）
 	targetListingCache map[int64][]pan123.FileInfo
 }
 
 // ExecutorConfig 执行器配置。
 type ExecutorConfig struct {
-	Client          *pan123.Client
-	TMDBAPIKey      string
-	TMDBLanguage    string
-	CategoryYAML    string
-	DirsFile        string
-	DBPath          string
-	MovieFormat     string
-	TVFormat        string
+	Client              *pan123.Client
+	TMDBAPIKey          string
+	TMDBLanguage        string
+	CategoryYAML        string
+	DirsFile            string
+	DBPath              string
+	MovieFormat         string
+	TVFormat            string
 	DefaultTransferType string
-	SkipExts        map[string]bool
-	MinFilesizeMB   int
-	EnableScrape    bool
-	PriorityVersions map[string]bool
-	SizeOverrideRatio float64
+	SkipExts            map[string]bool
+	MinFilesizeMB       int
+	EnableScrape        bool
+	PriorityVersions    map[string]bool
+	SizeOverrideRatio   float64
 }
 
 // NewTransferExecutor 创建整理执行器。
 func NewTransferExecutor(cfg ExecutorConfig) (*TransferExecutor, error) {
 	e := &TransferExecutor{
-		Client:     cfg.Client,
-		MovieFormat: cfg.MovieFormat,
-		TVFormat:   cfg.TVFormat,
+		Client:              cfg.Client,
+		MovieFormat:         cfg.MovieFormat,
+		TVFormat:            cfg.TVFormat,
 		DefaultTransferType: cfg.DefaultTransferType,
-		SkipExts:   DefaultSkipExts,
-		EnableScrape: cfg.EnableScrape,
-		dirPIDCache: map[string]int{},
-		dirPIDCacheMax: 20000,
-		targetListingCache: map[int64][]pan123.FileInfo{},
+		SkipExts:            DefaultSkipExts,
+		EnableScrape:        cfg.EnableScrape,
+		dirPIDCache:         map[string]int{},
+		dirPIDCacheMax:      20000,
+		targetListingCache:  map[int64][]pan123.FileInfo{},
 	}
 	if cfg.SkipExts != nil {
 		e.SkipExts = cfg.SkipExts
@@ -296,7 +296,7 @@ func (e *TransferExecutor) trashOldVersion(ctx context.Context, oldFileID, oldTa
 		deleteOldVersion(ctx, oldFileID, oldTargetPath, e.History)
 		return
 	}
-	if e.Client.TrashFile(ctx, oldFileID) {
+	if ok, _ := e.Client.TrashFile(ctx, oldFileID); ok {
 		log.Printf("已删除旧版本文件: file_id=%s", oldFileID)
 	}
 	e.History.DeleteByFileID(oldFileID)
@@ -432,7 +432,7 @@ func (e *TransferExecutor) TransferFile(ctx context.Context, fileID, fileName st
 				e.trashOldVersion(ctx, oldFileID, old.TargetPath)
 			} else {
 				log.Printf("同集去重: S%02dE%02d 保留旧版，%s", meta.Season, meta.Episode, reason)
-				if e.Client.TrashFile(ctx, fileID) {
+				if ok, _ := e.Client.TrashFile(ctx, fileID); ok {
 					log.Printf("已删除跳过的新文件（移入回收站）: file_id=%s", fileID)
 				}
 				return TransferResult{Message: fmt.Sprintf("同集已有更优版本 (%dB)，跳过", oldSize),
@@ -464,7 +464,7 @@ func (e *TransferExecutor) TransferFile(ctx context.Context, fileID, fileName st
 				e.trashOldVersion(ctx, oldFileID, old.TargetPath)
 			} else {
 				log.Printf("电影版本去重: %s 保留旧版，%s", media.Title, reason)
-				if e.Client.TrashFile(ctx, fileID) {
+				if ok, _ := e.Client.TrashFile(ctx, fileID); ok {
 					log.Printf("已删除跳过的新文件（移入回收站）: file_id=%s", fileID)
 				}
 				return TransferResult{Message: fmt.Sprintf("已有更优版本 (%dB)，跳过", oldSize),
@@ -669,7 +669,7 @@ func (e *TransferExecutor) TransferDirectory(ctx context.Context, sourcePID int,
 			if (subStats.Success + subStats.Skip) > 0 {
 				remaining, err := e.Client.FSList(ctx, item.FileID)
 				if err == nil && len(remaining) == 0 {
-					if e.Client.TrashFile(ctx, item.FileID) {
+					if ok, _ := e.Client.TrashFile(ctx, item.FileID); ok {
 						log.Printf("已删除空目录: %s (pid=%s)", itemName, itemID)
 					}
 				}

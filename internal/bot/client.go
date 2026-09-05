@@ -1,4 +1,4 @@
-﻿package bot
+package bot
 
 // 123 云盘客户端初始化（对应 123bot.py 的 init_123_client / init_litepan_client / get_oauth_client）。
 // token 持久化到 config/config.txt；OAuth token 持久化到 db/data/oauth_token.json。

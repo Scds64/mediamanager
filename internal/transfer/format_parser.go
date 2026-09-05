@@ -27,9 +27,9 @@ type FormatParser struct {
 }
 
 type tmplBlock struct {
-	literal string // 字面文本（非空表示纯文本）
-	expr    string // 表达式（literal 为空且 cond 为空时有效）
-	cond    string // if 条件（非空表示 {% if %} 块）
+	literal string      // 字面文本（非空表示纯文本）
+	expr    string      // 表达式（literal 为空且 cond 为空时有效）
+	cond    string      // if 条件（非空表示 {% if %} 块）
 	body    []tmplBlock // {% if %} 块内部模板
 }
 

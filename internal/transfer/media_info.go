@@ -4,40 +4,40 @@ package transfer
 
 // MetaInfo 文件名识别结果（由 meta_recognizer 产出）。
 type MetaInfo struct {
-	Name          string
-	Year          int
-	Season        int
-	Episode       int
-	Episodes      []int
-	Type          string // movie / tv，空表示未确定
-	Source        string
-	Resolution    string
-	ReleaseGroup  string
-	Container     string
-	TMDBID        int
-	RawName       string
+	Name         string
+	Year         int
+	Season       int
+	Episode      int
+	Episodes     []int
+	Type         string // movie / tv，空表示未确定
+	Source       string
+	Resolution   string
+	ReleaseGroup string
+	Container    string
+	TMDBID       int
+	RawName      string
 }
 
 // MediaInfo TMDB 识别结果。
 type MediaInfo struct {
-	Title              string
-	Year               int
-	Type               string // movie / tv
-	Category           string
-	TMDBID             int
-	IMDBID             string
-	OriginalTitle      string
-	OriginalLanguage   string
+	Title               string
+	Year                int
+	Type                string // movie / tv
+	Category            string
+	TMDBID              int
+	IMDBID              string
+	OriginalTitle       string
+	OriginalLanguage    string
 	ProductionCountries []string
-	OriginCountry      []string
-	GenreIDs           []int
-	Overview           string
-	PosterPath         string
-	BackdropPath       string
-	NumberOfEpisodes   int
-	NumberOfSeasons    int
-	Runtime            int
-	VoteAverage        float64
+	OriginCountry       []string
+	GenreIDs            []int
+	Overview            string
+	PosterPath          string
+	BackdropPath        string
+	NumberOfEpisodes    int
+	NumberOfSeasons     int
+	Runtime             int
+	VoteAverage         float64
 }
 
 // GenreNames 用于 NFO 的 genre 名称列表（与 Python 用 genre_ids 一致，此处保留 ids 转字符串）。

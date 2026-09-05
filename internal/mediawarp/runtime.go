@@ -25,8 +25,8 @@ import (
 	"sync"
 	"time"
 
-	"mmbot/internal/httpx"
 	"gopkg.in/yaml.v3"
+	"mmbot/internal/httpx"
 )
 
 // MediaWarp 相关环境变量名列表（用于读写 user.env）。
@@ -92,9 +92,9 @@ func NewRuntime(cfg Config) *Runtime {
 		MServerAddr:  cfg.MServerAddr,
 		MServerAuth:  cfg.MServerAuth,
 		StrmPrefixes: cfg.StrmPrefixes,
-		dataDir: dd,
-		stopCh:  make(chan struct{}),
-		pidFile: filepath.Join(dd, "pid"),
+		dataDir:      dd,
+		stopCh:       make(chan struct{}),
+		pidFile:      filepath.Join(dd, "pid"),
 	}
 	if r.MServerType == "" {
 		r.MServerType = "emby"
@@ -201,7 +201,7 @@ func downloadAndExtract(dataDir string) bool {
 func downloadFile(url, dest string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	raw, _, err := httpx.New(60 * time.Second).Get(ctx, url, nil)
+	raw, _, err := httpx.New(60*time.Second).Get(ctx, url, nil)
 	if err != nil {
 		return err
 	}

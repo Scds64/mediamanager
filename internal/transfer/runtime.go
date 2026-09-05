@@ -1,4 +1,4 @@
-﻿package transfer
+package transfer
 
 // 运行时全局实例管理（对应 runtime.py）。
 // 全局实例由主程序初始化，其他模块通过 GetExecutor / GetScheduler 获取。
@@ -118,20 +118,20 @@ func InitFromEnv(client *pan123.Client, cfg *config.Config) bool {
 	}
 
 	executor, err := NewTransferExecutor(ExecutorConfig{
-		Client:            client,
-		TMDBAPIKey:        tmdbAPIKey,
-		TMDBLanguage:      tmdbLanguage,
-		CategoryYAML:      categoryYAML,
-		DirsFile:          dirsFile,
-		DBPath:            "data/transfer.db",
-		MovieFormat:       movieFormat,
-		TVFormat:          tvFormat,
+		Client:              client,
+		TMDBAPIKey:          tmdbAPIKey,
+		TMDBLanguage:        tmdbLanguage,
+		CategoryYAML:        categoryYAML,
+		DirsFile:            dirsFile,
+		DBPath:              "data/transfer.db",
+		MovieFormat:         movieFormat,
+		TVFormat:            tvFormat,
 		DefaultTransferType: defaultType,
-		SkipExts:          skipExts,
-		MinFilesizeMB:     minFilesize,
-		EnableScrape:      enableScrape,
-		PriorityVersions:  priorityVersions,
-		SizeOverrideRatio: sizeOverrideRatio,
+		SkipExts:            skipExts,
+		MinFilesizeMB:       minFilesize,
+		EnableScrape:        enableScrape,
+		PriorityVersions:    priorityVersions,
+		SizeOverrideRatio:   sizeOverrideRatio,
 	})
 	if err != nil {
 		log.Printf("整理执行器初始化失败: %v", err)

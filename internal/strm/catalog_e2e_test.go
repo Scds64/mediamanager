@@ -36,58 +36,58 @@ func TestCatalogE2E(t *testing.T) {
 
 	// 构造本地 STRM 列表（相对 localDir）
 	type strmFile struct {
-		relPath string
-		name    string // URL 里解析出来的 name
-		size    int64  // URL 里解析出来的 size
-		expectTitle string
-		expectType  string
-		expectYear  int
-		expectS     int
-		expectE     int
-		expectTMDB  int
-		expectMatched bool
+		relPath             string
+		name                string // URL 里解析出来的 name
+		size                int64  // URL 里解析出来的 size
+		expectTitle         string
+		expectType          string
+		expectYear          int
+		expectS             int
+		expectE             int
+		expectTMDB          int
+		expectMatched       bool
 		expectTargetPathExt string // 期望 target_path 的扩展名
 	}
 	strmFiles := []strmFile{
 		{
 			relPath: "电影/动画电影/冰雪奇缘 (2013) {tmdbid=109445}/冰雪奇缘.Frozen.2013.BluRay.2160p.H265.TrueHD.strm",
-			name: "冰雪奇缘.Frozen.2013.BluRay.2160p.H265.TrueHD", size: 800_000_000,
+			name:    "冰雪奇缘.Frozen.2013.BluRay.2160p.H265.TrueHD", size: 800_000_000,
 			expectTitle: "冰雪奇缘", expectType: "movie", expectYear: 2013,
 			expectTMDB: 109445, expectMatched: true, expectTargetPathExt: ".mkv",
 		},
 		{
 			relPath: "电影/外语电影/星球大战4：新希望 (1977) {tmdbid=11}/星球大战4：新希望.Star Wars.1977.UHD BluRay HDR10.strm",
-			name: "星球大战4：新希望.Star Wars.1977.UHD BluRay HDR10", size: 1_200_000_000,
+			name:    "星球大战4：新希望.Star Wars.1977.UHD BluRay HDR10", size: 1_200_000_000,
 			expectTitle: "星球大战4：新希望", expectType: "movie", expectYear: 1977,
 			expectTMDB: 11, expectMatched: true, expectTargetPathExt: ".mkv",
 		},
 		{
 			relPath: "电视剧/庆余年 (2019) [tmdb=62947]/Season 1/庆余年 第10集.strm",
-			name: "庆余年 第10集", size: 500_000_000,
+			name:    "庆余年 第10集", size: 500_000_000,
 			expectTitle: "庆余年", expectType: "tv", expectYear: 2019,
 			expectS: 1, expectE: 10, expectTMDB: 62947, expectMatched: true, expectTargetPathExt: ".mkv",
 		},
 		{
 			relPath: "电视剧/庆余年 (2019) [tmdb=62947]/Season 1/11.strm",
-			name: "11", size: 510_000_000,
+			name:    "11", size: 510_000_000,
 			expectTitle: "庆余年", expectType: "tv", expectYear: 2019,
 			expectS: 1, expectE: 11, expectTMDB: 62947, expectMatched: true, expectTargetPathExt: ".mkv",
 		},
 		{
 			relPath: "电视剧/海贼王 (1999) [tmdb=16377]/海贼王 SC/Season 1/01.strm",
-			name: "01", size: 400_000_000,
+			name:    "01", size: 400_000_000,
 			expectTitle: "海贼王", expectType: "tv", expectYear: 1999,
 			expectS: 1, expectE: 1, expectTMDB: 16377, expectMatched: true, expectTargetPathExt: ".mkv",
 		},
 		{
 			relPath: "电视剧/长安十二时辰 (2019) [tmdb=90768]/Season 1/长安十二时辰 The Longest Day In Chang'an E01 V2 HDCTV.strm",
-			name: "长安十二时辰 The Longest Day In Chang'an E01 V2 HDCTV", size: 600_000_000,
+			name:    "长安十二时辰 The Longest Day In Chang'an E01 V2 HDCTV", size: 600_000_000,
 			expectTitle: "长安十二时辰", expectType: "tv", expectYear: 2019,
 			expectS: 1, expectE: 1, expectTMDB: 90768, expectMatched: true, expectTargetPathExt: ".mkv",
 		},
 		{
 			relPath: "电视剧/已删除剧 (2020)/Season 1/第01集.strm",
-			name: "第01集", size: 300_000_000,
+			name:    "第01集", size: 300_000_000,
 			expectTitle: "已删除剧", expectType: "tv", expectYear: 2020,
 			expectS: 1, expectE: 1, expectMatched: false,
 		},

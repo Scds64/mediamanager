@@ -100,7 +100,7 @@ var (
 	// 标题附加剥离：音频编码（复用 format_parser.audioCodecRe）、声道、帧率，及分辨率与片源之间的发布组段
 	// （如 2160p.Knowledge Network.WEB-DL）。残留这些标记词会导致 TMDB 搜索 0 结果而落入"未分类"。
 	channelRe = regexp.MustCompile(`(?i)(?:\b|\.)(?:5[.\s]?1|7[.\s]?1|2[.\s]?0|3[.\s]?1|6[.\s]?1)(?:\b|\.)`)
-	fpsRe       = regexp.MustCompile(`(?i)(?:\b|\.)\d{2,3}\s?fps(?:\b|\.)`)
+	fpsRe     = regexp.MustCompile(`(?i)(?:\b|\.)\d{2,3}\s?fps(?:\b|\.)`)
 	// ponytail: 剥「分辨率.发布组.片源」中段，仅限纯英文、无数字、≤30 字符；非标命名把标题词夹在中段时可能误剥，
 	// 退化为按主标题搜索（最坏年份错配到同名前作），可接受。中间有两个点分隔 token 时不剥。
 	groupMidRe = regexp.MustCompile(`(?i)(?:^|[.\s-])(?:2160p|1080p|720p|480p|4320p|4k|8k)[.\s-]([A-Za-z][A-Za-z ]{0,28}[A-Za-z]|[A-Za-z])[.\s-](?:WEB-DL|WEBRip|BluRay|REMUX|HDTV|BDRip|HDRip|DVD|HDDVD|DVDRip|WEB\.DL|WEB\.Rip|Blu-Ray)(?:[.\s-]|$)`)
@@ -108,10 +108,10 @@ var (
 
 // 父目录名清洗正则
 var (
-	dirNameYearRe      = regexp.MustCompile(`[(（]\s*(\d{4})\s*[)）]`)
-	dirNameSeasonCNRe  = regexp.MustCompile(`第\s*(\d+)\s*[季部]`)
-	dirNameSeasonENRe  = regexp.MustCompile(`(?i)\b(?:Season|S)\s*(\d{1,2})\b`)
-	dirDecorationRe    = regexp.MustCompile(`(?i)更新至\s*第?\s*\d+\s*(?:-\s*\d+)?\s*集|全\s*\d+\s*集|完结|第\s*\d+\s*[季部]|\b(?:Season|S)\s*\d{1,2}\b|[(（]\s*\d{4}\s*[)）]`)
+	dirNameYearRe     = regexp.MustCompile(`[(（]\s*(\d{4})\s*[)）]`)
+	dirNameSeasonCNRe = regexp.MustCompile(`第\s*(\d+)\s*[季部]`)
+	dirNameSeasonENRe = regexp.MustCompile(`(?i)\b(?:Season|S)\s*(\d{1,2})\b`)
+	dirDecorationRe   = regexp.MustCompile(`(?i)更新至\s*第?\s*\d+\s*(?:-\s*\d+)?\s*集|全\s*\d+\s*集|完结|第\s*\d+\s*[季部]|\b(?:Season|S)\s*\d{1,2}\b|[(（]\s*\d{4}\s*[)）]`)
 )
 
 // recognizeByRegex 用正则解析文件名，输出 MetaInfo。

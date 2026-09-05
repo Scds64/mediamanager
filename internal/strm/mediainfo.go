@@ -1,4 +1,4 @@
-﻿// 媒体信息文件下载器（对应 mediainfo_downloader.py）。
+// 媒体信息文件下载器（对应 mediainfo_downloader.py）。
 package strm
 
 import (

@@ -50,9 +50,9 @@ type ShareFile struct {
 
 // ShareFileResp 分享文件列表响应。
 type ShareFileResp struct {
-	Code     int    `json:"code"`
-	Message  string `json:"message"`
-	Data     struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    struct {
 		List []*ShareFile `json:"list"`
 	} `json:"data"`
 	Metadata struct {
@@ -64,13 +64,13 @@ type ShareFileResp struct {
 
 func (c *Client) headers() map[string]string {
 	h := map[string]string{
-		"cookie":            c.Cookie,
-		"content-type":      "application/json",
-		"user-agent":        QuarkUA,
-		"accept":            "application/json, text/plain, */*",
-		"accept-language":   "zh-CN,zh;q=0.9,en;q=0.8",
-		"referer":           "https://drive.quark.cn/",
-		"origin":            "https://drive.quark.cn",
+		"cookie":          c.Cookie,
+		"content-type":    "application/json",
+		"user-agent":      QuarkUA,
+		"accept":          "application/json, text/plain, */*",
+		"accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
+		"referer":         "https://drive.quark.cn/",
+		"origin":          "https://drive.quark.cn",
 	}
 	return h
 }
@@ -135,8 +135,8 @@ func (c *Client) GetShareInfo(ctx context.Context, shareID, password string) (st
 		return "", fmt.Errorf("夸克 get_share_info HTTP %d: %s", status, string(raw))
 	}
 	var resp struct {
-		Code int    `json:"code"`
-		Msg  string `json:"message"`
+		Code int       `json:"code"`
+		Msg  string    `json:"message"`
 		Data ShareInfo `json:"data"`
 	}
 	if err := json.Unmarshal(raw, &resp); err != nil {

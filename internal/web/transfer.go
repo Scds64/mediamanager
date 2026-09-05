@@ -1,4 +1,4 @@
-﻿package web
+package web
 
 // 文件整理功能 API（对应 server.py 的整理相关路由）。
 
@@ -105,9 +105,9 @@ func (s *Server) handleTransferRun(w http.ResponseWriter, r *http.Request) {
 	scheduler := transfer.GetTransferScheduler()
 
 	var data struct {
-		FileID    any  `json:"file_id"`
-		SourcePID int  `json:"source_pid"`
-		Force     bool `json:"force"`
+		FileID    any    `json:"file_id"`
+		SourcePID int    `json:"source_pid"`
+		Force     bool   `json:"force"`
 		FileName  string `json:"file_name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -460,10 +460,10 @@ func writeEnvBlock(path string, keys []string, blockTitle string, updates map[st
 		return false
 	}
 	if err := os.WriteFile(path, []byte(strings.Join(out, "\n")), 0o644); err != nil {
-			return false
-		}
-		return true
+		return false
 	}
+	return true
+}
 
 // ---------- POST /api/transfer/history/batch-delete ----------
 
@@ -508,20 +508,20 @@ func (s *Server) handleTransferBatchDelete(w http.ResponseWriter, r *http.Reques
 		emby := strm.GetEmbyRuntime()
 		ctx := context.Background()
 		result := strm.DeleteItems(ctx, client, items, nil, emby, envGet("ENV_STRM_PATHS", ""), executor.History)
-			// 兜底：防止 PanFileID 解析失败或网盘删除失败导致历史记录残留
-			executor.History.DeleteBatch(data.IDs)
-			// 构造失败详情列表
-			var failDetails []map[string]string
-			for _, f := range result.FailList {
-				failDetails = append(failDetails, map[string]string{"name": f.Name, "error": f.Error})
-			}
-			writeJSON(w, http.StatusOK, map[string]any{
-				"success":   result.Success,
-				"fail":      len(result.FailList),
-				"fail_list": failDetails,
-				"linked":    true,
-			})
-			return
+		// 兜底：防止 PanFileID 解析失败或网盘删除失败导致历史记录残留
+		executor.History.DeleteBatch(data.IDs)
+		// 构造失败详情列表
+		var failDetails []map[string]string
+		for _, f := range result.FailList {
+			failDetails = append(failDetails, map[string]string{"name": f.Name, "error": f.Error})
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success":   result.Success,
+			"fail":      len(result.FailList),
+			"fail_list": failDetails,
+			"linked":    true,
+		})
+		return
 	}
 
 	// 仅删记录

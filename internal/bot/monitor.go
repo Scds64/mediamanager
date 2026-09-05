@@ -357,12 +357,12 @@ func (b *Bot) processChannelMessage(cm ChannelMessage, msgDB *MessageDB, exclude
 		} else {
 			msg := fmt.Sprintf("❌123云盘转存失败\n消息内容: %s\n链接: %s", cm.MessageURL, cm.TargetURL)
 			b.SubmitSend(func() { b.SendMessage(msg) })
-		b.recordChannelResult(cm, msgDB, "转存失败", msg)
+			b.recordChannelResult(cm, msgDB, "转存失败", msg)
+		}
+		// 与秒传分支对齐：每条分享链接转存后间隔 10 秒，避免触发 123pan 账号级限流
+		time.Sleep(10 * time.Second)
+		return
 	}
-	// 与秒传分支对齐：每条分享链接转存后间隔 10 秒，避免触发 123pan 账号级限流
-	time.Sleep(10 * time.Second)
-	return
-}
 
 	// 无分享链接 → 尝试秒传链接
 	fullLinks := extract123LinksFromFullText(cm.MessageText)

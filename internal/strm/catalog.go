@@ -20,10 +20,10 @@ import (
 
 // CatalogResult catalog 执行结果。
 type CatalogResult struct {
-	Mappings int `json:"mappings"`
-	Matched  int `json:"matched"`
-	Orphan   int `json:"orphan"`
-	Skipped  int `json:"skipped"`
+	Mappings int    `json:"mappings"`
+	Matched  int    `json:"matched"`
+	Orphan   int    `json:"orphan"`
+	Skipped  int    `json:"skipped"`
 	Error    string `json:"error,omitempty"`
 }
 

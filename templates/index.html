@@ -356,12 +356,11 @@
         .card-title-icon-btn {
             background: transparent;
             border: none;
-            color: var(--primary-mute);
+            color: var(--title-icon-1);
             cursor: pointer;
             font-size: 15px;
             line-height: 1;
-            padding: 4px;
-            border-radius: 6px;
+            padding: 0;
             width: auto;
             height: auto;
             box-shadow: none;
@@ -370,8 +369,7 @@
             justify-content: center;
         }
         .card-title-icon-btn:hover:not(:disabled) {
-            color: var(--primary-hover);
-            background: var(--primary-soft);
+            color: var(--primary);
         }
         .card-title-icon-btn.active {
             color: var(--primary);
@@ -4261,7 +4259,7 @@
             const btn = document.querySelector('.card-title-icon-btn');
             const icon = btn ? btn.querySelector('i') : null;
             if (icon) {
-                icon.className = historySelectMode ? 'fas fa-times' : 'fas fa-check-double';
+                icon.className = historySelectMode ? 'fas fa-xmark' : 'fas fa-check-double';
             }
             if (btn) {
                 btn.classList.toggle('active', historySelectMode);
@@ -4338,7 +4336,6 @@
                     if (r.fail_list && r.fail_list.length > 0) {
                         msg += `，${r.fail_list.length} 条失败`;
                         showTransferAlert(msg, 'warning');
-                        // 在控制台打印失败详情
                         console.log('深度删除失败详情:', r.fail_list);
                     } else {
                         showTransferAlert(msg, 'success');

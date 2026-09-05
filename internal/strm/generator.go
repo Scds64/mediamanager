@@ -31,13 +31,13 @@ func RawItemPayload(raw *pan123.FileInfo) map[string]any {
 
 // FullSyncStrmHelper 全量生成 STRM 文件。
 type FullSyncStrmHelper struct {
-	client             *pan123.Client
-	rmtMediaext        []string
-	downloadMediaext   []string
-	serverAddress      string
-	apiKey             string
-	autoDownload       bool
-	concurrency        int
+	client           *pan123.Client
+	rmtMediaext      []string
+	downloadMediaext []string
+	serverAddress    string
+	apiKey           string
+	autoDownload     bool
+	concurrency      int
 
 	mu                 sync.Mutex
 	strmCount          int

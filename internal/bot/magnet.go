@@ -32,7 +32,9 @@ func (b *Bot) addMagnetLinks(msg *tgbotapi.Message, text string, uploadDir strin
 		return &MagnetResult{Status: "error", Message: "未找到磁力链接"}
 	}
 	log.Printf("找到磁力链接: %v", magnetLinks)
-	b.SubmitSend(func() { b.SendReply(msg, fmt.Sprintf("找到%d条磁力链\n%v\n正在添加，请耐心等待", len(magnetLinks), magnetLinks)) })
+	b.SubmitSend(func() {
+		b.SendReply(msg, fmt.Sprintf("找到%d条磁力链\n%v\n正在添加，请耐心等待", len(magnetLinks), magnetLinks))
+	})
 
 	client := b.initClient()
 	addedCount := 0

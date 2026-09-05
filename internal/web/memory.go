@@ -1,4 +1,4 @@
-﻿package web
+package web
 
 // 内存趋势历史：服务端持久化，跨设备共享（对应 server.py 的 _mem_history 部分）。
 

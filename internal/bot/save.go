@@ -1,4 +1,4 @@
-﻿package bot
+package bot
 
 // 核心转存逻辑（对应 123bot.py 的 save_json_file_quark / process_json_file / parse_share_link
 // 中的文件秒传循环，供 JSON 文件、夸克、115、秒传链接共用）。
@@ -51,7 +51,9 @@ func (b *Bot) saveFilesTo123(msg *tgbotapi.Message, commonPath string, files []F
 		b.SubmitSend(func() { b.SendReply(msg, "分享中没有找到文件信息。") })
 		return 0, 0
 	}
-	b.SubmitSend(func() { b.SendReplyDelete(msg, fmt.Sprintf("开始123转存文件中的%d个文件...", len(files)), 5) })
+	b.SubmitSend(func() {
+		b.SendReplyDelete(msg, fmt.Sprintf("开始123转存文件中的%d个文件...", len(files)), 5)
+	})
 
 	if client == nil {
 		client = b.initClient()
@@ -269,7 +271,7 @@ func classifySave(resp *pan123.Response) saveStatus {
 		return saveFail
 	}
 	if !resp.IsSuccess() {
-	return saveFail
+		return saveFail
 	}
 	// 兼容 Reuse/reuse 大小写两种字段（不同秒传接口返回键名不同）
 	var m map[string]any

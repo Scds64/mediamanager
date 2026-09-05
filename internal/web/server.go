@@ -170,11 +170,11 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/transfer/dirs", s.authWrap(s.handleTransferSaveDirs))
 	mux.HandleFunc("POST /api/transfer/run", s.authWrap(s.handleTransferRun))
 	mux.HandleFunc("GET /api/transfer/history", s.authWrap(s.handleTransferHistory))
-		mux.HandleFunc("DELETE /api/transfer/history/{id}", s.authWrap(s.handleTransferDeleteHistory))
-		mux.HandleFunc("POST /api/transfer/history/batch-delete", s.authWrap(s.handleTransferBatchDelete))
-		mux.HandleFunc("GET /api/transfer/categories", s.authWrap(s.handleTransferCategories))
-		mux.HandleFunc("GET /api/transfer/config", s.authWrap(s.handleTransferGetConfig))
-		mux.HandleFunc("POST /api/transfer/config", s.authWrap(s.handleTransferSaveConfig))
+	mux.HandleFunc("DELETE /api/transfer/history/{id}", s.authWrap(s.handleTransferDeleteHistory))
+	mux.HandleFunc("POST /api/transfer/history/batch-delete", s.authWrap(s.handleTransferBatchDelete))
+	mux.HandleFunc("GET /api/transfer/categories", s.authWrap(s.handleTransferCategories))
+	mux.HandleFunc("GET /api/transfer/config", s.authWrap(s.handleTransferGetConfig))
+	mux.HandleFunc("POST /api/transfer/config", s.authWrap(s.handleTransferSaveConfig))
 
 	// OAuth / 系统
 	mux.HandleFunc("GET /api/oauth/status", s.authWrap(s.handleOAuthStatus))

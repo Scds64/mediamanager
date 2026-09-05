@@ -14,22 +14,22 @@ import (
 
 // TransferDirectoryConf 单个目录映射配置。
 type TransferDirectoryConf struct {
-	Name           string `json:"name"`
-	SourcePID      int    `json:"source_pid"`
-	LibraryPID     int    `json:"library_pid"`
-	MediaType      string `json:"media_type"`
-	MediaCategory  string `json:"media_category"`
-	Priority       int    `json:"priority"`
-	Monitor        bool   `json:"monitor"`
-	TransferType   string `json:"transfer_type"`
+	Name          string `json:"name"`
+	SourcePID     int    `json:"source_pid"`
+	LibraryPID    int    `json:"library_pid"`
+	MediaType     string `json:"media_type"`
+	MediaCategory string `json:"media_category"`
+	Priority      int    `json:"priority"`
+	Monitor       bool   `json:"monitor"`
+	TransferType  string `json:"transfer_type"`
 }
 
 var dirFileMu sync.Mutex
 
 // DirectoryHelper 目录映射配置管理器。
 type DirectoryHelper struct {
-	DirsFile string
-	cache    []*TransferDirectoryConf
+	DirsFile   string
+	cache      []*TransferDirectoryConf
 	cacheMTime int64
 }
 

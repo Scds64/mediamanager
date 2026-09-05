@@ -122,8 +122,8 @@ func RewriteStrmURLs(roots []string, serverAddress, apiKey string, concurrency i
 		concurrency = 1
 	}
 	type result struct {
-		path  string
-		ok    bool
+		path   string
+		ok     bool
 		reason string
 	}
 	ch := make(chan string, concurrency)
@@ -243,12 +243,12 @@ func splitPath(p string) []string {
 }
 
 var (
-	sxxexxRe       = regexp.MustCompile(`[Ss](\d{1,2})[Ee](\d{1,3})`)
+	sxxexxRe = regexp.MustCompile(`[Ss](\d{1,2})[Ee](\d{1,3})`)
 	// 年份匹配：独立的 4 位数字（前后不是数字）
-	yearRe         = regexp.MustCompile(`(?:^|[^\d])(\d{4})(?:[^\d]|$)`)
+	yearRe = regexp.MustCompile(`(?:^|[^\d])(\d{4})(?:[^\d]|$)`)
 	// tmdb 标识：[tmdb=xxx] [tmdb-xxx] {tmdbid=xxx} {tmdbid-xxx} 等
-	tmdbAnyRe      = regexp.MustCompile(`(?i)[{\[]tmdb(?:id)?(?:=|-)\d+[}\]]`)
-	seasonDirRes   = []*regexp.Regexp{
+	tmdbAnyRe    = regexp.MustCompile(`(?i)[{\[]tmdb(?:id)?(?:=|-)\d+[}\]]`)
+	seasonDirRes = []*regexp.Regexp{
 		regexp.MustCompile(`(?i)season\s*(\d+)`),
 		regexp.MustCompile(`第\s*(\d+)\s*季`),
 		regexp.MustCompile(`^[Ss](\d{1,2})$`),

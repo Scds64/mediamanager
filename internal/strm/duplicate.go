@@ -470,4 +470,3 @@ func (r *ScanRuntime) GetConfig(getEnv func(string, string) string) (serverURL, 
 		getEnv("ENV_MWARP_MEDIASERVER_AUTH", ""),
 		getEnv("ENV_STRM_PATHS", "")
 }
-

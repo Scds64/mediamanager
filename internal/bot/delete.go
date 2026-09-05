@@ -1,4 +1,4 @@
-﻿package bot
+package bot
 
 // /delete 命令：按标题搜索本地 STRM 库，选择后联动删除（网盘回收站+本地STRM+Emby+整理历史）。
 // 对应 123bot.py 的 handle_delete_command / perform_delete_search / execute_media_delete。

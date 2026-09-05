@@ -1,4 +1,4 @@
-﻿package bot
+package bot
 
 // 消息处理器（对应 123bot.py 的 handle_general_message / process_json_file /
 // process_text_document / handle_oauth / handle_restart / add_filter / remove_filter）。
@@ -428,7 +428,9 @@ func (b *Bot) handleGeneralMessage(msg *tgbotapi.Message) {
 	// 123 分享链接转存（caption 与 text 一并提取，资源卡片链接常在 caption）
 	targetURLs := extractTargetURL(fullText)
 	if len(targetURLs) > 0 {
-		b.SubmitSend(func() { b.SendReplyDelete(msg, fmt.Sprintf("发现%d个123分享链接，开始转存...", len(targetURLs)), 5) })
+		b.SubmitSend(func() {
+			b.SendReplyDelete(msg, fmt.Sprintf("发现%d个123分享链接，开始转存...", len(targetURLs)), 5)
+		})
 		successCount := 0
 		failCount := 0
 		for _, url := range targetURLs {
@@ -462,7 +464,9 @@ func (b *Bot) handleGeneralMessage(msg *tgbotapi.Message) {
 			b.SubmitSend(func() { b.SendReply(msg, "请填写夸克COOKIE") })
 			return
 		}
-		b.SubmitSend(func() { b.SendReply(msg, fmt.Sprintf("发现%d个夸克分享链接，开始尝试秒传到123...", len(kuakeURLs))) })
+		b.SubmitSend(func() {
+			b.SendReply(msg, fmt.Sprintf("发现%d个夸克分享链接，开始尝试秒传到123...", len(kuakeURLs)))
+		})
 		successCount := 0
 		failCount := 0
 		var failMessages []string
@@ -511,7 +515,9 @@ func (b *Bot) handleGeneralMessage(msg *tgbotapi.Message) {
 			b.states.ClearState(userID)
 			return
 		}
-		b.SubmitSend(func() { b.SendReply(msg, fmt.Sprintf("发现%d个115分享链接，开始尝试秒传到123...", len(urls115))) })
+		b.SubmitSend(func() {
+			b.SendReply(msg, fmt.Sprintf("发现%d个115分享链接，开始尝试秒传到123...", len(urls115)))
+		})
 		successCount := 0
 		failCount := 0
 		var failMessages []string

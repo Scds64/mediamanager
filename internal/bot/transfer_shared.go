@@ -1,4 +1,4 @@
-﻿package bot
+package bot
 
 // 123 分享链接转存（对应 123bot.py 的 transfer_shared_link_optimize）。
 

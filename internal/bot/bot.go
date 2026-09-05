@@ -28,15 +28,15 @@ type Bot struct {
 	shareBot *tgbotapi.BotAPI
 	tg       *tgbotapi.BotAPI
 
-	adminID int64
-	token   string
-	shareToken string
+	adminID     int64
+	token       string
+	shareToken  string
 	shareChatID int64
 
 	// 过滤器（/add /remove 动态更新）
-	filterMu    sync.RWMutex
-	filter      string
-	filterPats  []string // 拆分为关键词列表，忽略大小写匹配
+	filterMu   sync.RWMutex
+	filter     string
+	filterPats []string // 拆分为关键词列表，忽略大小写匹配
 
 	states *UserStateManager
 
@@ -47,11 +47,11 @@ type Bot struct {
 	updateMu sync.Mutex
 
 	// 频道监控状态（StartMonitor 记录，供前端后台页展示）
-	monitorMu        sync.Mutex
-	monitorActive    bool
-	monitorScanning  bool
-	monitorLast      time.Time
-	monitorNext      time.Time
+	monitorMu       sync.Mutex
+	monitorActive   bool
+	monitorScanning bool
+	monitorLast     time.Time
+	monitorNext     time.Time
 
 	// 频道扫描互斥（定时扫描与手动触发共用，避免并发扫描重复转存）
 	monitorScanMu sync.Mutex
@@ -203,7 +203,7 @@ func (c *freshHTTPClient) Do(req *http.Request) (*http.Response, error) {
 func (b *Bot) pollLoop() {
 	var offset int
 	first := true
-	retry := time.Second * 3     // 当前退避间隔
+	retry := time.Second * 3 // 当前退避间隔
 	const maxRetry = time.Second * 120
 
 	for {
@@ -417,24 +417,24 @@ func (b *Bot) handleInfo(msg *tgbotapi.Message) {
 		return
 	}
 	var data struct {
-		Nickname        string `json:"Nickname"`
-		Vip             bool   `json:"Vip"`
-		UID             int64  `json:"UID"`
-		Passport        string `json:"Passport"`
-		BindWechat      bool   `json:"BindWechat"`
-		SpaceUsed       int64  `json:"SpaceUsed"`
-		SpacePermanent  int64  `json:"SpacePermanent"`
-		FileCount       int64  `json:"FileCount"`
-		VipInfo         []struct {
+		Nickname       string `json:"Nickname"`
+		Vip            bool   `json:"Vip"`
+		UID            int64  `json:"UID"`
+		Passport       string `json:"Passport"`
+		BindWechat     bool   `json:"BindWechat"`
+		SpaceUsed      int64  `json:"SpaceUsed"`
+		SpacePermanent int64  `json:"SpacePermanent"`
+		FileCount      int64  `json:"FileCount"`
+		VipInfo        []struct {
 			VipLabel  string `json:"vip_label"`
 			StartTime string `json:"start_time"`
 			EndTime   string `json:"end_time"`
 		} `json:"VipInfo"`
-		DirectTraffic int64 `json:"DirectTraffic"`
-		ShareTraffic  int64 `json:"ShareTraffic"`
-		StraightLink  bool  `json:"StraightLink"`
+		DirectTraffic  int64 `json:"DirectTraffic"`
+		ShareTraffic   int64 `json:"ShareTraffic"`
+		StraightLink   bool  `json:"StraightLink"`
 		BackupFileInfo struct {
-			MobileTerminalBackupFileName string `json:"MobileTerminalBackupFileName"`
+			MobileTerminalBackupFileName  string `json:"MobileTerminalBackupFileName"`
 			DesktopTerminalBackupFileName string `json:"DesktopTerminalBackupFileName"`
 		} `json:"BackupFileInfo"`
 	}
@@ -500,12 +500,16 @@ func (b *Bot) cmdOrganize(msg *tgbotapi.Message) {
 		return
 	}
 	if !b.env.GetBool("ENV_TRANSFER_ENABLED", false) {
-		b.SubmitSend(func() { b.SendMessage("❌ 文件整理功能未启用，请在配置中设置 ENV_TRANSFER_ENABLED=1") })
+		b.SubmitSend(func() {
+			b.SendMessage("❌ 文件整理功能未启用，请在配置中设置 ENV_TRANSFER_ENABLED=1")
+		})
 		return
 	}
 	executor := transfer.GetTransferExecutor()
 	if executor == nil {
-		b.SubmitSend(func() { b.SendMessage("❌ 文件整理功能未启用，请在配置中设置 ENV_TRANSFER_ENABLED=1") })
+		b.SubmitSend(func() {
+			b.SendMessage("❌ 文件整理功能未启用，请在配置中设置 ENV_TRANSFER_ENABLED=1")
+		})
 		return
 	}
 
@@ -514,7 +518,9 @@ func (b *Bot) cmdOrganize(msg *tgbotapi.Message) {
 		// 列出可整理的目录
 		dirs := executor.DirHelper.GetMonitorDirs()
 		if len(dirs) == 0 {
-			b.SubmitSend(func() { b.SendMessage("❌ 无监控目录配置，请在 Web 界面或 config/directories.json 中配置") })
+			b.SubmitSend(func() {
+				b.SendMessage("❌ 无监控目录配置，请在 Web 界面或 config/directories.json 中配置")
+			})
 			return
 		}
 		lines := []string{"📂 可整理的目录（使用 /organize <PID> 触发）：", ""}

@@ -180,8 +180,8 @@ func (t *TmdbClient) GetUpcoming(mediaType string) []TmdbListItem {
 			"sort_by":            "popularity.desc",
 		})
 		localItems := t.getListMultiPage("/discover/tv", 10, map[string]string{
-			"first_air_date.gte": today,
-			"sort_by":            "popularity.desc",
+			"first_air_date.gte":  today,
+			"sort_by":             "popularity.desc",
 			"with_origin_country": "CN",
 		})
 		merged := mergeTmdbRegionFocus(globalItems, localItems, 30)
@@ -286,23 +286,23 @@ func (t *TmdbClient) GetDetailDict(tmdbID int, mediaType string) *TmdbDetail {
 	}
 
 	d := &TmdbDetail{
-		ID:                  raw.ID,
-		Title:               title,
-		OriginalTitle:       origTitle,
-		MediaType:           mediaType,
-		Overview:            raw.Overview,
-		PosterPath:          raw.PosterPath,
-		BackdropPath:        raw.BackdropPath,
-		VoteAverage:         raw.VoteAverage,
-		VoteCount:           raw.VoteCount,
-		ReleaseDate:         date,
-		OriginalLanguage:    raw.OriginalLanguage,
-		Status:              raw.Status,
-		Homepage:            raw.Homepage,
-		Runtime:             raw.Runtime,
-		NumberOfEpisodes:    raw.NumberOfEpisodes,
-		NumberOfSeasons:     raw.NumberOfSeasons,
-		TitleZh:             t.fetchTitleZh(tmdbID, mediaType),
+		ID:               raw.ID,
+		Title:            title,
+		OriginalTitle:    origTitle,
+		MediaType:        mediaType,
+		Overview:         raw.Overview,
+		PosterPath:       raw.PosterPath,
+		BackdropPath:     raw.BackdropPath,
+		VoteAverage:      raw.VoteAverage,
+		VoteCount:        raw.VoteCount,
+		ReleaseDate:      date,
+		OriginalLanguage: raw.OriginalLanguage,
+		Status:           raw.Status,
+		Homepage:         raw.Homepage,
+		Runtime:          raw.Runtime,
+		NumberOfEpisodes: raw.NumberOfEpisodes,
+		NumberOfSeasons:  raw.NumberOfSeasons,
+		TitleZh:          t.fetchTitleZh(tmdbID, mediaType),
 	}
 	for _, g := range raw.Genres {
 		if g.Name != "" {

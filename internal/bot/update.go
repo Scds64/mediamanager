@@ -43,12 +43,16 @@ func (b *Bot) handleUpdate(msg *tgbotapi.Message) {
 func (b *Bot) runUpdate(msg *tgbotapi.Message) {
 	image := os.Getenv("ENV_UPDATE_IMAGE")
 	if image == "" {
-		b.SubmitSend(func() { b.SendReply(msg, "❌ 未配置更新镜像，请在 docker-compose.yml 设置 ENV_UPDATE_IMAGE。") })
+		b.SubmitSend(func() {
+			b.SendReply(msg, "❌ 未配置更新镜像，请在 docker-compose.yml 设置 ENV_UPDATE_IMAGE。")
+		})
 		return
 	}
 	composeDir := os.Getenv("ENV_COMPOSE_DIR")
 	if composeDir == "" {
-		b.SubmitSend(func() { b.SendReply(msg, "❌ 未配置宿主部署目录，请在 docker-compose.yml 设置 ENV_COMPOSE_DIR。") })
+		b.SubmitSend(func() {
+			b.SendReply(msg, "❌ 未配置宿主部署目录，请在 docker-compose.yml 设置 ENV_COMPOSE_DIR。")
+		})
 		return
 	}
 	// 容器名（"已是最新版本"判断用），默认 Mediamanager，可用 ENV_UPDATE_CONTAINER 覆盖
@@ -57,15 +61,21 @@ func (b *Bot) runUpdate(msg *tgbotapi.Message) {
 		container = "Mediamanager"
 	}
 	if _, err := os.Stat("/var/run/docker.sock"); err != nil {
-		b.SubmitSend(func() { b.SendReply(msg, "❌ 容器未挂载 /var/run/docker.sock，无法操作宿主 docker。请更新 docker-compose.yml 后重建容器。") })
+		b.SubmitSend(func() {
+			b.SendReply(msg, "❌ 容器未挂载 /var/run/docker.sock，无法操作宿主 docker。请更新 docker-compose.yml 后重建容器。")
+		})
 		return
 	}
 	if _, err := exec.LookPath("docker"); err != nil {
-		b.SubmitSend(func() { b.SendReply(msg, "❌ 镜像内缺少 docker-cli（旧镜像），请重新构建镜像后再使用 /update。") })
+		b.SubmitSend(func() {
+			b.SendReply(msg, "❌ 镜像内缺少 docker-cli（旧镜像），请重新构建镜像后再使用 /update。")
+		})
 		return
 	}
 	if _, err := exec.LookPath(composeRunnerEntrypoint); err != nil {
-		b.SubmitSend(func() { b.SendReply(msg, "❌ 镜像内缺少 compose v2（旧镜像），请更新到新镜像后再使用 /update。") })
+		b.SubmitSend(func() {
+			b.SendReply(msg, "❌ 镜像内缺少 compose v2（旧镜像），请更新到新镜像后再使用 /update。")
+		})
 		return
 	}
 

@@ -1,4 +1,4 @@
-﻿package bot
+package bot
 
 // 用户状态管理（对应 UserStateManager：SELECTING_FILE / CONFIRM_DELETE / ASK_POST 等会话状态）。
 
