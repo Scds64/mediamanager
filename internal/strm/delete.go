@@ -114,7 +114,7 @@ func GetDirIDByPath(ctx context.Context, client *pan123.Client, p string) int64 
 	for _, part := range parts {
 		pid, err := findChildDir(ctx, client, parentID, part)
 		if err != nil {
-			log.Printf("[strm] 网盘路径定位失败: %s（在 %d 下找不到 %s）: %v", p, parentID, part, err)
+			log.Printf("[delete] 网盘路径定位失败: %s（在 %d 下找不到 %s）: %v", p, parentID, part, err)
 			return 0
 		}
 		parentID = pid
@@ -175,7 +175,7 @@ func FindPanFileID(ctx context.Context, client *pan123.Client, strmPath string, 
 			}
 		}
 		if parentID == 0 {
-			log.Printf("[strm] 网盘目录定位失败: %s（%s）", panParent, strmPath)
+			log.Printf("[delete] 网盘目录定位失败: %s（%s）", panParent, strmPath)
 			continue
 		}
 
@@ -187,7 +187,7 @@ func FindPanFileID(ctx context.Context, client *pan123.Client, strmPath string, 
 			listingCache[panParent] = listing
 			list, err := client.FSList(ctx, parentID)
 			if err != nil {
-				log.Printf("[strm] 遍历网盘目录失败 %s: %v", panParent, err)
+				log.Printf("[delete] 遍历网盘目录失败 %s: %v", panParent, err)
 				continue
 			}
 			for _, item := range list {
@@ -282,36 +282,43 @@ func DeleteItems(ctx context.Context, client *pan123.Client, items []DeleteItem,
 						return err
 					}
 					result.DeletedPaths = append(result.DeletedPaths, sp)
-					log.Printf("[strm] 已删除本地 STRM: %s", sp)
+					log.Printf("[delete] 已删除本地 STRM: %s", sp)
 					CleanEmptyDirs(sp)
 				}
 			}
 			// 2. 网盘源文件（移入回收站）
 			if client != nil {
-				log.Printf("[strm] 开始处理网盘源文件删除: %s (file_id=%d)", name, panFileID)
+				log.Printf("[delete] 开始处理网盘源文件删除: %s (file_id=%d)", name, panFileID)
 				targetID := panFileID
 				if targetID == 0 && strings.HasSuffix(strings.ToLower(localPath), ".strm") {
 					targetID = FindPanFileID(ctx, client, localPath, item.Size, mappings, dirIDCache, listingCache)
 				}
 				if targetID != 0 {
-					if ok, err := client.TrashFile(ctx, targetID); ok {
-						log.Printf("[strm] 已删除网盘源文件: file_id=%d（%s）", targetID, name)
-						deletedFileIDs = append(deletedFileIDs, int64ToString(targetID))
-					} else if err != nil {
-						log.Printf("[strm] 删除网盘源文件失败: %s, 原因: %v", name, err)
+					// 预检：文件是否在正常目录（非回收站）
+					detail, dErr := client.FSDetail(ctx, targetID)
+					if dErr != nil || detail == nil {
+						log.Printf("[delete] 网盘源文件不存在（已在回收站或已删除）: %s (file_id=%d)", name, targetID)
 					} else {
-						log.Printf("[strm] 删除网盘源文件未生效（已手动删除/已在回收站/无效id）: %s", name)
+						log.Printf("[delete] 网盘源文件存在，准备移入回收站: %s (file_id=%d, size=%d)", name, targetID, detail.Size)
+						if ok, err := client.TrashFile(ctx, targetID); ok {
+							log.Printf("[delete] 已删除网盘源文件: file_id=%d（%s）", targetID, name)
+							deletedFileIDs = append(deletedFileIDs, int64ToString(targetID))
+						} else if err != nil {
+							log.Printf("[delete] 删除网盘源文件失败: %s, 原因: %v", name, err)
+						} else {
+							log.Printf("[delete] 删除网盘源文件未生效（已手动删除/已在回收站/无效id）: %s", name)
+						}
 					}
 				} else {
-					log.Printf("[strm] 未定位到网盘源文件: %s", name)
+					log.Printf("[delete] 未定位到网盘源文件: %s", name)
 				}
 			} else {
-				log.Printf("[strm] 123客户端未初始化，跳过网盘源文件删除: %s", name)
+				log.Printf("[delete] 123客户端未初始化，跳过网盘源文件删除: %s", name)
 			}
 			return nil
 		}
 		if err := tryDelete(); err != nil {
-			log.Printf("[strm] 删除失败 %s: %v", name, err)
+			log.Printf("[delete] 删除失败 %s: %v", name, err)
 			result.FailList = append(result.FailList, FailItem{Name: name, Error: err.Error()})
 			continue
 		}
@@ -336,9 +343,9 @@ func DeleteItems(ctx context.Context, client *pan123.Client, items []DeleteItem,
 	// 4. 通知 Emby 清理条目（未配置则跳过，条目随下次扫描自动清除）
 	if emby != nil && len(result.DeletedPaths) > 0 {
 		if emby.NotifyMediaDeleted(result.DeletedPaths) {
-			log.Printf("[strm] 已通知 Emby 清理 %d 个条目", len(result.DeletedPaths))
+			log.Printf("[delete] 已通知 Emby 清理 %d 个条目", len(result.DeletedPaths))
 		} else {
-			log.Printf("[strm] 通知 Emby 清理失败（条目将在下次库扫描时自动清除）")
+			log.Printf("[delete] 通知 Emby 清理失败（条目将在下次库扫描时自动清除）")
 		}
 	}
 
