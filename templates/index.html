@@ -356,11 +356,12 @@
         .card-title-icon-btn {
             background: transparent;
             border: none;
-            color: var(--title-icon-1);
+            color: var(--primary-mute);
             cursor: pointer;
             font-size: 15px;
             line-height: 1;
-            padding: 0;
+            padding: 4px;
+            border-radius: 6px;
             width: auto;
             height: auto;
             box-shadow: none;
@@ -369,9 +370,20 @@
             justify-content: center;
         }
         .card-title-icon-btn:hover:not(:disabled) {
+            color: var(--primary-hover);
+            background: var(--primary-soft);
+        }
+        /* 多选图标按钮：无背景框，默认灰色，选中态亮紫 */
+        .card-title-icon-btn.multi-select-btn {
+            padding: 0;
+            border-radius: 0;
+            color: var(--title-icon-1);
+        }
+        .card-title-icon-btn.multi-select-btn:hover:not(:disabled) {
+            background: transparent;
             color: var(--primary);
         }
-        .card-title-icon-btn.active {
+        .card-title-icon-btn.multi-select-btn.active {
             color: var(--primary);
         }
         .card.clickable-card { cursor: pointer; }
@@ -1967,7 +1979,7 @@
                         <i class="fas fa-history"></i>整理历史
                         <span style="margin-left:auto;display:flex;align-items:center;gap:8px;">
                             <span class="history-select-count" style="display:none;font-size:12px;color:var(--text-500);"></span>
-                            <button class="card-title-icon-btn" onclick="toggleHistorySelect()" title="多选">
+                            <button class="card-title-icon-btn multi-select-btn" onclick="toggleHistorySelect()" title="多选">
                                 <i class="fas fa-check-double"></i>
                             </button>
                         </span>
