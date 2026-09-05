@@ -294,6 +294,7 @@
 
         /* ============ 卡片（克制的平板面层） ============ */
         .card {
+            position: relative;
             background: var(--surface);
             border-radius: var(--radius-card);
             padding: 20px 24px 24px;
@@ -356,7 +357,7 @@
         .card-title-icon-btn {
             background: transparent;
             border: none;
-            color: var(--primary-mute);
+            color: var(--primary);
             cursor: pointer;
             font-size: 15px;
             line-height: 1;
@@ -371,17 +372,6 @@
         }
         .card-title-icon-btn:hover:not(:disabled) {
             color: var(--primary-hover);
-        }
-        /* 多选按钮：默认灰色，选中态亮紫 */
-        .card-title-icon-btn.multi-select-btn {
-            color: var(--title-icon-1);
-        }
-        .card-title-icon-btn.multi-select-btn:hover:not(:disabled) {
-            background: transparent;
-            color: var(--primary);
-        }
-        .card-title-icon-btn.multi-select-btn.active {
-            color: var(--primary);
         }
         .card.clickable-card { cursor: pointer; }
         /* 媒体信息卡：flex 列布局，让底部扫描时间自然贴底 */
@@ -737,7 +727,8 @@
         }
 
         /* ============ 历史表格 ============ */
-        .history-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+        .history-wrap { overflow-x: auto; overflow-y: hidden; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); }
+        #history-card .card-title { margin-bottom: 20px; }
 
         /* ============ 内存占用卡片 ============ */
         /* 卡片为 flex 列，图表撑满标题下方的剩余空间（高度自适应行高变化） */
