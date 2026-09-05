@@ -5269,6 +5269,11 @@
             bindPageSwipe();
             bindSearchReveal();
             bindLogsSwipeBack();
+            // 阻止手机端左边缘右滑返回（浏览器chrome级别手势，CSS无法拦截）
+            history.pushState(null, '', location.href);
+            window.addEventListener('popstate', () => {
+                history.pushState(null, '', location.href);
+            });
             switchTab(initialTab);
             layoutBgTasks();  // 桌面端把后台任务两个卡片并入「系统状态」Tab（整理历史上方）
         })();
