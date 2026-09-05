@@ -2258,7 +2258,7 @@
                             <input type="text" id="strm-fullsync-cron" placeholder="0 3 * * *" value="">
                         </div>
                         <div class="form-group">
-                            <label for="strm-catalog-cron">梳理入册周期（cron 表达式）</label>
+                            <label for="strm-catalog-cron">全量STRM入册周期（cron 表达式）</label>
                             <input type="text" id="strm-catalog-cron" placeholder="0 4 * * 0" value="">
                         </div>
                     </div>
@@ -3889,25 +3889,10 @@
                 const ch = st.channel_monitor || {};
                 const tf = st.transfer || {};
                 const sm = st.strm_full_sync || {};
-                const prevCatalogActive = _taskActive.catalog;
                 _taskActive.channel = !!ch.scanning;
                 _taskActive.transfer = !!tf.scanning;
                 _taskActive.strm = !!sm.busy;
                 _taskActive.catalog = !!sm.catalog_busy;
-                // catalog 刚结束：显示结果
-                if (prevCatalogActive && !_taskActive.catalog) {
-                    const lc = sm.last_catalog;
-                    if (lc) {
-                        if (lc.error) {
-                            showNotification('⚠️ STRM 梳理失败: ' + lc.error, 'error');
-                        } else {
-                            showNotification(`📚 STRM 梳理完成：匹配 ${lc.matched}  orphan ${lc.orphan}  跳过 ${lc.skipped}`, 'success');
-                        }
-                    } else {
-                        showNotification('📚 STRM 梳理完成', 'success');
-                    }
-                    hideLoading();
-                }
                 renderBgTasks();
                 renderBgCountdown();
                 if (_embyUsage) renderEmbyUsageChart();
@@ -3920,7 +3905,7 @@
                 channel: { msg: '确认手动触发一次频道监控扫描？' },
                 transfer: { msg: '确认立即整理（扫描待整理目录）？' },
                 strm: { msg: '确认开始全量 STRM 同步？' },
-                catalog: { msg: '确认梳理 STRM 入册？\n\n将扫描本地所有 STRM 文件，匹配/补全整理历史记录，为后续去重做准备。' },
+                catalog: { msg: '确认全量 STRM 入册？\n\n将扫描本地所有 STRM 文件，匹配/补全整理历史记录，为后续去重做准备。' },
             };
             const cfg = cfgs[kind];
             if (!cfg || !confirm(cfg.msg)) return;
@@ -3965,7 +3950,7 @@
                         startBgPoll();
                     }
                 } else if (kind === 'catalog') {
-                    showLoading('正在梳理 STRM 入册...');
+                    showLoading('正在全量 STRM 入册...');
                     let r = null;
                     try {
                         r = await api('/api/strm/run', 'POST', { action: 'catalog' });
@@ -4537,7 +4522,7 @@
                 </div>
                 <div class="bg-task-row">
                     <div class="bg-task-row-top">
-                        <span class="bg-task-name"><i class="fas fa-book bg-task-icon${_taskActive.catalog ? ' active' : ''}" data-bg-icon="catalog"></i>梳理 STRM 入册</span>
+                        <span class="bg-task-name"><i class="fas fa-book bg-task-icon${_taskActive.catalog ? ' active' : ''}" data-bg-icon="catalog"></i>全量 STRM 入册</span>
                         <span class="bg-task-time" data-bg-next="catalog"></span>
                     </div>
                     <div class="bg-task-state-row">
