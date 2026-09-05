@@ -316,7 +316,7 @@
             font-weight: 600;
             color: var(--text-700);
             letter-spacing: 0.035em;
-            margin: 0 0 10px 0;
+            margin: 0 0 16px 0;
             padding: 0;
             display: flex;
             align-items: center;
@@ -372,6 +372,9 @@
         .card-title-icon-btn:hover:not(:disabled) {
             color: var(--primary-hover);
             background: var(--primary-soft);
+        }
+        .card-title-icon-btn.active {
+            color: var(--primary);
         }
         .card.clickable-card { cursor: pointer; }
         /* 媒体信息卡：flex 列布局，让底部扫描时间自然贴底 */
@@ -1967,7 +1970,7 @@
                         <span style="margin-left:auto;display:flex;align-items:center;gap:8px;">
                             <span class="history-select-count" style="display:none;font-size:12px;color:var(--text-500);"></span>
                             <button class="card-title-icon-btn" onclick="toggleHistorySelect()" title="多选">
-                                <i class="far fa-check-square"></i>
+                                <i class="fas fa-check-double"></i>
                             </button>
                         </span>
                     </div>
@@ -1989,7 +1992,7 @@
                     </div>
                     <div class="history-batch-bar" id="historyBatchBar" style="display:none;padding:8px 12px;border-top:1px solid var(--border);gap:8px;align-items:center;">
                         <button class="btn btn-tonal btn-sm" onclick="batchDeleteHistory(false)">删除选中(<span class="batch-del-count">0</span>)</button>
-                        <button class="btn btn-danger btn-sm" onclick="batchDeleteHistory(true)">联动删除4项(<span class="batch-del-count">0</span>)</button>
+                        <button class="btn btn-danger btn-sm" onclick="batchDeleteHistory(true)">深度删除(<span class="batch-del-count">0</span>)</button>
                     </div>
                     <div class="pager" id="history-pager"></div>
                 </div>
@@ -4254,10 +4257,14 @@
             if (!historySelectMode) {
                 selectedHistoryIds.clear();
             }
-            // 切换图标
-            const btn = document.querySelector('.card-title-icon-btn i');
+            // 切换图标和按钮高亮状态
+            const btn = document.querySelector('.card-title-icon-btn');
+            const icon = btn ? btn.querySelector('i') : null;
+            if (icon) {
+                icon.className = historySelectMode ? 'fas fa-times' : 'fas fa-check-double';
+            }
             if (btn) {
-                btn.className = historySelectMode ? 'fas fa-times' : 'far fa-check-square';
+                btn.classList.toggle('active', historySelectMode);
             }
             // 显示/隐藏 checkbox 列
             document.querySelectorAll('.history-select-col').forEach(el => el.style.display = historySelectMode ? '' : 'none');
@@ -4317,7 +4324,7 @@
             const count = selectedHistoryIds.size;
             if (count === 0) return;
             const msg = linked
-                ? `确定联动删除这 ${count} 条记录？\n\n将执行四件套：\n1. 删除整理历史记录\n2. 删除本地 STRM 文件\n3. 删除网盘源文件（移入回收站）\n4. 通知 Emby 删除条目`
+                ? `确定深度删除这 ${count} 条记录？\n\n将执行四件套：\n1. 删除整理历史记录\n2. 删除本地 STRM 文件\n3. 删除网盘源文件（移入回收站）\n4. 通知 Emby 删除条目`
                 : `确定删除选中的 ${count} 条整理历史记录？`;
             if (!confirm(msg)) return;
             try {
@@ -4326,7 +4333,19 @@
                     linked: linked
                 });
                 selectedHistoryIds.clear();
-                showTransferAlert(linked ? `联动删除完成，成功 ${r.success||0} 条` : `已删除 ${r.deleted||0} 条`, 'success');
+                if (linked) {
+                    let msg = `深度删除完成，${r.success||0} 条成功`;
+                    if (r.fail_list && r.fail_list.length > 0) {
+                        msg += `，${r.fail_list.length} 条失败`;
+                        showTransferAlert(msg, 'warning');
+                        // 在控制台打印失败详情
+                        console.log('深度删除失败详情:', r.fail_list);
+                    } else {
+                        showTransferAlert(msg, 'success');
+                    }
+                } else {
+                    showTransferAlert(`已删除 ${r.deleted||0} 条`, 'success');
+                }
                 loadHistory();
             } catch (e) {
                 showTransferAlert('删除失败: ' + e.message, 'error');
