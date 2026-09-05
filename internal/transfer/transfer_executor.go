@@ -204,8 +204,8 @@ func CalcVersionScore(filename string) int {
 			score = max(score, v)
 		}
 	}
-	// DV / Dolby Vision 特判
-	if re := regexp.MustCompile(`(?i)\b(DV|Dolby[\s.-]?Vision)\b`); re.MatchString(filename) {
+	// DV / DoVi / Dolby Vision 特判
+	if re := regexp.MustCompile(`(?i)\b(DV|DoVi|Dolby[\s.-]?Vision)\b`); re.MatchString(filename) {
 		score = max(score, versionScoreMap["DV"])
 	}
 	// BluRay / REMUX 特判
@@ -233,8 +233,17 @@ func (e *TransferExecutor) versionScore(meta *MetaInfo) int {
 		if token == "HDR10" {
 			key = "HDR"
 		}
+		if token == "DoVi" || token == "Dovi" {
+			key = "DV"
+		}
 		if e.PriorityVersions[key] {
 			score = max(score, versionScoreMap[key])
+		}
+	}
+	// DV / DoVi / Dolby Vision 特判（受配置控制）
+	if e.PriorityVersions["DV"] {
+		if re, _ := regexp.Compile(`(?i)\b(DV|DoVi|Dolby[\s.-]?Vision)\b`); re.MatchString(raw) {
+			score = max(score, versionScoreMap["DV"])
 		}
 	}
 	if e.PriorityVersions["BluRay"] {

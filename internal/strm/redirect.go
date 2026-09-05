@@ -102,6 +102,9 @@ func BuildRedirectURL(serverAddress, apiKey, name string, size int64, etag, s3Ke
 
 // GetRedirectURL 获取 302 跳转目标地址（严格模式：s3_key_flag 必须非空）。
 func GetRedirectURL(ctx context.Context, client *pan123.Client, name string, size int64, md5, s3KeyFlag, userAgent string) (string, error) {
+	if client == nil {
+		return "", fmt.Errorf("123 客户端未初始化（token 无效或网络故障），无法获取下载链接")
+	}
 	if s3KeyFlag == "" {
 		return "", fmt.Errorf("缺少 s3_key_flag 参数，无法获取下载链接")
 	}
