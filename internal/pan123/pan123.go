@@ -397,7 +397,6 @@ func (c *Client) TrashFile(ctx context.Context, fileID any) (bool, error) {
 	if len(resp.Data) > 0 {
 		_ = json.Unmarshal(resp.Data, &data)
 	}
-	log.Printf("[123] TrashFile resp.Data=%s file_id=%v", string(resp.Data), fileID)
 	if len(data.InfoList) == 0 {
 		log.Printf("[123] 移入回收站未生效 file_id=%v（已删除/已在回收站/无效id）", fileID)
 		return false, nil

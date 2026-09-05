@@ -303,16 +303,6 @@
             box-shadow: inset 0 1px 0 var(--card-hi-light);
             border: none;
         }
-        /* 卡片顶部内高光（极淡，加深材质立体感） */
-        .card::before {
-            content: "";
-            position: absolute;
-            inset: 0 0 auto 0;
-            height: 1px;
-            border-radius: var(--radius-card) var(--radius-card) 0 0;
-            background: var(--card-hi-light);
-            pointer-events: none;
-        }
         .card-title {
             font-size: var(--fs-title);
             font-weight: 600;
