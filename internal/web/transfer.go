@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -497,6 +498,7 @@ func (s *Server) handleTransferBatchDelete(w http.ResponseWriter, r *http.Reques
 		var items []strm.DeleteItem
 		for _, rec := range records {
 			fid, _ := strconv.ParseInt(rec.FileID, 10, 64)
+			log.Printf("[transfer] 深度删除记录: id=%d, file_id=%s, target_path=%s, file_name=%s", rec.ID, rec.FileID, rec.TargetPath, rec.FileName)
 			items = append(items, strm.DeleteItem{
 				Name:      rec.FileName,
 				PanPath:   rec.TargetPath,

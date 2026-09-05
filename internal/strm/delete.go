@@ -288,6 +288,7 @@ func DeleteItems(ctx context.Context, client *pan123.Client, items []DeleteItem,
 			}
 			// 2. 网盘源文件（移入回收站）
 			if client != nil {
+				log.Printf("[strm] 开始处理网盘源文件删除: %s (file_id=%d)", name, panFileID)
 				targetID := panFileID
 				if targetID == 0 && strings.HasSuffix(strings.ToLower(localPath), ".strm") {
 					targetID = FindPanFileID(ctx, client, localPath, item.Size, mappings, dirIDCache, listingCache)
@@ -304,6 +305,8 @@ func DeleteItems(ctx context.Context, client *pan123.Client, items []DeleteItem,
 				} else {
 					log.Printf("[strm] 未定位到网盘源文件: %s", name)
 				}
+			} else {
+				log.Printf("[strm] 123客户端未初始化，跳过网盘源文件删除: %s", name)
 			}
 			return nil
 		}
