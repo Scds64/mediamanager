@@ -485,7 +485,7 @@ func (r *StrmRuntime) runRewrite() {
 	}
 	total, okCount, failCount := RewriteStrmURLs(roots, r.ServerAddress, r.APIKey, r.Concurrency)
 	log.Printf("【改写STRM】完成：扫描 %d 成功 %d 失败 %d", total, okCount, failCount)
-	transfer.Notify(fmt.Sprintf("🔧 STRM 改写完成：共 %d 个，成功 %d，失败 %d", total, okCount, failCount), "")
+	transfer.Notify(fmt.Sprintf("📝 STRM 改写完成：共 %d 个，成功 %d，失败 %d", total, okCount, failCount), "")
 }
 
 func (r *StrmRuntime) storeCatalogResult(res CatalogResult) {

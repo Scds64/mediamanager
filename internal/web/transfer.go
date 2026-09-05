@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"mmbot/internal/strm"
 	"mmbot/internal/transfer"
 )
 
@@ -459,7 +460,69 @@ func writeEnvBlock(path string, keys []string, blockTitle string, updates map[st
 		return false
 	}
 	if err := os.WriteFile(path, []byte(strings.Join(out, "\n")), 0o644); err != nil {
-		return false
+			return false
+		}
+		return true
 	}
-	return true
+
+// ---------- POST /api/transfer/history/batch-delete ----------
+
+func (s *Server) handleTransferBatchDelete(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		IDs    []int `json:"ids"`
+		Linked bool  `json:"linked"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "无效请求"})
+		return
+	}
+	if len(data.IDs) == 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "未选择记录"})
+		return
+	}
+
+	executor := transfer.GetTransferExecutor()
+	if executor == nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "整理功能未启用"})
+		return
+	}
+
+	if data.Linked {
+		// 联动删除：获取记录详情，调用 DeleteItems 执行四件套
+		records := executor.History.GetByIDs(data.IDs)
+		if len(records) == 0 {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "未找到对应的记录（可能已被删除）"})
+			return
+		}
+		var items []strm.DeleteItem
+		for _, rec := range records {
+			fid, _ := strconv.ParseInt(rec.FileID, 10, 64)
+			items = append(items, strm.DeleteItem{
+				Name:      rec.FileName,
+				PanPath:   rec.TargetPath,
+				Size:      rec.FileSize,
+				PanFileID: fid,
+			})
+		}
+		client := transferClient()
+		emby := strm.GetEmbyRuntime()
+		ctx := context.Background()
+		result := strm.DeleteItems(ctx, client, items, nil, emby, envGet("ENV_STRM_PATHS", ""), executor.History)
+		// 兜底：防止 PanFileID 解析失败或网盘删除失败导致历史记录残留
+		executor.History.DeleteBatch(data.IDs)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": result.Success,
+			"fail":    len(result.FailList),
+			"linked":  true,
+		})
+		return
+	}
+
+	// 仅删记录
+	n := executor.History.DeleteBatch(data.IDs)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"deleted": n,
+		"linked":  false,
+	})
 }

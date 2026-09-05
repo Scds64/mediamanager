@@ -344,6 +344,46 @@ func (h *TransferHistory) DeleteByMedia(title, year, mediaType string) int {
 	return int(n)
 }
 
+// GetByIDs 按 ID 列表查询记录。
+func (h *TransferHistory) GetByIDs(ids []int) []*HistoryRecord {
+	if len(ids) == 0 {
+		return nil
+	}
+	placeholders := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+	rows, err := h.db.Query(fmt.Sprintf("SELECT %s FROM %s WHERE id IN (%s)", historyColumns, historyTable, strings.Join(placeholders, ",")), args...)
+	if err != nil {
+		log.Printf("[transfer_history] GetByIDs 查询失败: %v", err)
+		return nil
+	}
+	defer rows.Close()
+	return scanRecords(rows)
+}
+
+// DeleteBatch 按 ID 列表批量删除，返回实际删除条数。
+func (h *TransferHistory) DeleteBatch(ids []int) int {
+	if len(ids) == 0 {
+		return 0
+	}
+	placeholders := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+	res, err := h.db.Exec(fmt.Sprintf("DELETE FROM %s WHERE id IN (%s)", historyTable, strings.Join(placeholders, ",")), args...)
+	if err != nil {
+		log.Printf("[transfer_history] DeleteBatch 失败: %v", err)
+		return 0
+	}
+	n, _ := res.RowsAffected()
+	return int(n)
+}
+
 func scanRecords(rows *sql.Rows) []*HistoryRecord {
 	var out []*HistoryRecord
 	for rows.Next() {

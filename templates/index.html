@@ -1964,11 +1964,18 @@
                 <div class="card" id="history-card">
                     <div class="card-title">
                         <i class="fas fa-history"></i>整理历史
+                        <span style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+                            <span class="history-select-count" style="display:none;font-size:12px;color:var(--text-500);"></span>
+                            <button class="card-title-icon-btn" onclick="toggleHistorySelect()" title="多选">
+                                <i class="far fa-check-square"></i>
+                            </button>
+                        </span>
                     </div>
                     <div class="history-wrap">
                         <table class="history-table">
                             <thead>
                                 <tr>
+                                    <th class="history-select-col" style="display:none;width:32px;"><input type="checkbox" onchange="selectAllHistory(this.checked)"></th>
                                     <th>时间</th>
                                     <th>标题</th>
                                     <th>类型</th>
@@ -1977,8 +1984,12 @@
                                     <th>操作</th>
                                 </tr>
                             </thead>
-                            <tbody id="historyBody"><tr><td colspan="6" class="empty-row">加载失败: Failed to fetch</td></tr></tbody>
+                            <tbody id="historyBody"><tr><td colspan="7" class="empty-row">加载失败: Failed to fetch</td></tr></tbody>
                         </table>
+                    </div>
+                    <div class="history-batch-bar" id="historyBatchBar" style="display:none;padding:8px 12px;border-top:1px solid var(--border);gap:8px;align-items:center;">
+                        <button class="btn btn-tonal btn-sm" onclick="batchDeleteHistory(false)">删除选中(<span class="batch-del-count">0</span>)</button>
+                        <button class="btn btn-danger btn-sm" onclick="batchDeleteHistory(true)">联动删除4项(<span class="batch-del-count">0</span>)</button>
                     </div>
                     <div class="pager" id="history-pager"></div>
                 </div>
@@ -4014,10 +4025,14 @@
         }
 
         let historyKeyword = '';
+        let historySelectMode = false;
+        let selectedHistoryIds = new Set();
+
         async function loadHistory(page, silent) {
             if (page) historyPage = page;
             const body = document.getElementById('historyBody');
-            if (!silent) body.innerHTML = '<tr><td colspan="6" class="empty-row">加载中...</td></tr>';
+            const colCount = historySelectMode ? 7 : 6;
+            if (!silent) body.innerHTML = `<tr><td colspan="${colCount}" class="empty-row">加载中...</td></tr>`;
             try {
                 const kw = historyKeyword.trim();
                 const r = await api(`/api/transfer/history?page=${historyPage}&size=${HISTORY_SIZE}&keyword=${encodeURIComponent(kw)}`);
@@ -4028,7 +4043,7 @@
                     return loadHistory();
                 }
                 if (!r.items || r.items.length === 0) {
-                    body.innerHTML = '<tr><td colspan="6" class="empty-row">暂无历史记录</td></tr>';
+                    body.innerHTML = `<tr><td colspan="${colCount}" class="empty-row">暂无历史记录</td></tr>`;
                 } else {
                     body.innerHTML = r.items.map(i => {
                         const time = (i.transfer_time || '').substring(0, 19);
@@ -4042,7 +4057,12 @@
                         const se = (i.media_type === 'tv' && (i.season != null || i.episode != null))
                             ? `<div style="font-size:11px;color:var(--text-400);line-height:1.4;">${i.season != null ? 'S' + String(i.season).padStart(2, '0') : ''}${i.episode != null ? 'E' + String(i.episode).padStart(2, '0') : ''}</div>`
                             : '';
+                        const checked = selectedHistoryIds.has(i.id) ? 'checked' : '';
+                        const selectCol = historySelectMode
+                            ? `<td><input type="checkbox" class="history-row-check" data-id="${i.id}" ${checked} onchange="updateHistorySelection()"></td>`
+                            : '';
                         return `<tr>
+                            ${selectCol}
                             <td>${time}</td>
                             <td>${title}${year}</td>
                             <td>${i.media_type || '-'}${se}</td>
@@ -4054,7 +4074,7 @@
                 }
                 renderHistoryPager(totalPages);
             } catch (e) {
-                body.innerHTML = `<tr><td colspan="6" class="empty-row">加载失败: ${e.message}</td></tr>`;
+                body.innerHTML = `<tr><td colspan="${colCount}" class="empty-row">加载失败: ${e.message}</td></tr>`;
             }
         }
 
@@ -4221,6 +4241,92 @@
             try {
                 await api('/api/transfer/history/' + id, 'DELETE');
                 showTransferAlert('已删除', 'success');
+                loadHistory();
+            } catch (e) {
+                showTransferAlert('删除失败: ' + e.message, 'error');
+            }
+        }
+
+        // ============ 整理历史多选 & 批量删除 ============
+
+        function toggleHistorySelect() {
+            historySelectMode = !historySelectMode;
+            if (!historySelectMode) {
+                selectedHistoryIds.clear();
+            }
+            // 切换图标
+            const btn = document.querySelector('.card-title-icon-btn i');
+            if (btn) {
+                btn.className = historySelectMode ? 'fas fa-times' : 'far fa-check-square';
+            }
+            // 显示/隐藏 checkbox 列
+            document.querySelectorAll('.history-select-col').forEach(el => el.style.display = historySelectMode ? '' : 'none');
+            // 显示/隐藏操作栏
+            const bar = document.getElementById('historyBatchBar');
+            if (bar) {
+                bar.style.display = historySelectMode ? 'flex' : 'none';
+            }
+            // 显示/隐藏选中计数
+            const countEl = document.querySelector('.history-select-count');
+            if (countEl) {
+                countEl.style.display = historySelectMode ? 'inline' : 'none';
+            }
+            updateHistorySelection();
+            loadHistory();
+        }
+
+        function selectAllHistory(checked) {
+            document.querySelectorAll('.history-row-check').forEach(cb => {
+                cb.checked = checked;
+                if (checked) {
+                    selectedHistoryIds.add(parseInt(cb.dataset.id));
+                } else {
+                    selectedHistoryIds.delete(parseInt(cb.dataset.id));
+                }
+            });
+            updateHistorySelection();
+        }
+
+        function updateHistorySelection() {
+            // 从当前页的 checkbox 同步 selectedHistoryIds
+            document.querySelectorAll('.history-row-check').forEach(cb => {
+                const id = parseInt(cb.dataset.id);
+                if (cb.checked) {
+                    selectedHistoryIds.add(id);
+                } else {
+                    selectedHistoryIds.delete(id);
+                }
+            });
+            const count = selectedHistoryIds.size;
+            // 更新标题行计数
+            const countEl = document.querySelector('.history-select-count');
+            if (countEl) {
+                countEl.textContent = `已选 ${count} 项`;
+                countEl.style.display = count > 0 ? 'inline' : 'none';
+            }
+            // 更新操作栏计数
+            document.querySelectorAll('.batch-del-count').forEach(el => el.textContent = count);
+            // 更新操作栏按钮状态
+            const bar = document.getElementById('historyBatchBar');
+            if (bar) {
+                bar.querySelectorAll('button').forEach(btn => btn.disabled = count === 0);
+            }
+        }
+
+        async function batchDeleteHistory(linked) {
+            const count = selectedHistoryIds.size;
+            if (count === 0) return;
+            const msg = linked
+                ? `确定联动删除这 ${count} 条记录？\n\n将执行四件套：\n1. 删除整理历史记录\n2. 删除本地 STRM 文件\n3. 删除网盘源文件（移入回收站）\n4. 通知 Emby 删除条目`
+                : `确定删除选中的 ${count} 条整理历史记录？`;
+            if (!confirm(msg)) return;
+            try {
+                const r = await api('/api/transfer/history/batch-delete', 'POST', {
+                    ids: Array.from(selectedHistoryIds),
+                    linked: linked
+                });
+                selectedHistoryIds.clear();
+                showTransferAlert(linked ? `联动删除完成，成功 ${r.success||0} 条` : `已删除 ${r.deleted||0} 条`, 'success');
                 loadHistory();
             } catch (e) {
                 showTransferAlert('删除失败: ' + e.message, 'error');
