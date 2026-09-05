@@ -358,6 +358,7 @@ func buildHistoryRecord(strmMeta StrmMeta, transferMeta transfer.MetaInfo, match
 	}
 
 	rec.Status = "success"
+	rec.Version = transfer.CalcVersionScore(rec.FileName)
 	if matched != nil {
 		rec.TransferType = "catalog"
 	} else {

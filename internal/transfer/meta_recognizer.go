@@ -363,8 +363,8 @@ func Recognize(filename, expectedType string, parentDirs []string) MetaInfo {
 		meta.Season = 1
 	}
 
-	// 标题为空或纯数字时，用父目录名辅助识别
-	if (meta.Name == "" || isAllDigits(meta.Name)) && len(parentDirs) > 0 {
+	// 标题为空 / 纯数字 / 纯季集编号（S01E181、E181）时，用父目录名辅助识别
+	if (meta.Name == "" || isAllDigits(meta.Name) || looksLikeEpisodeCode(meta.Name)) && len(parentDirs) > 0 {
 		for i := len(parentDirs) - 1; i >= 0; i-- {
 			dirName := parentDirs[i]
 			if dirName == "" {
@@ -425,6 +425,13 @@ func isAllDigits(s string) bool {
 		}
 	}
 	return true
+}
+
+// looksLikeEpisodeCode 判断字符串是否只是季集编号片段（如 S01E181、E181、S01），不是真正的标题。
+var episodeCodeRe = regexp.MustCompile(`(?i)^[Ss]?\d{1,3}[Ee]\d{1,3}$|^[Ee]\d{1,3}$|^[Ss]\d{1,3}$`)
+
+func looksLikeEpisodeCode(s string) bool {
+	return episodeCodeRe.MatchString(strings.TrimSpace(s))
 }
 
 func itoa(n int) string {

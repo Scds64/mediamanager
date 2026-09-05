@@ -1,4 +1,4 @@
-﻿package transfer
+package transfer
 
 // 整理执行器（对应 transfer_executor.py，核心）。
 // 识别 → 分类 → 目录匹配 → 改名 → 移动 → 刮削 → 历史 → 通知
@@ -184,7 +184,38 @@ var versionScoreMap = map[string]int{
 	"DV": 4, "BluRay": 3, "HDR10+": 2, "HDR": 1, "HLG": 1,
 }
 
-// versionScore 计算新文件的版本优先级分。
+// CalcVersionScore 根据文件名计算版本优先级分（公开函数，供 catalog 等其他模块使用）。
+// 不依赖 PriorityVersions 配置，始终按 versionScoreMap 全量计算。
+func CalcVersionScore(filename string) int {
+	if filename == "" {
+		return 0
+	}
+	score := 0
+	// HDR10+ 特判
+	if re := regexp.MustCompile(`(?i)HDR\s?10\+`); re.MatchString(filename) {
+		score = max(score, versionScoreMap["HDR10+"])
+	}
+	for _, token := range strings.Fields(ExtractEffects(filename)) {
+		key := token
+		if token == "HDR10" {
+			key = "HDR"
+		}
+		if v, ok := versionScoreMap[key]; ok {
+			score = max(score, v)
+		}
+	}
+	// DV / Dolby Vision 特判
+	if re := regexp.MustCompile(`(?i)\b(DV|Dolby[\s.-]?Vision)\b`); re.MatchString(filename) {
+		score = max(score, versionScoreMap["DV"])
+	}
+	// BluRay / REMUX 特判
+	if re := regexp.MustCompile(`(?i)(REMUX|BLURAY|Blu-Ray)`); re.MatchString(filename) {
+		score = max(score, versionScoreMap["BluRay"])
+	}
+	return score
+}
+
+// versionScore 计算新文件的版本优先级分（受 PriorityVersions 配置控制）。
 func (e *TransferExecutor) versionScore(meta *MetaInfo) int {
 	if len(e.PriorityVersions) == 0 || meta == nil {
 		return 0

@@ -8,3 +8,5 @@
 /mmbot
 /mmbot_linux
 build_push_*.log
+*.xlsx
+~$*
