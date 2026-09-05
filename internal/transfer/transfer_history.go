@@ -157,36 +157,49 @@ func (h *TransferHistory) Add(rec HistoryRecord) error {
 }
 
 // FindSameEpisode 查询同一集已成功整理的历史记录。
+// tmdb_id 优先；查不到时 fallback 到 media_title，以命中 catalog 写入的无 tmdb_id 旧记录。
 func (h *TransferHistory) FindSameEpisode(tmdbID, season, episode int, mediaTitle string) []*HistoryRecord {
-	var rows *sql.Rows
-	var err error
 	if tmdbID > 0 {
-		rows, err = h.db.Query(fmt.Sprintf(`SELECT %s FROM %s
+		rows, err := h.db.Query(fmt.Sprintf(`SELECT %s FROM %s
 			WHERE tmdb_id=? AND season=? AND episode=? AND status='success'
 			ORDER BY version DESC, file_size DESC`, historyColumns, historyTable), tmdbID, season, episode)
-	} else if mediaTitle != "" {
-		rows, err = h.db.Query(fmt.Sprintf(`SELECT %s FROM %s
+		if err == nil {
+			defer rows.Close()
+			if records := scanRecords(rows); len(records) > 0 {
+				return records
+			}
+		}
+		// tmdb_id 查不到，fallback title
+	}
+	if mediaTitle != "" {
+		rows, err := h.db.Query(fmt.Sprintf(`SELECT %s FROM %s
 			WHERE media_title=? AND season=? AND episode=? AND status='success'
 			ORDER BY version DESC, file_size DESC`, historyColumns, historyTable), mediaTitle, season, episode)
-	} else {
-		return nil
+		if err != nil {
+			return nil
+		}
+		defer rows.Close()
+		return scanRecords(rows)
 	}
-	if err != nil {
-		return nil
-	}
-	defer rows.Close()
-	return scanRecords(rows)
+	return nil
 }
 
 // FindSameMovie 查询同一部电影已成功整理的历史记录。
+// tmdb_id 优先；查不到时 fallback 到 media_title[+year]，以命中 catalog 写入的无 tmdb_id 旧记录。
 func (h *TransferHistory) FindSameMovie(tmdbID int, mediaTitle, mediaYear string) []*HistoryRecord {
-	var rows *sql.Rows
-	var err error
 	if tmdbID > 0 {
-		rows, err = h.db.Query(fmt.Sprintf(`SELECT %s FROM %s
+		rows, err := h.db.Query(fmt.Sprintf(`SELECT %s FROM %s
 			WHERE tmdb_id=? AND media_type='movie' AND status='success'
 			ORDER BY version DESC, file_size DESC`, historyColumns, historyTable), tmdbID)
-	} else if mediaTitle != "" {
+		if err == nil {
+			defer rows.Close()
+			if records := scanRecords(rows); len(records) > 0 {
+				return records
+			}
+		}
+		// tmdb_id 查不到，fallback title
+	}
+	if mediaTitle != "" {
 		sqlStr := fmt.Sprintf(`SELECT %s FROM %s
 			WHERE media_title=? AND media_type='movie' AND status='success'`, historyColumns, historyTable)
 		args := []any{mediaTitle}
@@ -195,15 +208,14 @@ func (h *TransferHistory) FindSameMovie(tmdbID int, mediaTitle, mediaYear string
 			args = append(args, mediaYear)
 		}
 		sqlStr += " ORDER BY version DESC, file_size DESC"
-		rows, err = h.db.Query(sqlStr, args...)
-	} else {
-		return nil
+		rows, err := h.db.Query(sqlStr, args...)
+		if err != nil {
+			return nil
+		}
+		defer rows.Close()
+		return scanRecords(rows)
 	}
-	if err != nil {
-		return nil
-	}
-	defer rows.Close()
-	return scanRecords(rows)
+	return nil
 }
 
 // List 查询历史记录列表。

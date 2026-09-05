@@ -2257,6 +2257,10 @@
                             <label for="strm-fullsync-cron">全量同步周期（cron 表达式）</label>
                             <input type="text" id="strm-fullsync-cron" placeholder="0 3 * * *" value="">
                         </div>
+                        <div class="form-group">
+                            <label for="strm-catalog-cron">梳理入册周期（cron 表达式）</label>
+                            <input type="text" id="strm-catalog-cron" placeholder="0 4 * * 0" value="">
+                        </div>
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 18px;">
@@ -2264,6 +2268,11 @@
                             <input type="checkbox" id="strm-fullsync">
                             <span class="switch-track"><span class="switch-thumb"></span></span>
                             <span class="switch-label">定时全量同步</span>
+                        </label>
+                        <label class="switch" style="display: flex;">
+                            <input type="checkbox" id="strm-catalog">
+                            <span class="switch-track"><span class="switch-thumb"></span></span>
+                            <span class="switch-label">定时梳理入册</span>
                         </label>
                         <label class="switch" style="display: flex;" title="文件整理完成后自动为整理目标生成 STRM">
                             <input type="checkbox" id="strm-transfer-linked">
@@ -3883,9 +3892,10 @@
                 _taskActive.channel = !!ch.scanning;
                 _taskActive.transfer = !!tf.scanning;
                 _taskActive.strm = !!sm.busy;
+                _taskActive.catalog = !!sm.catalog_busy;
                 renderBgTasks();
                 renderBgCountdown();
-                if (!_taskActive.channel && !_taskActive.transfer && !_taskActive.strm) stopBgPoll();
+                if (!_taskActive.channel && !_taskActive.transfer && !_taskActive.strm && !_taskActive.catalog) stopBgPoll();
             } catch (e) { /* 轮询失败忽略，下一轮再试 */ }
         }
 
@@ -3894,6 +3904,7 @@
                 channel: { msg: '确认手动触发一次频道监控扫描？' },
                 transfer: { msg: '确认立即整理（扫描待整理目录）？' },
                 strm: { msg: '确认开始全量 STRM 同步？' },
+                catalog: { msg: '确认梳理 STRM 入册？\n\n将扫描本地所有 STRM 文件，匹配/补全整理历史记录，为后续去重做准备。' },
             };
             const cfg = cfgs[kind];
             if (!cfg || !confirm(cfg.msg)) return;
@@ -3937,13 +3948,30 @@
                         showNotification(r.message || '任务已触发', 'success');
                         startBgPoll();
                     }
+                } else if (kind === 'catalog') {
+                    showLoading('正在梳理 STRM 入册...');
+                    let r = null;
+                    try {
+                        r = await api('/api/strm/run', 'POST', { action: 'catalog' });
+                    } catch (e2) {
+                        if (e2.message.includes('Failed to fetch') || e2.message.includes('NetworkError')) {
+                            showNotification('任务已触发，结果将通过 Telegram 通知', 'success');
+                            startBgPoll();
+                        } else {
+                            throw e2;
+                        }
+                    }
+                    if (r) {
+                        showNotification(r.message || '任务已触发', 'success');
+                        startBgPoll();
+                    }
                 }
             } catch (e) {
                 _taskActive[kind] = false;
                 renderBgTasks();
                 showNotification('触发失败: ' + e.message, 'error');
             } finally {
-                if (kind === 'channel' || kind === 'strm') hideLoading();
+                if (kind === 'channel' || kind === 'strm' || kind === 'catalog') hideLoading();
                 loadBgTasks(true);
             }
         }
@@ -4189,6 +4217,8 @@
             ENV_STRM_OVERWRITE: 'never',
             ENV_STRM_FULL_SYNC: '0',
             ENV_STRM_FULL_SYNC_CRON: '',
+            ENV_STRM_CATALOG: '0',
+            ENV_STRM_CATALOG_CRON: '',
             ENV_STRM_TRANSFER_LINKED: '0',
             ENV_STRM_CONCURRENCY: '1',
         };
@@ -4205,6 +4235,8 @@
                 document.getElementById('strm-overwrite').value = cfg.ENV_STRM_OVERWRITE || 'never';
                 document.getElementById('strm-fullsync').checked = cfg.ENV_STRM_FULL_SYNC === '1';
                 document.getElementById('strm-fullsync-cron').value = cfg.ENV_STRM_FULL_SYNC_CRON || '';
+                document.getElementById('strm-catalog').checked = cfg.ENV_STRM_CATALOG === '1';
+                document.getElementById('strm-catalog-cron').value = cfg.ENV_STRM_CATALOG_CRON || '';
                 document.getElementById('strm-transfer-linked').checked = cfg.ENV_STRM_TRANSFER_LINKED === '1';
                 document.getElementById('strm-concurrency').value = cfg.ENV_STRM_CONCURRENCY || '1';
             } catch (e) {
@@ -4223,6 +4255,8 @@
                 ENV_STRM_OVERWRITE: document.getElementById('strm-overwrite').value,
                 ENV_STRM_FULL_SYNC: document.getElementById('strm-fullsync').checked ? '1' : '0',
                 ENV_STRM_FULL_SYNC_CRON: document.getElementById('strm-fullsync-cron').value.trim(),
+                ENV_STRM_CATALOG: document.getElementById('strm-catalog').checked ? '1' : '0',
+                ENV_STRM_CATALOG_CRON: document.getElementById('strm-catalog-cron').value.trim(),
                 ENV_STRM_TRANSFER_LINKED: document.getElementById('strm-transfer-linked').checked ? '1' : '0',
                 ENV_STRM_CONCURRENCY: document.getElementById('strm-concurrency').value || '1',
             };
@@ -4392,6 +4426,7 @@
                 const sm = _bgTasks.strm_full_sync || {};
                 _taskActive.transfer = !!tf.scanning;
                 _taskActive.strm = !!sm.busy;
+                _taskActive.catalog = !!sm.catalog_busy;
                 renderBgTasks();
                 renderBgCountdown();
             } catch (e) {
@@ -4442,6 +4477,13 @@
                 stState = '<span class="bg-task-state off"><span class="bg-dot"></span>未开启</span>';
             }
 
+            let ctState;
+            if (st.catalog_busy) {
+                ctState = '<span class="bg-task-state"><span class="bg-dot" style="background:#F59E0B;"></span>梳理中</span>';
+            } else {
+                ctState = '<span class="bg-task-state off"><span class="bg-dot"></span>未执行</span>';
+            }
+
             grid.innerHTML = `
                 <div class="bg-task-row">
                     <div class="bg-task-row-top">
@@ -4471,6 +4513,16 @@
                     <div class="bg-task-state-row">
                         ${stState}
                         <button class="bg-trigger-btn" onclick="triggerBgTask('strm')" title="手动全量同步 STRM">></button>
+                    </div>
+                </div>
+                <div class="bg-task-row">
+                    <div class="bg-task-row-top">
+                        <span class="bg-task-name"><i class="fas fa-book bg-task-icon${_taskActive.catalog ? ' active' : ''}" data-bg-icon="catalog"></i>梳理 STRM 入册</span>
+                        <span class="bg-task-time" data-bg-next="catalog"></span>
+                    </div>
+                    <div class="bg-task-state-row">
+                        ${ctState}
+                        <button class="bg-trigger-btn" onclick="triggerBgTask('catalog')" title="扫描本地+网盘 STRM，写入整理历史">></button>
                     </div>
                 </div>`;
             renderBgCountdown();

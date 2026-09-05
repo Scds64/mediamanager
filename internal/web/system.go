@@ -1,4 +1,4 @@
-﻿package web
+package web
 
 // OAuth 状态、系统占用、STRM/MediaWarp/Emby 状态与操作 API（对应 server.py 剩余路由）。
 
@@ -168,15 +168,22 @@ func (s *Server) handleStrmRun(w http.ResponseWriter, r *http.Request) {
 		Action string `json:"action"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&data)
-	if data.Action != "full_sync" {
+	switch data.Action {
+	case "full_sync":
+		if !rt.TriggerFullSync() {
+			writeJSON(w, http.StatusConflict, map[string]any{"error": "STRM 任务正在执行中，请稍后再试"})
+			return
+		}
+		writeJSON(w, http.StatusAccepted, map[string]any{"success": true, "message": "任务 full_sync 已触发"})
+	case "catalog":
+		if !rt.TriggerCatalog() {
+			writeJSON(w, http.StatusConflict, map[string]any{"error": "STRM 梳理入册正在执行中，请稍后再试"})
+			return
+		}
+		writeJSON(w, http.StatusAccepted, map[string]any{"success": true, "message": "任务 catalog 已触发"})
+	default:
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "未知操作: " + data.Action})
-		return
 	}
-	if !rt.TriggerFullSync() {
-		writeJSON(w, http.StatusConflict, map[string]any{"error": "STRM 任务正在执行中，请稍后再试"})
-		return
-	}
-	writeJSON(w, http.StatusAccepted, map[string]any{"success": true, "message": "任务 full_sync 已触发"})
 }
 
 // handleStrmRedirect STRM 302 跳转（公开接口，无需登录）。

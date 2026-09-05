@@ -41,12 +41,13 @@ func (s *Server) handleTasksStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	strmStatus := map[string]any{"enabled": false, "busy": false, "full_sync_enabled": false, "full_sync_cron": "", "next_run": nil}
+	strmStatus := map[string]any{"enabled": false, "busy": false, "catalog_busy": false, "full_sync_enabled": false, "full_sync_cron": "", "next_run": nil}
 	if rt := strm.GetRuntime(); rt != nil {
 		st := rt.Status()
 		strmStatus = map[string]any{
 			"enabled":           st["enabled"],
 			"busy":              st["busy"],
+			"catalog_busy":      st["catalog_busy"],
 			"full_sync_enabled": st["full_sync_enabled"],
 			"full_sync_cron":    st["full_sync_cron"],
 			"next_run":          st["next_full_sync"],

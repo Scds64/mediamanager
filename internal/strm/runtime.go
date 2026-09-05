@@ -1,4 +1,4 @@
-﻿// STRM 功能运行时（对应 strm_engine/runtime.py）。
+// STRM 功能运行时（对应 strm_engine/runtime.py）。
 package strm
 
 import (
@@ -33,13 +33,17 @@ type StrmRuntime struct {
 	Overwrite       string
 	FullSyncEnabled bool
 	FullSyncCron    string
+	CatalogEnabled  bool
+	CatalogCron     string
 	TransferLinked  bool
 	Concurrency     int
 
 	mu            sync.Mutex
 	busy          bool
+	catalogBusy   bool
 	stopCh        chan struct{}
 	nextFullSync  time.Time
+	nextCatalog   time.Time
 }
 
 // StrmConfig STRM 初始化配置。
@@ -52,6 +56,8 @@ type StrmConfig struct {
 	Overwrite       string
 	FullSyncEnabled bool
 	FullSyncCron    string
+	CatalogEnabled  bool
+	CatalogCron     string
 	TransferLinked  bool
 	Concurrency     int
 }
@@ -69,6 +75,8 @@ func NewStrmRuntime(client *pan123.Client, cfg StrmConfig) *StrmRuntime {
 		Overwrite:       cfg.Overwrite,
 		FullSyncEnabled: cfg.FullSyncEnabled,
 		FullSyncCron:    cfg.FullSyncCron,
+		CatalogEnabled:  cfg.CatalogEnabled,
+		CatalogCron:     cfg.CatalogCron,
 		TransferLinked:  cfg.TransferLinked,
 		Concurrency:     cfg.Concurrency,
 		stopCh:          make(chan struct{}),
@@ -134,6 +142,19 @@ func (r *StrmRuntime) ApplyConfig(data map[string]string) {
 			recomputeNext = true
 		}
 	}
+	if v, ok := data["ENV_STRM_CATALOG"]; ok {
+		enabled := v == "1" || v == "true"
+		if enabled != r.CatalogEnabled {
+			r.CatalogEnabled = enabled
+			recomputeNext = true
+		}
+	}
+	if v, ok := data["ENV_STRM_CATALOG_CRON"]; ok {
+		if v != r.CatalogCron {
+			r.CatalogCron = v
+			recomputeNext = true
+		}
+	}
 	if recomputeNext {
 		r.rescheduleNow()
 	}
@@ -160,22 +181,31 @@ func (r *StrmRuntime) Status() map[string]any {
 	}
 	r.mu.Lock()
 	busy := r.busy
-	next := r.nextFullSync
+	catalogBusy := r.catalogBusy
+	nextFS := r.nextFullSync
+	nextCat := r.nextCatalog
 	r.mu.Unlock()
-	var nextFullSync any
-	if !next.IsZero() {
-		nextFullSync = next.Format(time.RFC3339)
+	var nextFullSync, nextCatalog any
+	if !nextFS.IsZero() {
+		nextFullSync = nextFS.Format(time.RFC3339)
+	}
+	if !nextCat.IsZero() {
+		nextCatalog = nextCat.Format(time.RFC3339)
 	}
 	return map[string]any{
-		"enabled":           r.Enabled,
-		"server_address":    r.ServerAddress,
+		"enabled":            r.Enabled,
+		"server_address":     r.ServerAddress,
 		"api_key_configured": r.APIKey != "",
-		"mapping_count":     mappingCount,
-		"full_sync_enabled": r.FullSyncEnabled,
-		"full_sync_cron":    r.FullSyncCron,
-		"busy":              busy,
-		"next_full_sync":    nextFullSync,
-		"transfer_linked":   r.TransferLinked,
+		"mapping_count":      mappingCount,
+		"full_sync_enabled":  r.FullSyncEnabled,
+		"full_sync_cron":     r.FullSyncCron,
+		"catalog_enabled":    r.CatalogEnabled,
+		"catalog_cron":       r.CatalogCron,
+		"busy":               busy,
+		"catalog_busy":       catalogBusy,
+		"next_full_sync":     nextFullSync,
+		"next_catalog":       nextCatalog,
+		"transfer_linked":    r.TransferLinked,
 	}
 }
 
@@ -196,6 +226,8 @@ func (r *StrmRuntime) Config() map[string]string {
 		"ENV_STRM_OVERWRITE":        r.Overwrite,
 		"ENV_STRM_FULL_SYNC":        boolStr(r.FullSyncEnabled),
 		"ENV_STRM_FULL_SYNC_CRON":   r.FullSyncCron,
+		"ENV_STRM_CATALOG":          boolStr(r.CatalogEnabled),
+		"ENV_STRM_CATALOG_CRON":     r.CatalogCron,
 		"ENV_STRM_TRANSFER_LINKED":  boolStr(r.TransferLinked),
 		"ENV_STRM_CONCURRENCY":      strconv.Itoa(r.Concurrency),
 	}
@@ -225,11 +257,21 @@ func (r *StrmRuntime) timerLoop() {
 			return
 		case now := <-ticker.C:
 			r.mu.Lock()
-			next := r.nextFullSync
+			nextFS := r.nextFullSync
+			nextCat := r.nextCatalog
 			r.mu.Unlock()
-			if r.Enabled && r.FullSyncEnabled && r.FullSyncCron != "" && !next.IsZero() {
-				if now.After(next) || now.Equal(next) {
+
+			// 全量同步
+			if r.Enabled && r.FullSyncEnabled && r.FullSyncCron != "" && !nextFS.IsZero() {
+				if now.After(nextFS) || now.Equal(nextFS) {
 					r.safeRun("full_sync")
+					r.rescheduleNow()
+				}
+			}
+			// 梳理入册
+			if r.Enabled && r.CatalogEnabled && r.CatalogCron != "" && !nextCat.IsZero() {
+				if now.After(nextCat) || now.Equal(nextCat) {
+					r.TriggerCatalog()
 					r.rescheduleNow()
 				}
 			}
@@ -237,21 +279,30 @@ func (r *StrmRuntime) timerLoop() {
 	}
 }
 
-// rescheduleNow 按当前配置重算下一次全量同步时间（开关/周期热更新后也调用，
-// 否则 Web 保存只改字段、nextFullSync 保持零值，倒计时不显示且定时永不触发）。
+// rescheduleNow 按当前配置重算下一次全量同步 + 梳理入册时间。
 func (r *StrmRuntime) rescheduleNow() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	// 全量同步
 	r.nextFullSync = time.Time{}
-	if !r.Enabled || !r.FullSyncEnabled || r.FullSyncCron == "" {
-		return
+	if r.Enabled && r.FullSyncEnabled && r.FullSyncCron != "" {
+		if t := computeNextCronTime(r.FullSyncCron, time.Now()); t != nil {
+			r.nextFullSync = *t
+		} else {
+			log.Printf("【STRM定时】全量同步 cron 表达式无效: %s", r.FullSyncCron)
+		}
 	}
-	t := computeNextCronTime(r.FullSyncCron, time.Now())
-	if t == nil {
-		log.Printf("【STRM定时】全量同步 cron 表达式无效，定时任务不生效: %s", r.FullSyncCron)
-		return
+
+	// 梳理入册
+	r.nextCatalog = time.Time{}
+	if r.Enabled && r.CatalogEnabled && r.CatalogCron != "" {
+		if t := computeNextCronTime(r.CatalogCron, time.Now()); t != nil {
+			r.nextCatalog = *t
+		} else {
+			log.Printf("【STRM定时】梳理入册 cron 表达式无效: %s", r.CatalogCron)
+		}
 	}
-	r.nextFullSync = *t
 }
 
 // safeRun 带互斥锁的后台执行。
@@ -312,6 +363,55 @@ func (r *StrmRuntime) runFullSync() {
 	if ok {
 		transfer.Notify(fmt.Sprintf("📁 全量STRM同步完成：生成 %d 个 STRM 文件", count), "")
 	}
+}
+
+// TriggerCatalog 手动触发 STRM 梳理入册（catalogBusy 时返回 false）。
+func (r *StrmRuntime) TriggerCatalog() bool {
+	if r == nil {
+		return false
+	}
+	r.mu.Lock()
+	if r.catalogBusy {
+		r.mu.Unlock()
+		return false
+	}
+	r.catalogBusy = true
+	r.mu.Unlock()
+	go func() {
+		defer func() {
+			r.mu.Lock()
+			r.catalogBusy = false
+			r.mu.Unlock()
+		}()
+		r.runCatalog()
+	}()
+	return true
+}
+
+// runCatalog 执行 STRM 梳理入册。
+func (r *StrmRuntime) runCatalog() {
+	executor := transfer.GetTransferExecutor()
+	if executor == nil || executor.History == nil {
+		log.Printf("【STRM 梳理】transfer executor/history 未初始化")
+		return
+	}
+	if r.Paths == "" {
+		log.Printf("【STRM 梳理】未配置 STRM 映射（ENV_STRM_PATHS），跳过")
+		return
+	}
+	if r.client == nil {
+		log.Printf("【STRM 梳理】123 client 未初始化，跳过")
+		return
+	}
+
+	result := CatalogStrmToHistory(context.Background(), r.client, r.Paths, executor.History, r.Concurrency)
+	if result.Error != "" {
+		log.Printf("【STRM 梳理】失败: %s", result.Error)
+		transfer.Notify("⚠️ STRM 梳理失败："+result.Error, "")
+		return
+	}
+	transfer.Notify(fmt.Sprintf("📚 STRM 梳理完成：匹配 %d  orphan %d  跳过映射 %d",
+		result.Matched, result.Orphan, result.Skipped), "")
 }
 
 // CheckAPIKey 302 接口鉴权。
@@ -497,6 +597,8 @@ func InitFromEnv(client *pan123.Client, getEnv func(string) string) bool {
 		Overwrite:       getEnv("ENV_STRM_OVERWRITE"),
 		FullSyncEnabled: getEnv("ENV_STRM_FULL_SYNC") == "1",
 		FullSyncCron:    getEnv("ENV_STRM_FULL_SYNC_CRON"),
+		CatalogEnabled:  getEnv("ENV_STRM_CATALOG") == "1",
+		CatalogCron:     getEnv("ENV_STRM_CATALOG_CRON"),
 		TransferLinked:  getEnv("ENV_STRM_TRANSFER_LINKED") == "1",
 		Concurrency:     concurrency,
 	}
