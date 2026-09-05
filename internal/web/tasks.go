@@ -41,7 +41,7 @@ func (s *Server) handleTasksStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	strmStatus := map[string]any{"enabled": false, "busy": false, "catalog_busy": false, "full_sync_enabled": false, "full_sync_cron": "", "next_run": nil}
+	strmStatus := map[string]any{"enabled": false, "busy": false, "catalog_busy": false, "full_sync_enabled": false, "full_sync_cron": "", "next_run": nil, "last_catalog": nil}
 	if rt := strm.GetRuntime(); rt != nil {
 		st := rt.Status()
 		strmStatus = map[string]any{
@@ -51,6 +51,7 @@ func (s *Server) handleTasksStatus(w http.ResponseWriter, r *http.Request) {
 			"full_sync_enabled": st["full_sync_enabled"],
 			"full_sync_cron":    st["full_sync_cron"],
 			"next_run":          st["next_full_sync"],
+			"last_catalog":      st["last_catalog"],
 		}
 	}
 

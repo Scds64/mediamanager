@@ -38,12 +38,14 @@ type StrmRuntime struct {
 	TransferLinked  bool
 	Concurrency     int
 
-	mu            sync.Mutex
-	busy          bool
-	catalogBusy   bool
-	stopCh        chan struct{}
-	nextFullSync  time.Time
-	nextCatalog   time.Time
+	mu               sync.Mutex
+	busy             bool
+	catalogBusy      bool
+	stopCh           chan struct{}
+	nextFullSync     time.Time
+	nextCatalog      time.Time
+	lastCatalogRes   *CatalogResult // 最近一次 catalog 结果（完成后非 nil）
+	lastCatalogTime  time.Time
 }
 
 // StrmConfig STRM 初始化配置。
@@ -184,6 +186,8 @@ func (r *StrmRuntime) Status() map[string]any {
 	catalogBusy := r.catalogBusy
 	nextFS := r.nextFullSync
 	nextCat := r.nextCatalog
+	lastRes := r.lastCatalogRes
+	lastTime := r.lastCatalogTime
 	r.mu.Unlock()
 	var nextFullSync, nextCatalog any
 	if !nextFS.IsZero() {
@@ -192,6 +196,25 @@ func (r *StrmRuntime) Status() map[string]any {
 	if !nextCat.IsZero() {
 		nextCatalog = nextCat.Format(time.RFC3339)
 	}
+
+	// 构造 last_catalog 结果（如果有）
+	var lastCatalog any
+	if lastRes != nil {
+		lc := map[string]any{
+			"mappings": lastRes.Mappings,
+			"matched":  lastRes.Matched,
+			"orphan":   lastRes.Orphan,
+			"skipped":  lastRes.Skipped,
+		}
+		if lastRes.Error != "" {
+			lc["error"] = lastRes.Error
+		}
+		if !lastTime.IsZero() {
+			lc["time"] = lastTime.Format(time.RFC3339)
+		}
+		lastCatalog = lc
+	}
+
 	return map[string]any{
 		"enabled":            r.Enabled,
 		"server_address":     r.ServerAddress,
@@ -206,6 +229,7 @@ func (r *StrmRuntime) Status() map[string]any {
 		"next_full_sync":     nextFullSync,
 		"next_catalog":       nextCatalog,
 		"transfer_linked":    r.TransferLinked,
+		"last_catalog":       lastCatalog,
 	}
 }
 
@@ -393,18 +417,22 @@ func (r *StrmRuntime) runCatalog() {
 	executor := transfer.GetTransferExecutor()
 	if executor == nil || executor.History == nil {
 		log.Printf("【STRM 梳理】transfer executor/history 未初始化")
+		r.storeCatalogResult(CatalogResult{Error: "transfer executor/history 未初始化"})
 		return
 	}
 	if r.Paths == "" {
 		log.Printf("【STRM 梳理】未配置 STRM 映射（ENV_STRM_PATHS），跳过")
+		r.storeCatalogResult(CatalogResult{Error: "未配置 STRM 映射（ENV_STRM_PATHS）"})
 		return
 	}
 	if r.client == nil {
 		log.Printf("【STRM 梳理】123 client 未初始化，跳过")
+		r.storeCatalogResult(CatalogResult{Error: "123 client 未初始化"})
 		return
 	}
 
 	result := CatalogStrmToHistory(context.Background(), r.client, r.Paths, executor.History, r.Concurrency)
+	r.storeCatalogResult(result)
 	if result.Error != "" {
 		log.Printf("【STRM 梳理】失败: %s", result.Error)
 		transfer.Notify("⚠️ STRM 梳理失败："+result.Error, "")
@@ -412,6 +440,20 @@ func (r *StrmRuntime) runCatalog() {
 	}
 	transfer.Notify(fmt.Sprintf("📚 STRM 梳理完成：匹配 %d  orphan %d  跳过映射 %d",
 		result.Matched, result.Orphan, result.Skipped), "")
+}
+
+func (r *StrmRuntime) storeCatalogResult(res CatalogResult) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.lastCatalogRes = &res
+	r.lastCatalogTime = time.Now()
+}
+
+// GetLastCatalogResult 返回最近一次 catalog 结果和时间。
+func (r *StrmRuntime) GetLastCatalogResult() (*CatalogResult, time.Time) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.lastCatalogRes, r.lastCatalogTime
 }
 
 // CheckAPIKey 302 接口鉴权。

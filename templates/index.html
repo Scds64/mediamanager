@@ -3889,10 +3889,25 @@
                 const ch = st.channel_monitor || {};
                 const tf = st.transfer || {};
                 const sm = st.strm_full_sync || {};
+                const prevCatalogActive = _taskActive.catalog;
                 _taskActive.channel = !!ch.scanning;
                 _taskActive.transfer = !!tf.scanning;
                 _taskActive.strm = !!sm.busy;
                 _taskActive.catalog = !!sm.catalog_busy;
+                // catalog 刚结束：显示结果
+                if (prevCatalogActive && !_taskActive.catalog) {
+                    const lc = sm.last_catalog;
+                    if (lc) {
+                        if (lc.error) {
+                            showNotification('⚠️ STRM 梳理失败: ' + lc.error, 'error');
+                        } else {
+                            showNotification(`📚 STRM 梳理完成：匹配 ${lc.matched}  orphan ${lc.orphan}  跳过 ${lc.skipped}`, 'success');
+                        }
+                    } else {
+                        showNotification('📚 STRM 梳理完成', 'success');
+                    }
+                    hideLoading();
+                }
                 renderBgTasks();
                 renderBgCountdown();
                 if (_embyUsage) renderEmbyUsageChart();
