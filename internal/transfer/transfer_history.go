@@ -137,6 +137,20 @@ func (h *TransferHistory) Exists(fileID string) bool {
 	return err == nil
 }
 
+// GetByFileID 按 file_id 查询完整记录，返回 nil 表示不存在。
+func (h *TransferHistory) GetByFileID(fileID string) *HistoryRecord {
+	rows, err := h.db.Query(fmt.Sprintf(`SELECT %s FROM %s WHERE file_id=?`, historyColumns, historyTable), fileID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	records := scanRecords(rows)
+	if len(records) > 0 {
+		return records[0]
+	}
+	return nil
+}
+
 // Add 新增或更新历史记录。
 func (h *TransferHistory) Add(rec HistoryRecord) error {
 	now := time.Now().Format(time.RFC3339)

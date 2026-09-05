@@ -91,7 +91,7 @@ func TestCatalogMatchFlow(t *testing.T) {
 			transferMeta := transfer.Recognize(filename, "", parentDirs)
 
 			panFullPath := panRoot + "/" + relPath
-			matched := matchPanFile(panFullPath, info.Name, info.Size, fullIndex, nameSizeIndex, idPathIndex)
+			matched, _ := matchPanFile(panFullPath, info.Name, info.Size, fullIndex, nameSizeIndex, idPathIndex)
 
 			if tc.expectMatched && matched == nil {
 				t.Fatalf("预期匹配成功但匹配失败: panFullPath=%s fileName=%s size=%d", panFullPath, info.Name, info.Size)

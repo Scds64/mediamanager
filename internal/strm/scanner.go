@@ -182,6 +182,10 @@ func splitPath(p string) []string {
 
 var (
 	sxxexxRe       = regexp.MustCompile(`[Ss](\d{1,2})[Ee](\d{1,3})`)
+	// 年份匹配：独立的 4 位数字（前后不是数字）
+	yearRe         = regexp.MustCompile(`(?:^|[^\d])(\d{4})(?:[^\d]|$)`)
+	// tmdb 标识：[tmdb=xxx] [tmdb-xxx] {tmdbid=xxx} {tmdbid-xxx} 等
+	tmdbAnyRe      = regexp.MustCompile(`(?i)[{\[]tmdb(?:id)?(?:=|-)\d+[}\]]`)
 	seasonDirRes   = []*regexp.Regexp{
 		regexp.MustCompile(`(?i)season\s*(\d+)`),
 		regexp.MustCompile(`第\s*(\d+)\s*季`),
@@ -226,7 +230,16 @@ func ParseMeta(p string) StrmMeta {
 				if season == -1 {
 					season, _ = strconv.Atoi(m[1])
 				}
+				// 默认 Season 的直接上一级
 				titleDirIdx = i - 1
+				// 继续向上找更可靠的标题目录：带年份或 tmdb 标识
+				for j := i - 1; j >= 0; j-- {
+					candidate := dirs[j]
+					if yearRe.MatchString(candidate) || tmdbAnyRe.MatchString(candidate) {
+						titleDirIdx = j
+						break
+					}
+				}
 				matched = true
 				break
 			}

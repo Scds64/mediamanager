@@ -3895,6 +3895,7 @@
                 _taskActive.catalog = !!sm.catalog_busy;
                 renderBgTasks();
                 renderBgCountdown();
+                if (_embyUsage) renderEmbyUsageChart();
                 if (!_taskActive.channel && !_taskActive.transfer && !_taskActive.strm && !_taskActive.catalog) stopBgPoll();
             } catch (e) { /* 轮询失败忽略，下一轮再试 */ }
         }
@@ -4429,6 +4430,8 @@
                 _taskActive.catalog = !!sm.catalog_busy;
                 renderBgTasks();
                 renderBgCountdown();
+                // 后台任务卡片高度已确定 → 重绘 Emby 图表以适应
+                if (_embyUsage) renderEmbyUsageChart();
             } catch (e) {
                 grid.innerHTML = `<div class="empty-row">任务状态加载失败: ${escapeHtml(e.message)}</div>`;
             }
@@ -4480,8 +4483,10 @@
             let ctState;
             if (st.catalog_busy) {
                 ctState = '<span class="bg-task-state"><span class="bg-dot" style="background:#F59E0B;"></span>梳理中</span>';
+            } else if (st.catalog_enabled) {
+                ctState = '<span class="bg-task-state"><span class="bg-dot"></span>已启用</span>';
             } else {
-                ctState = '<span class="bg-task-state off"><span class="bg-dot"></span>未执行</span>';
+                ctState = '<span class="bg-task-state off"><span class="bg-dot"></span>未开启</span>';
             }
 
             grid.innerHTML = `
@@ -4611,7 +4616,20 @@
                 return;
             }
             const mobile = window.matchMedia('(max-width: 768px)').matches;
-            const W = mobile ? 460 : 800, H = mobile ? 250 : 220, ML = 44, MR = 12, MT = 10, MB = 26;
+            const W = mobile ? 460 : 800;
+            // H 自适应容器高度：读取 body 实际可用空间，最小 220px，桌面端最多 360px
+            let H = mobile ? 250 : 220;
+            const cardBody = body;
+            if (!mobile && cardBody) {
+                const card = cardBody.closest('.card');
+                if (card) {
+                    const cardH = card.clientHeight;
+                    // 减去标题 + body 上下内边距 + legend 行高（约 36px）
+                    const avail = Math.max(220, cardH - 80);
+                    H = Math.min(360, avail);
+                }
+            }
+            const ML = 44, MR = 12, MT = 10, MB = 26;
             const pw = W - ML - MR, ph = H - MT - MB;
             let maxV = 0;
             users.forEach(u => (u.durations || []).forEach(v => { if (v > maxV) maxV = v; }));
