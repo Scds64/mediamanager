@@ -3162,6 +3162,7 @@
         // ============ 内存占用（每 1 秒轮询，含趋势图） ============
         let _usageTimer = null;
         const _memHistory = [];   // 仅保留 ~150 秒即可覆盖渲染窗口(90s)+余量，避免留存 10 分钟历史造成冗余占用
+        let _memYMin = null, _memYMax = null;   // Y 轴平滑后的显示范围（跨帧，供收窄缓动用）
 
         function startUsagePolling() {
             if (_usageTimer) return;
@@ -3211,11 +3212,21 @@
 
             // Y 轴自适应：跟随窗口内数据 min/max 上下留边，放大微小变化（LuCI 风格）；
             // 设最小跨度，避免采样噪声被过度放大成剧烈抖动
-            let yMin = Infinity, yMax = -Infinity;
-            for (const p of pts) { if (p[1] < yMin) yMin = p[1]; if (p[1] > yMax) yMax = p[1]; }
-            const span = Math.max(yMax - yMin, 2);      // 2MB 最小跨度，放大更小的波动
-            yMin = Math.max(0, yMin - span * 0.12);
-            yMax = yMax + span * 0.12;
+            let wantMin = Infinity, wantMax = -Infinity;
+            for (const p of pts) { if (p[1] < wantMin) wantMin = p[1]; if (p[1] > wantMax) wantMax = p[1]; }
+            const span = Math.max(wantMax - wantMin, 2);      // 2MB 最小跨度，放大更小的波动
+            const targetMin = Math.max(0, wantMin - span * 0.12);
+            const targetMax = wantMax + span * 0.12;
+
+            // 平滑收放：扩张(上涨/急升)立即跟随否则峰值会被裁切；回落(收窄)缓慢逼近避免瞬间跳变
+            if (_memYMin === null) { _memYMin = targetMin; _memYMax = targetMax; }
+            else if (targetMin < _memYMin - 0.01 || targetMax > _memYMax + 0.01) { _memYMin = targetMin; _memYMax = targetMax; }
+            else {
+                const ease = 0.2;      // 收窄收敛速度
+                _memYMin += (targetMin - _memYMin) * ease;
+                _memYMax += (targetMax - _memYMax) * ease;
+            }
+            const yMin = _memYMin, yMax = _memYMax;
             const yRange = yMax - yMin;
 
             let points;
