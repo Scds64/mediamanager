@@ -880,6 +880,7 @@
         }
         .history-batch-link.danger { color: var(--danger); }
         .history-batch-link.warning { color: var(--text-700); }
+        .history-batch-sep { color: var(--text-400); font-size: var(--fs-title); line-height: 1.2; }
         .history-batch-link:hover:not(.disabled) { text-decoration: underline; }
         .history-batch-link.disabled { opacity: 0.4; cursor: not-allowed; text-decoration: none; }
         /* 多选 checkbox：放大便于点击选中 */
@@ -1975,6 +1976,7 @@
                     <div class="card-title">
                         <span class="history-batch-actions" style="display:none;gap:14px;margin-right:12px;">
                             <button class="history-batch-link warning" onclick="batchDeleteHistory(false)">删除历史</button>
+                            <span class="history-batch-sep">/</span>
                             <button class="history-batch-link danger" onclick="batchDeleteHistory(true)">深度删除</button>
                         </span>
                         <i class="fas fa-history history-title-label"></i><span class="history-title-label">整理历史</span>
