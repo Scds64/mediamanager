@@ -4970,7 +4970,7 @@
             const ratio = v => Math.max(0, Math.min(1, v));
             const mR = ratio(stats.total_size ? stats.movie_size / stats.total_size : 0);
             const tR = ratio(stats.total_size ? stats.tv_size / stats.total_size : 0);
-            const mSeg = Math.max(mR * C + OVERLAP, 0);
+            const mSeg = Math.max(mR * C, 0);
             const tSeg = Math.max(tR * C - GAP + OVERLAP, 0);
             const segCircle = (len, offset, color) => `
                 <circle cx="100" cy="60" r="${R}" fill="none" stroke="${color}" stroke-width="9" stroke-linecap="round"
@@ -5004,7 +5004,7 @@
                 <svg class="emby-donut" viewBox="0 0 200 120">
                     <circle cx="100" cy="60" r="${R}" fill="none" stroke="#EEF2F7" stroke-width="9"/>
                     ${mR > 0 ? segCircle(mSeg, 0, 'var(--primary)') : ''}
-                    ${tR > 0 ? segCircle(tSeg, -(mSeg + GAP - OVERLAP), 'var(--success)') : ''}
+                    ${tR > 0 ? segCircle(tSeg, -(mSeg + GAP), 'var(--success)') : ''}
                     ${mR > 0 ? labelTR('电影', stats.movie_count) : ''}
                     ${tR > 0 ? labelBL('电视剧', stats.tv_count) : ''}
                     <text x="100" y="61" text-anchor="middle" font-size="14" font-weight="700" fill="#0F172A">${total.num}</text>
