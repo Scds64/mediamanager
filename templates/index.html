@@ -4974,7 +4974,7 @@
             const tSeg = Math.max(tR * C - GAP + OVERLAP, 0);
             const segCircle = (len, offset, color) => `
                 <circle cx="100" cy="60" r="${R}" fill="none" stroke="${color}" stroke-width="9" stroke-linecap="round"
-                    stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${offset}" transform="rotate(90 100 60)"/>`;
+                    stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${offset}" transform="rotate(-90 100 60)"/>`;
             // 固定方位标签：贝塞尔曲线引出 + 类别与数量上下两行
             // 右上（电影）：-45° 方向，文字在右侧
             const labelTR = (name, count) => {
