@@ -3232,8 +3232,8 @@
             let wantMin = Infinity, wantMax = -Infinity;
             for (const p of pts) { if (p[1] < wantMin) wantMin = p[1]; if (p[1] > wantMax) wantMax = p[1]; }
             const span = Math.max(wantMax - wantMin, 2);      // 2MB 最小跨度，放大更小的波动
-            const targetMin = Math.max(0, wantMin - span * 0.12);
-            const targetMax = wantMax + span * 0.12;
+            const targetMin = Math.max(0, wantMin - span * 0.20);
+            const targetMax = wantMax + span * 0.20;
 
             // 平滑收放：扩张(上涨/急升)立即跟随否则峰值会被裁切；回落(收窄)缓慢逼近避免瞬间跳变
             if (_memYMin === null) { _memYMin = targetMin; _memYMax = targetMax; }
@@ -3271,7 +3271,7 @@
             svg.innerHTML = `
                 <defs>
                     <linearGradient id="mem-grad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#6366F1" stop-opacity="1"/>
+                        <stop offset="0%" stop-color="#6366F1" stop-opacity="0.8"/>
                         <stop offset="100%" stop-color="#6366F1" stop-opacity="0.1"/>
                     </linearGradient>
                 </defs>
