@@ -4287,7 +4287,7 @@
                 countEl.style.display = historySelectMode ? 'inline' : 'none';
             }
             updateHistorySelection();
-            loadHistory();
+            loadHistory(historyPage, true);   // silent：不先清空成"加载中"占位，避免高度塌陷导致手机端滚动跳动
         }
 
         function selectAllHistory(checked) {
