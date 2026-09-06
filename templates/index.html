@@ -3231,9 +3231,9 @@
             // 设最小跨度，避免采样噪声被过度放大成剧烈抖动
             let wantMin = Infinity, wantMax = -Infinity;
             for (const p of pts) { if (p[1] < wantMin) wantMin = p[1]; if (p[1] > wantMax) wantMax = p[1]; }
-            const span = Math.max(wantMax - wantMin, 2);      // 2MB 最小跨度，放大更小的波动
-            const targetMin = Math.max(0, wantMin - span * 0.20);
-            const targetMax = wantMax + span * 0.20;
+            const span = Math.max(wantMax - wantMin, 5);      // 5MB 最小跨度：稳定时曲线压平、留白更大
+            const targetMin = Math.max(0, wantMin - span * 0.12);
+            const targetMax = wantMax + span * 0.12;
 
             // 平滑收放：扩张(上涨/急升)立即跟随否则峰值会被裁切；回落(收窄)缓慢逼近避免瞬间跳变
             if (_memYMin === null) { _memYMin = targetMin; _memYMax = targetMax; }
