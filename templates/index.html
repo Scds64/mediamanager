@@ -714,8 +714,8 @@
         #history-card .card-title { margin-bottom: 12px; }
 
         /* ============ 内存占用卡片 ============ */
-        /* 卡片为 flex 列，图表撑满标题下方的剩余空间（高度自适应行高变化） */
-        .card:has(.mem-chart-wrap) { display: flex; flex-direction: column; }
+        /* 卡片为 flex 列，图表撑满标题下方剩余空间；下侧内边距单独收紧（默认 12px → 8px） */
+        .card:has(.mem-chart-wrap) { display: flex; flex-direction: column; padding-bottom: 8px; }
         .mem-chart-wrap {
             position: relative;
             flex: 1;
