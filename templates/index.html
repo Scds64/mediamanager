@@ -3177,21 +3177,38 @@
             }
         }
 
-        function _catmullRomToBezier(points) {
+        // 保形平滑（monotone cubic Hermite）：切线按相邻割线限制，曲线经过所有数据点并抑制过冲，
+        // 避免 Catmull-Rom 那种"爬升段先冲出一点再回落"的莫名突起
+        function _smoothPath(points) {
             if (points.length === 2) return `M${points[0][0]},${points[0][1]} L${points[1][0]},${points[1][1]}`;
-            let d = `M${points[0][0]},${points[0][1]}`;
-            for (let i = 0; i < points.length - 1; i++) {
-                const p0 = points[i - 1] || points[i];
-                const p1 = points[i];
-                const p2 = points[i + 1];
-                const p3 = points[i + 2] || p2;
-                const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
-                const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
-                const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
-                const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
-                d += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+            const n = points.length;
+            const d = new Array(n - 1);
+            for (let i = 0; i < n - 1; i++) {
+                const dx = points[i + 1][0] - points[i][0];
+                const dy = points[i + 1][1] - points[i][1];
+                d[i] = dx > 0 ? dy / dx : 0;
             }
-            return d;
+            const m = new Array(n);
+            m[0] = d[0];
+            m[n - 1] = d[n - 2];
+            for (let i = 1; i < n - 1; i++) {
+                if (d[i - 1] * d[i] <= 0) { m[i] = 0; continue; }
+                const w1 = 2 * d[i] + d[i - 1];
+                const w2 = d[i] + 2 * d[i - 1];
+                const denom = w1 / d[i - 1] + w2 / d[i];
+                m[i] = (w1 + w2 !== 0 && denom !== 0) ? (w1 + w2) / denom : 0;
+            }
+            let dd = `M${points[0][0].toFixed(1)},${points[0][1].toFixed(1)}`;
+            for (let i = 0; i < n - 1; i++) {
+                const x0 = points[i][0], y0 = points[i][1];
+                const x1 = points[i + 1][0], y1 = points[i + 1][1];
+                const dx = x1 - x0;
+                if (dx <= 0) continue;
+                const cp1x = x0 + dx / 3, cp1y = y0 + m[i] * dx / 3;
+                const cp2x = x1 - dx / 3, cp2y = y1 - m[i + 1] * dx / 3;
+                dd += ` C${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`;
+            }
+            return dd;
         }
 
         function _drawMemChart() {
@@ -3245,7 +3262,7 @@
                 });
             }
 
-            const pathD = _catmullRomToBezier(points);
+            const pathD = _smoothPath(points);
             const lastX = points[points.length - 1][0].toFixed(1);
             const firstX = points[0][0].toFixed(1);
             const baseY = (padT + plotH).toFixed(1);
@@ -4738,6 +4755,8 @@
             let maxV = 0;
             users.forEach(u => (u.durations || []).forEach(v => { if (v > maxV) maxV = v; }));
             if (maxV <= 0) maxV = 3600;
+            // Y 轴刻度取整：时长小取整秒、偏大取整分钟，网格刻度为整齐数值
+            maxV = maxV < 120 ? Math.max(60, Math.ceil(maxV)) : Math.ceil(maxV / 60) * 60;
             const n = days.length || 1;
             const xAt = i => ML + (n === 1 ? pw / 2 : pw * i / (n - 1));
             const yAt = v => MT + ph * (1 - v / maxV);
@@ -4756,18 +4775,31 @@
             });
 
             let lines = '', points = '';
-            // 将离散点转成平滑的 SVG 曲线路径（Catmull-Rom → cubic bezier）
+            // 保形平滑（monotone cubic Hermite）：切线按相邻割线限制，抑制过冲（曲线不会先冲出再回落）
             function smoothPath(xs, ys) {
-                if (xs.length < 2) return 'M ' + xs[0].toFixed(1) + ' ' + ys[0].toFixed(1);
+                const n = xs.length;
+                if (n < 2) return 'M ' + xs[0].toFixed(1) + ' ' + ys[0].toFixed(1);
+                const sd = new Array(n - 1);
+                for (let i = 0; i < n - 1; i++) {
+                    const dx = xs[i + 1] - xs[i], dy = ys[i + 1] - ys[i];
+                    sd[i] = dx > 0 ? dy / dx : 0;
+                }
+                const m = new Array(n);
+                m[0] = sd[0]; m[n - 1] = sd[n - 2];
+                for (let i = 1; i < n - 1; i++) {
+                    if (sd[i - 1] * sd[i] <= 0) { m[i] = 0; continue; }
+                    const w1 = 2 * sd[i] + sd[i - 1], w2 = sd[i] + 2 * sd[i - 1];
+                    const denom = w1 / sd[i - 1] + w2 / sd[i];
+                    m[i] = (w1 + w2 !== 0 && denom !== 0) ? (w1 + w2) / denom : 0;
+                }
                 let d = `M ${xs[0].toFixed(1)} ${ys[0].toFixed(1)}`;
-                for (let i = 0; i < xs.length - 1; i++) {
-                    const x0 = xs[Math.max(0, i - 1)], y0 = ys[Math.max(0, i - 1)];
-                    const x1 = xs[i], y1 = ys[i];
-                    const x2 = xs[i + 1], y2 = ys[i + 1];
-                    const x3 = xs[Math.min(xs.length - 1, i + 2)], y3 = ys[Math.min(ys.length - 1, i + 2)];
-                    const c1x = x1 + (x2 - x0) / 6, c1y = y1 + (y2 - y0) / 6;
-                    const c2x = x2 - (x3 - x1) / 6, c2y = y2 - (y3 - y1) / 6;
-                    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+                for (let i = 0; i < n - 1; i++) {
+                    const x0 = xs[i], y0 = ys[i], x1 = xs[i + 1], y1 = ys[i + 1];
+                    const dx = x1 - x0;
+                    if (dx <= 0) continue;
+                    const c1x = x0 + dx / 3, c1y = y0 + m[i] * dx / 3;
+                    const c2x = x1 - dx / 3, c2y = y1 - m[i + 1] * dx / 3;
+                    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`;
                 }
                 return d;
             }
