@@ -3162,8 +3162,6 @@
         // ============ 内存占用（每 1 秒轮询，含趋势图） ============
         let _usageTimer = null;
         const _memHistory = [];   // 仅保留 ~150 秒即可覆盖渲染窗口(90s)+余量，避免留存 10 分钟历史造成冗余占用
-        const _MEM_Y_MAX = 40;  // Y 轴固定上限
-        const _MEM_Y_MIN = 0;  // Y 轴固定下限
 
         function startUsagePolling() {
             if (_usageTimer) return;
@@ -3204,15 +3202,21 @@
             const plotW = W - padL - padR;
             const plotH = H - padT - padB;
 
-            const yMax = _MEM_Y_MAX;
-            const yMin = _MEM_Y_MIN;
-            const yRange = yMax - yMin;
             const WINDOW = 60;                // X 轴窗口：60 秒（同任务管理器）
             const newestTS = _memHistory[_memHistory.length - 1][0];
 
             // 只保留 90 秒内的点（60 秒窗口 + 30 秒滑出余量，SVG 自动裁剪超界部分）
             let pts = _memHistory.filter(p => (now - p[0]) <= WINDOW + 30 && (now - p[0]) >= -10);
             if (!pts.length) pts = _memHistory.slice(-1);  // 全部超窗时保底显示最新一点
+
+            // Y 轴自适应：跟随窗口内数据 min/max 上下留边，放大微小变化（LuCI 风格）；
+            // 设最小跨度，避免采样噪声被过度放大成剧烈抖动
+            let yMin = Infinity, yMax = -Infinity;
+            for (const p of pts) { if (p[1] < yMin) yMin = p[1]; if (p[1] > yMax) yMax = p[1]; }
+            const span = Math.max(yMax - yMin, 2);      // 2MB 最小跨度，放大更小的波动
+            yMin = Math.max(0, yMin - span * 0.12);
+            yMax = yMax + span * 0.12;
+            const yRange = yMax - yMin;
 
             let points;
             if (pts.length === 1) {
@@ -3236,23 +3240,6 @@
             const baseY = (padT + plotH).toFixed(1);
             const areaD = pathD + ` L${lastX},${baseY} L${firstX},${baseY} Z`;
 
-            // 横向网格线（0, 10, 20, 30, 40，4 等分）
-            const gridY = [0, 0.25, 0.5, 0.75, 1.0];
-            const gridLines = gridY.map(p => {
-                const y = padT + plotH * p;
-                return `<line x1="0" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="#EEF2F7" stroke-width="0.6" stroke-dasharray="4,4"/>`;
-            }).join('');
-
-            // 竖向网格线：随数据同步左滚（相位锚定最新采样点，一秒一动）
-            const spacing = plotW / 4;                       // 15 秒一条（60 秒 / 4 等分）
-            const px = plotW / WINDOW;
-            const phase = ((newestTS * px) % spacing + spacing) % spacing;
-            const gridXLines = [];
-            for (let k = -1; k <= 5; k++) {   // 左右各留一根进出余量，滚动时视口内始终有 4 根
-                const x = (k * spacing - phase).toFixed(1);
-                gridXLines.push(`<line x1="${x}" y1="${padT}" x2="${x}" y2="${(padT + plotH).toFixed(1)}" stroke="#CBD5E1" stroke-width="0.8"/>`);
-            }
-
             svg.innerHTML = `
                 <defs>
                     <linearGradient id="mem-grad" x1="0" y1="0" x2="0" y2="1">
@@ -3260,9 +3247,7 @@
                         <stop offset="100%" stop-color="#6366F1" stop-opacity="0"/>
                     </linearGradient>
                 </defs>
-                ${gridLines}
                 <path d="${areaD}" fill="url(#mem-grad)"/>
-                ${gridXLines.join('')}
                 <path d="${pathD}" fill="none" stroke="#6366F1" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
             `;
         }
