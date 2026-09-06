@@ -5003,8 +5003,8 @@
             grid.innerHTML = `
                 <svg class="emby-donut" viewBox="0 0 200 120">
                     <circle cx="100" cy="60" r="${R}" fill="none" stroke="#EEF2F7" stroke-width="9"/>
-                    ${mR > 0 ? segCircle(mSeg, 0, 'var(--primary)') : ''}
-                    ${tR > 0 ? segCircle(tSeg, -(mSeg + GAP), 'var(--success)') : ''}
+                    ${mR > 0 ? segCircle(mSeg, 0, '#27272A') : ''}
+                    ${tR > 0 ? segCircle(tSeg, -(mSeg + GAP), '#059669') : ''}
                     ${mR > 0 ? labelTR('电影', stats.movie_count) : ''}
                     ${tR > 0 ? labelBL('电视剧', stats.tv_count) : ''}
                     <text x="100" y="61" text-anchor="middle" font-size="14" font-weight="700" fill="#0F172A">${total.num}</text>
