@@ -54,10 +54,10 @@
             --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, 'Consolas', 'Courier New', monospace;
 
             /* 统一字阶：卡片标题 > 卡片副标题/配置分组 > 字段标签 > 辅助信息 */
-            --fs-title: 14px;
-            --fs-subtitle: 12.5px;
-            --fs-label: 11px;
-            --fs-meta: 10.5px;
+            --fs-title: 15px;
+            --fs-subtitle: 13.5px;
+            --fs-label: 12px;
+            --fs-meta: 11.5px;
         }
         body {
             font-family: var(--font-sans);
@@ -302,20 +302,12 @@
         /* ============ 卡片（克制的平板面层） ============ */
         .card {
             position: relative;
-            background: transparent;
-            border-radius: 0;
-            padding: 0;
-            margin-bottom: 20px;
-            box-shadow: none;
-            border: none;
-        }
-        .card-body {
-            position: relative;
-            z-index: 0;
-            padding: 20px 24px 24px;
-            border-radius: var(--radius-card);
             background: var(--surface);
+            border-radius: var(--radius-card);
+            padding: 20px 24px 24px;
+            margin-bottom: 20px;
             box-shadow: inset 0 1px 0 var(--card-hi-light);
+            border: none;
         }
         .card-title {
             font-size: var(--fs-title);
@@ -323,8 +315,8 @@
             color: var(--text-700);
             letter-spacing: 0.035em;
             line-height: 1.3;
-            margin: 0 0 8px 0;
-            padding: 0 8px;
+            margin: 0 0 16px 0;
+            padding: 0;
             display: flex;
             align-items: center;
             gap: 9px;
@@ -333,14 +325,6 @@
             background: none;
         }
         .card-title .hint { font-size: var(--fs-meta); color: var(--text-500); font-weight: 400; margin-left: auto; letter-spacing: 0; }
-        .card-title > .hint:has(.switch) {
-            display: inline-flex;
-            align-items: center;
-            line-height: 1;
-        }
-        .card-title > .hint .switch {
-            line-height: 1;
-        }
         .btn-action {
             background: transparent;
             color: var(--success);
@@ -376,7 +360,7 @@
         }
         .card.clickable-card { cursor: pointer; }
         /* 媒体信息卡：flex 列布局，让底部扫描时间自然贴底 */
-        .card.emby-media-card .card-body { display: flex; flex-direction: column; position: relative; }
+        .card.emby-media-card { display: flex; flex-direction: column; position: relative; }
         .emby-stats-footer {
             position: absolute;
             bottom: 18px;           /* 与卡片下内边距对齐 */
@@ -526,12 +510,12 @@
         .cards-row .card-title { margin-bottom: 8px; }
         /* 系统状态 Tab：卡片与内容更融合 —— 边框更淡、收紧顶部留白、标题紧贴内容区 */
         #tab-system .card {
-            padding-top: 0;
+            padding-top: 18px;
         }
         /* system tab title follows new global refined style */
         #tab-system .card-title {
             margin: 0 0 4px 0;
-            padding-top: 20px;
+            padding: 0;
         }
         /* 系统状态 Tab：媒体信息 + 内存占用 + 订阅探索 三卡并排（订阅探索/媒体信息等宽 340px，内存占用吃满剩余宽度） */
         #tab-system .cards-row { grid-template-columns: 340px 340px minmax(0, 1fr); }
@@ -545,30 +529,47 @@
             .drawer-overlay { display: none !important; }
             /* 桌面端顶部工具行（系统/后台、返回、日志、保存）是移动端专用，桌面用左侧导航，整行隐藏 */
             .top-toolbar { display: none !important; }
-            /* 桌面端订阅探索与媒体信息/内存占用同行并拉伸等高 */
+            /* 桌面端订阅探索与媒体信息/内存占用同行，随 grid 行高拉伸等高（标题/图片为绝对定位，卡自身需 stretch 撑满行） */
             #tab-system .tmdb-entry-card { height: 100%; }
         }
-        /* 订阅探索海报：横向 12:7，高度与同行卡片等高 */
-        #tab-system .tmdb-entry-card { display: block; }
-        /* 订阅探索：海报作为完整内容卡片展示 */
+        /* 订阅探索海报：横向 12:7，高度与媒体信息圆环等高（内容区上下间距均为 20px） */
+        #tab-system .tmdb-entry-card { display: flex; flex-direction: column; }  /* flex 阻止标题/海报外边距折叠，保证卡高由海报撑起 */
+        /* 订阅探索：全出血媒体横幅 —— 海报铺满整卡，无托盘无嵌套，标题悬浮左上 */
         #tab-system .tmdb-entry-card.card {
-            position: relative;
-            background: transparent;
+            position: relative;      /* 标题 absolute 的锚点 */
+            background: var(--tray-bg);
             box-shadow: none;
             border: none;
-            padding: 0;
-            overflow: visible;
+            padding: 0;             /* 去除卡内边距，海报 100% 出血铺满 */
+            overflow: hidden;        /* 圆角裁剪切海报 */
             cursor: pointer;
+        }
+        #tab-system .tmdb-entry-card .card-title.tmdb-entry-title {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            padding: 16px 16px 22px;
+            background: linear-gradient(180deg, rgba(15,23,42,0.6), transparent);
+            color: #F1F5F9;
+            font-size: var(--fs-title);
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            border-bottom: none;
+            text-shadow: 0 1px 2px rgba(15, 23, 42, 0.5);
         }
         #tab-system .tmdb-entry-poster {
             position: relative;      /* 作为图片堆叠的锚点，支持交叉淡入淡出 */
             width: 100%;
-            flex: none;
+            flex: 1;               /* 撑满整卡（卡片为 flex 列布局，padding:0） */
             display: block;
             padding: 0;
-            border-radius: var(--radius-card);
-            background: var(--tray-bg);
-            box-shadow: inset 0 1px 0 var(--card-hi-light);
+            border-radius: 14px;
+            background: none;
+            box-shadow: none;
             overflow: hidden;
             box-sizing: border-box;
         }
@@ -703,19 +704,12 @@
         }
 
         /* ============ 历史表格 ============ */
-        .history-wrap {
-            overflow-x: auto;
-            overflow-y: hidden;
-            margin: -20px -24px -24px;
-            border-radius: 0 0 var(--radius-card) var(--radius-card);
-            border: none;
-            background: transparent;
-        }
+        .history-wrap { overflow-x: auto; overflow-y: hidden; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); }
         #history-card .card-title { margin-bottom: 12px; }
 
         /* ============ 内存占用卡片 ============ */
         /* 卡片为 flex 列，图表撑满标题下方剩余空间；下侧内边距单独收紧（默认 12px → 8px） */
-        .card:has(.mem-chart-wrap) .card-body { display: flex; flex-direction: column; padding-bottom: 8px; }
+        .card:has(.mem-chart-wrap) { display: flex; flex-direction: column; padding-bottom: 8px; }
         .mem-chart-wrap {
             position: relative;
             flex: 1;
@@ -728,8 +722,10 @@
             display: block;
         }
         .mem-kpi {
-            position: static;
-            margin-left: auto;
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
             display: inline-flex;
             align-items: baseline;
             gap: 6px;
@@ -1265,15 +1261,9 @@
                 overflow-x: clip;                       /* 裁掉横向溢出但不产生滚动容器，保证 sticky 生效 */
                 padding: 0 16px 24px;                   /* 顶部留白由 toolbar 的 safe-area padding 承担 */
             }
-            .card-body { padding: 18px; }
-            #tab-system .card-title { padding-top: 0; }
-            .history-wrap {
-                margin: -18px;
-                border-radius: 0 0 var(--radius-card) var(--radius-card);
-            }
+            .card { padding: 18px; }
             /* 移动端：订阅探索保留全出血横幅（不被通用 .card padding 覆盖） */
             #tab-system .tmdb-entry-card.card { padding: 0; }
-            #tab-system .tmdb-entry-card .card-body { padding: 0; }
             /* 移动端：海报区给个合理高度，首图预加载/加载失败时卡片也不塌陷、不跳动 */
             #tab-system .tmdb-entry-poster { min-height: 200px; }
             .cards-row { grid-template-columns: minmax(0, 1fr); }
@@ -1286,24 +1276,24 @@
             .switch-track { width: 56px; height: 30px; border-radius: 15px; }
             .switch-thumb { width: 24px; height: 24px; top: 3px; left: 3px; }
             .switch input:checked + .switch-track .switch-thumb { transform: translateX(26px); }
-            .switch-label { font-size: 14px; }
+            .switch-label { font-size: 15px; }
             /* 移动端：体积豁免标签/数值与版本优先同字号 */
-            .ratio-label, .ratio-box { font-size: 14px; }
+            .ratio-label, .ratio-box { font-size: 15px; }
             /* 移动端：放大三个操作按钮字号 */
-            .btn-action { font-size: 14px; }
+            .btn-action { font-size: 15px; }
             /* 移动端保持清晰的四级字阶，避免标题、分组和字段标签大小混成一档 */
-            .card-title { font-size: 15px; line-height: 1.3; }
-            .card-title .hint { font-size: 11px; }
-            .cfg-card-label { font-size: 13px; line-height: 1.35; }
-            .group-label { font-size: 12px; line-height: 1.35; }
+            .card-title { font-size: 16px; line-height: 1.3; }
+            .card-title .hint { font-size: 12px; }
+            .cfg-card-label { font-size: 14px; line-height: 1.35; }
+            .group-label { font-size: 13px; line-height: 1.35; }
             .group-row-label,
             .form-group > label,
-            .group-card .form-group > label { font-size: 12px; line-height: 1.4; }
-            .info-callout .ic-title { font-size: 13px; }
-            .tmdb-title { font-size: 12px; }
-            .tmdb-meta { font-size: 10.5px; }
-            .tmdb-modal-title { font-size: 19px; }
-            .tmdb-modal-subtitle { font-size: 12px; }
+            .group-card .form-group > label { font-size: 13px; line-height: 1.4; }
+            .info-callout .ic-title { font-size: 14px; }
+            .tmdb-title { font-size: 13px; }
+            .tmdb-meta { font-size: 11.5px; }
+            .tmdb-modal-title { font-size: 20px; }
+            .tmdb-modal-subtitle { font-size: 13px; }
         }
 
         /* ============ TMDB 影视榜单 ============ */
@@ -1900,8 +1890,11 @@
 
                 <!-- 2. 订阅探索 + 媒体信息 + 内存占用 并排一行（桌面端三卡等高，海报由同行撑起高度） -->
                 <div class="cards-row">
-                    <!-- 1. 订阅探索（单张横向海报；右下角3点；移动端为首卡，桌面端为同行首列） -->
+                    <!-- 1. 订阅探索（单张横向海报；左上角标签栏 + 右下角3点；移动端为首卡，桌面端为同行首列） -->
                     <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
+                        <div class="card-title tmdb-entry-title">
+                            订阅探索
+                        </div>
                         <div id="tmdb-poster" class="tmdb-entry-poster">
                             <div class="poster-dots" aria-hidden="true">
                                 <span class="dot active"></span>
@@ -4488,14 +4481,12 @@
                     <div class="card-title">
                         媒体查重
                     </div>
-                    <div class="card-body">
-                        <div id="emby-dup-alert" class="alert"></div>
-                        <div id="emby-dup-actions" class="emby-dup-actions">
-                            <button class="btn btn-action" onclick="runEmbyScan()">开始扫描</button>
-                        </div>
-                        <div id="emby-dup-status"></div>
-                        <div id="emby-dup-result"></div>
+                    <div id="emby-dup-alert" class="alert"></div>
+                    <div id="emby-dup-actions" class="emby-dup-actions">
+                        <button class="btn btn-action" onclick="runEmbyScan()">开始扫描</button>
                     </div>
+                    <div id="emby-dup-status"></div>
+                    <div id="emby-dup-result"></div>
                 </div>
             </div>`;
             document.body.appendChild(overlay);
@@ -5256,24 +5247,11 @@
             }, { passive: true });
         }
 
-        // 将卡片标题与内容区拆成稳定的两层结构，避免依赖负边距和伪元素拼接布局。
-        function setupCardBodies() {
-            document.querySelectorAll('.card').forEach(card => {
-                const title = card.firstElementChild;
-                if (!title || !title.classList.contains('card-title') || card.querySelector(':scope > .card-body')) return;
-                const body = document.createElement('div');
-                body.className = 'card-body';
-                title.after(body);
-                while (body.nextElementSibling) body.appendChild(body.nextElementSibling);
-            });
-        }
-
         // ============ 初始化 ============
         (async function init() {
             const hash = (location.hash || '').replace('#', '');
             const validTabs = ['system', 'user', 'transfer-save', 'transfer', 'strm', 'mediawarp', 'logs', 'bg'];
             const initialTab = validTabs.includes(hash) ? hash : 'system';
-            setupCardBodies();
             await loadEnv();
             loadOAuthStatus();
             // 恢复搜索作用域上次选择（影视/整理），避免每次重选
