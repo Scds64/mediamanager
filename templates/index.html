@@ -53,11 +53,11 @@
             --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Roboto, 'Helvetica Neue', sans-serif;
             --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, 'Consolas', 'Courier New', monospace;
 
-            /* 高端字阶：从默认 12.5/13/14 → 12/13.5/15 三档拉开，
-               段按钮与卡片标题走标题字距，主正文行高收紧到 1.55 更利落 */
+            /* 统一字阶：卡片标题 > 卡片副标题/配置分组 > 字段标签 > 辅助信息 */
             --fs-title: 15px;
             --fs-subtitle: 13.5px;
             --fs-label: 12px;
+            --fs-meta: 11.5px;
         }
         body {
             font-family: var(--font-sans);
@@ -314,6 +314,7 @@
             font-weight: 600;
             color: var(--text-700);
             letter-spacing: 0.035em;
+            line-height: 1.3;
             margin: 0 0 16px 0;
             padding: 0;
             display: flex;
@@ -323,7 +324,7 @@
             border-bottom: none;
             background: none;
         }
-        .card-title .hint { font-size: 12px; color: var(--text-500); font-weight: 400; margin-left: auto; }
+        .card-title .hint { font-size: var(--fs-meta); color: var(--text-500); font-weight: 400; margin-left: auto; letter-spacing: 0; }
         .btn-action {
             background: transparent;
             color: var(--success);
@@ -465,7 +466,7 @@
             color: var(--text-700);
             line-height: 1.7;
         }
-        .info-callout .ic-title { color: var(--primary-hover); font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        .info-callout .ic-title { color: var(--primary-hover); font-size: var(--fs-subtitle); font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
         .info-callout code {
             background: #fff;
             padding: 2px 7px;
@@ -1280,14 +1281,19 @@
             .ratio-label, .ratio-box { font-size: 15px; }
             /* 移动端：放大三个操作按钮字号 */
             .btn-action { font-size: 15px; }
-            /* 移动端：卡片标题 —— 桌面端基础已是 15px，这里只做视觉对齐不重复放大 */
-            .card-title { font-size: var(--fs-title); }
-            /* 移动端：卡片内输入框/分组标签字号统一为 13.5px（比桌面 fs-label=12 更易读） */
-            .form-group > label { font-size: 13.5px; }
-            .group-card .form-group > label { font-size: 13.5px; }
-            .cfg-card-label { font-size: 13.5px; }
-            .group-label { font-size: 13.5px; }
-            .group-row-label { font-size: 13.5px; }
+            /* 移动端保持清晰的四级字阶，避免标题、分组和字段标签大小混成一档 */
+            .card-title { font-size: 16px; line-height: 1.3; }
+            .card-title .hint { font-size: 12px; }
+            .cfg-card-label { font-size: 14px; line-height: 1.35; }
+            .group-label { font-size: 13px; line-height: 1.35; }
+            .group-row-label,
+            .form-group > label,
+            .group-card .form-group > label { font-size: 13px; line-height: 1.4; }
+            .info-callout .ic-title { font-size: 14px; }
+            .tmdb-title { font-size: 13px; }
+            .tmdb-meta { font-size: 11.5px; }
+            .tmdb-modal-title { font-size: 20px; }
+            .tmdb-modal-subtitle { font-size: 13px; }
         }
 
         /* ============ TMDB 影视榜单 ============ */
@@ -1579,9 +1585,9 @@
             padding: 8px 10px 12px;
         }
         .tmdb-title {
-            font-size: 13px;
+            font-size: var(--fs-subtitle);
             font-weight: 600;
-            line-height: 1.4;
+            line-height: 1.35;
             color: #334155;
             text-align: center;
             white-space: nowrap;
@@ -1589,7 +1595,7 @@
             text-overflow: ellipsis;
             display: block;
         }
-        .tmdb-meta { font-size: 12px; color: var(--text-500); margin-top: 2px; }
+        .tmdb-meta { font-size: var(--fs-meta); color: var(--text-500); margin-top: 3px; line-height: 1.3; }
         .tmdb-modal-overlay {
             position: fixed;
             inset: 0;
@@ -1656,14 +1662,16 @@
         }
         .tmdb-modal-body { padding: 20px; }
         .tmdb-modal-title {
-            font-size: 22px;
+            font-size: 21px;
             font-weight: 700;
+            line-height: 1.25;
             color: var(--text-900);
             margin-bottom: 2px;
         }
         .tmdb-modal-subtitle {
-            font-size: 14px;
+            font-size: var(--fs-subtitle);
             color: var(--text-500);
+            line-height: 1.35;
             margin-bottom: 8px;
         }
         .tmdb-modal-meta {
@@ -1681,8 +1689,9 @@
             margin-bottom: 14px;
         }
         .tmdb-modal-section {
-            font-size: 13px;
+            font-size: var(--fs-subtitle);
             font-weight: 600;
+            line-height: 1.35;
             color: var(--text-900);
             margin: 12px 0 6px;
         }
@@ -5081,7 +5090,7 @@
                         keepIdx = g.files.findIndex(f => (f.size || 0) === maxSize);
                     }
                     html += `<details style="border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 8px;">
-                        <summary style="cursor: pointer; font-size: 13.5px; font-weight: 500;">${g.label} · ${g.files.length} 个文件 · 可释放 ${fmtSize(g.redundant_size)}</summary>
+                        <summary style="cursor: pointer; font-size: var(--fs-subtitle); font-weight: 500; line-height: 1.35;">${g.label} · ${g.files.length} 个文件 · 可释放 ${fmtSize(g.redundant_size)}</summary>
                         <table class="history-table" style="margin-top: 8px;">
                             <thead><tr><th style="width: 36px;"></th><th>名称</th><th>大小</th><th>版本信息</th><th>保留</th></tr></thead>
                             <tbody>`;
