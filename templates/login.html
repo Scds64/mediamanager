@@ -320,7 +320,7 @@
                     // 登录成功，添加成功动画
                     submitBtn.innerHTML = '<i class="fas fa-check"></i> 登录成功';
                     setTimeout(() => {
-                        window.location.href = '/';
+                        window.location.replace('/');
                     }, 500);
                 } else {
                     throw new Error('用户名或密码错误');

@@ -285,7 +285,7 @@ func (s *Server) destroySession(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if !s.isLoggedIn(r) {
-		http.Redirect(w, r, "/login", http.StatusFound)
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 	data, err := os.ReadFile(filepath.Join(s.tplDir, "index.html"))
@@ -302,7 +302,7 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
 	if s.isLoggedIn(r) {
-		http.Redirect(w, r, "/", http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 	data, err := os.ReadFile(filepath.Join(s.tplDir, "login.html"))
@@ -311,15 +311,18 @@ func (s *Server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
 	_, _ = w.Write(data)
 }
 
 func (s *Server) handleTransferRedirect(w http.ResponseWriter, r *http.Request) {
 	if !s.isLoggedIn(r) {
-		http.Redirect(w, r, "/login", http.StatusFound)
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, "/#transfer", http.StatusFound)
+	http.Redirect(w, r, "/#transfer", http.StatusSeeOther)
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -345,7 +348,7 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"success": true})
 		return
 	}
-	http.Redirect(w, r, "/login", http.StatusFound)
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 // ---------- 工具 ----------
