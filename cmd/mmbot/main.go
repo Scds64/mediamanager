@@ -214,7 +214,7 @@ func initLogging(path string) {
 	log.SetPrefix("")
 }
 
-var version = "0.7.34"
+var version = "0.7.38"
 
 func fatalf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
