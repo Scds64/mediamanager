@@ -323,19 +323,6 @@
             border-bottom: none;
             background: none;
         }
-        .card-title > i:not(.fa-chevron-right) {
-            color: var(--title-icon-1);
-            font-size: 14px;
-            flex-shrink: 0;
-        }
-        @supports ((-webkit-background-clip: text) or (background-clip: text)) {
-            .card-title > i:not(.fa-chevron-right) {
-                color: transparent;
-                background: linear-gradient(135deg, var(--title-icon-1) 0%, var(--title-icon-2) 100%);
-                -webkit-background-clip: text;
-                background-clip: text;
-            }
-        }
         .card-title .hint { font-size: 12px; color: var(--text-500); font-weight: 400; margin-left: auto; }
         .btn-action {
             background: transparent;
@@ -567,14 +554,11 @@
             padding: 16px 16px 22px;
             background: linear-gradient(180deg, rgba(15,23,42,0.6), transparent);
             color: #F1F5F9;
-            font-size: 14px;
-            font-weight: 700;
+            font-size: var(--fs-title);
+            font-weight: 600;
             letter-spacing: 0.02em;
             border-bottom: none;
             text-shadow: 0 1px 2px rgba(15, 23, 42, 0.5);
-        }
-        #tab-system .tmdb-entry-card .card-title.tmdb-entry-title > i:not(.fa-chevron-right) {
-            color: #E0E5F6;
         }
         #tab-system .tmdb-entry-card .card-title.tmdb-entry-title .fa-chevron-right {
             margin-left: auto;
@@ -1849,7 +1833,7 @@
             <section class="tab-panel" id="tab-logs">
                 <div class="card">
                     <div class="card-title">
-                        <i class="fas fa-terminal"></i>日志动态
+                        日志动态
                         <span class="hint" id="logs-hint">仅显示最近 300 行</span>
                     </div>
                     <div id="logs-page-list">
@@ -1864,14 +1848,14 @@
                 <div class="cards-row" id="bg-cards-row">
                     <div class="card">
                         <div class="card-title">
-                            <i class="fas fa-chart-line"></i>Emby 观看时长
+                            Emby 观看时长
                             <button class="card-title-icon-btn emby-usage-load-btn" style="margin-left: auto;" onclick="loadEmbyUsage()" title="刷新观看数据" aria-label="刷新观看数据"><i class="fas fa-rotate-right"></i></button>
                         </div>
                         <div id="emby-usage-body"><div class="empty-row">观看数据加载失败: Failed to fetch</div></div>
                     </div>
                     <div class="card">
                         <div class="card-title">
-                            <i class="fas fa-list-check"></i>后台任务
+                            后台任务
                         </div>
                         <div id="bg-tasks-grid">
                             <div style="color: var(--text-400); padding: 12px 0;">加载中...</div>
@@ -1905,7 +1889,7 @@
                     <!-- 1. 订阅探索（单张横向海报；左上角标签栏 + 右下角3点；移动端为首卡，桌面端为同行首列） -->
                     <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
                         <div class="card-title tmdb-entry-title">
-                            <i class="fas fa-fire"></i>订阅探索
+                            订阅探索
                             <i class="fas fa-chevron-right"></i>
                         </div>
                         <div id="tmdb-poster" class="tmdb-entry-poster">
@@ -1918,7 +1902,7 @@
                     </div>
                     <div class="card clickable-card emby-media-card" onclick="openEmbyModal()" role="button" title="打开媒体查重">
                         <div class="card-title">
-                            <i class="fas fa-chart-pie"></i>媒体信息
+                            媒体信息
                         </div>
                         <div id="emby-stats-grid" class="emby-stats">
                             <div style="color: var(--text-400); padding: 12px 0;">完成查重扫描后显示媒体库统计</div>
@@ -1930,7 +1914,7 @@
                     </div>
                     <div class="card">
                         <div class="card-title">
-                            <i class="fas fa-memory"></i>内存占用
+                            内存占用
                             <span class="mem-kpi">
                                 <span class="mem-kpi-value" id="sys-proc-mem">-</span><span class="mem-kpi-unit">MB</span>
                             </span>
@@ -1949,7 +1933,7 @@
                             <span class="history-batch-sep">/</span>
                             <button class="history-batch-link danger" onclick="batchDeleteHistory(true)">深度删除</button>
                         </span>
-                        <i class="fas fa-history history-title-label"></i><span class="history-title-label">整理历史</span>
+                        <span class="history-title-label">整理历史</span>
                         <span style="margin-left:auto;display:flex;align-items:center;gap:12px;">
                             <span class="history-select-count" style="display:none;font-size:12px;color:var(--text-500);"></span>
                             <button class="card-title-icon-btn multi-select-btn" onclick="toggleHistorySelect()" title="多选">
@@ -1980,14 +1964,14 @@
             <section class="tab-panel" id="tab-user">
                 <div class="card">
                     <div class="card-title">
-                        <i class="fas fa-id-card"></i>账号与认证
+                        账号与认证
                     </div>
                     <div id="env-section-用户配置"></div>
                 </div>
 
                 <div class="card">
                     <div class="card-title">
-                        <i class="fas fa-key"></i>LitePan OAuth 认证
+                        LitePan OAuth 认证
                     </div>
                     <div id="oauth-status-container"><div class="oauth-banner err">
                     <div class="oauth-icon"><i class="fas fa-times-circle"></i></div>
@@ -2010,7 +1994,7 @@
             <section class="tab-panel" id="tab-transfer-save">
                 <div class="card">
                     <div class="card-title">
-                        <i class="fas fa-folder"></i>频道监控
+                        频道监控
                         <span class="hint">
                             <label class="switch" style="display: inline-flex;">
                                 <input type="checkbox" id="env-authorization" data-section="资源转存" data-key="ENV_AUTHORIZATION" data-comment="是否开启频道监控（1=开启，0=关闭）">
@@ -2071,7 +2055,7 @@
                 <div class="tmdb-overlay-body">
                     <button class="tmdb-modal-close" onclick="closeTmdbPanel()"><i class="fas fa-times"></i></button>
                     <div class="tmdb-overlay-header">
-                        <span><i class="fas fa-fire"></i> 订阅探索</span>
+                        <span>订阅探索</span>
                     </div>
                     <div class="tmdb-toolbar list-only">
                         <div class="tmdb-seg" id="tmdb-type-seg">
@@ -2109,7 +2093,7 @@
                 <!-- 配置卡片 -->
                 <div class="card">
                     <div class="card-title">
-                        <i class="fas fa-cog"></i>文件整理
+                        文件整理
                         <span class="hint">
                             <label class="switch" style="display: inline-flex;">
                                 <input type="checkbox" id="cfg-enabled">
@@ -2198,7 +2182,7 @@
                 <!-- 配置卡片 -->
                 <div class="card">
                     <div class="card-title">
-                        <i class="fas fa-cog"></i>Strm 生成
+                        Strm 生成
                         <span class="hint">
                             <label class="switch" style="display: inline-flex;">
                                 <input type="checkbox" id="strm-enabled">
@@ -2281,7 +2265,7 @@
                 <!-- 配置卡片 -->
                 <div class="card">
                     <div class="card-title">
-                        <i class="fas fa-shield-alt"></i>Emby 反代
+                        Emby 反代
                         <span class="hint">
                             <label class="switch" style="display: inline-flex;">
                                 <input type="checkbox" id="mw-enabled">
@@ -4492,7 +4476,7 @@
                 <button class="tmdb-modal-close" onclick="closeEmbyModal()"><i class="fas fa-times"></i></button>
                 <div class="card">
                     <div class="card-title">
-                        <i class="fas fa-copy"></i>媒体查重
+                        媒体查重
                     </div>
                     <div id="emby-dup-alert" class="alert"></div>
                     <div id="emby-dup-actions" class="emby-dup-actions">
