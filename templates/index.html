@@ -5266,23 +5266,6 @@
             bindPageSwipe();
             bindSearchReveal();
             bindLogsSwipeBack();
-            // 用多层历史占位拦截误触返回；iOS Safari 的系统手势无法由网页彻底禁用，
-            // 添加到主屏幕后以 standalone 模式运行才不会出现浏览器边缘返回。
-            const installNavigationGuard = (reset = false) => {
-                const guardState = { mediaManagerGuard: true };
-                if (reset) {
-                    history.replaceState(guardState, '', location.href);
-                    history.pushState(guardState, '', location.href);
-                    history.pushState(guardState, '', location.href);
-                    return;
-                }
-                history.pushState(guardState, '', location.href);
-            };
-            installNavigationGuard(true);
-            window.addEventListener('popstate', installNavigationGuard);
-            window.addEventListener('pageshow', (e) => {
-                if (e.persisted) installNavigationGuard(true);
-            });
             switchTab(initialTab);
             layoutBgTasks();  // 桌面端把后台任务两个卡片并入「系统状态」Tab（整理历史上方）
         })();
