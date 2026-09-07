@@ -121,15 +121,15 @@ type ExecutorConfig struct {
 // NewTransferExecutor 创建整理执行器。
 func NewTransferExecutor(cfg ExecutorConfig) (*TransferExecutor, error) {
 	e := &TransferExecutor{
-		Client:              cfg.Client,
-		MovieFormat:         cfg.MovieFormat,
-		TVFormat:            cfg.TVFormat,
-		DefaultTransferType: cfg.DefaultTransferType,
-		SkipExts:            DefaultSkipExts,
-		EnableScrape:        cfg.EnableScrape,
-		dirPIDCache:         map[string]int{},
-		dirPIDCacheMax:      20000,
-		targetListingCache:  map[int64][]pan123.FileInfo{},
+		Client:                cfg.Client,
+		MovieFormat:           cfg.MovieFormat,
+		TVFormat:              cfg.TVFormat,
+		DefaultTransferType:   cfg.DefaultTransferType,
+		SkipExts:              DefaultSkipExts,
+		EnableScrape:          cfg.EnableScrape,
+		dirPIDCache:           map[string]int{},
+		dirPIDCacheMax:        20000,
+		targetListingCache:    map[int64][]pan123.FileInfo{},
 		targetListingCacheMax: 500,
 	}
 	if cfg.SkipExts != nil {
@@ -638,8 +638,11 @@ func (e *TransferExecutor) TransferDirectory(ctx context.Context, sourcePID int,
 		stats.FailList = append(stats.FailList, [2]string{strconv.Itoa(sourcePID), "123 客户端未初始化，请检查 ENV_123_CLIENT_ID/SECRET 配置"})
 		return stats
 	}
-	// 任务级缓存：新任务开始清空
-	e.targetListingCache = map[int64][]pan123.FileInfo{}
+	// 任务级缓存只在顶层任务创建和释放，避免长时间持有目录列表。
+	if len(dirNames) == 0 {
+		e.targetListingCache = map[int64][]pan123.FileInfo{}
+		defer func() { e.targetListingCache = nil }()
+	}
 	log.Printf("开始整理目录: source_pid=%d, recursive=%v", sourcePID, recursive)
 
 	items, err := e.Client.FSList(ctx, sourcePID)

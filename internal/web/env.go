@@ -250,43 +250,12 @@ func (s *Server) handleSaveEnv(w http.ResponseWriter, r *http.Request) {
 	}
 	var b strings.Builder
 	for section, items := range sections {
-		b.WriteString("# " + section + "\n")
-		for _, item := range items {
-			if item.Comment != "" {
-				b.WriteString("## " + item.Comment + "\n")
-			}
-			b.WriteString(item.Key + "=" + item.Value + "\n")
-		}
-		b.WriteString("\n")
+		writeEnvSection(&b, section, items)
 	}
-	if len(transferPreserved) > 0 {
-		b.WriteString("# 文件整理功能配置\n")
-		for _, line := range transferPreserved {
-			b.WriteString(line + "\n")
-		}
-		b.WriteString("\n")
-	}
-	if len(otherPreserved) > 0 {
-		b.WriteString("# 保留的配置（未在前端显示）\n")
-		for _, line := range otherPreserved {
-			b.WriteString(line + "\n")
-		}
-		b.WriteString("\n")
-	}
-	if len(strmPreserved) > 0 {
-		b.WriteString("# STRM 功能配置\n")
-		for _, line := range strmPreserved {
-			b.WriteString(line + "\n")
-		}
-		b.WriteString("\n")
-	}
-	if len(mwarpPreserved) > 0 {
-		b.WriteString("# MediaWarp 反代配置\n")
-		for _, line := range mwarpPreserved {
-			b.WriteString(line + "\n")
-		}
-		b.WriteString("\n")
-	}
+	writePreservedSection(&b, "文件整理功能配置", transferPreserved)
+	writePreservedSection(&b, "保留的配置（未在前端显示）", otherPreserved)
+	writePreservedSection(&b, "STRM 功能配置", strmPreserved)
+	writePreservedSection(&b, "MediaWarp 反代配置", mwarpPreserved)
 	if err := os.WriteFile(s.envPath, []byte(b.String()), 0o644); err != nil {
 		log.Printf("[Web] /api/env 保存失败: 写入 %s 失败: %v", s.envPath, err)
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
@@ -313,11 +282,7 @@ func (s *Server) handleSaveEnv(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("配置已保存，程序将退出以触发容器重启...")
 	writeJSON(w, http.StatusOK, map[string]any{"success": true})
-	if restartCallback != nil {
-		go func() { time.Sleep(time.Second); restartCallback() }()
-	} else {
-		go func() { time.Sleep(time.Second); os.Exit(0) }()
-	}
+	scheduleRestart()
 }
 
 // handleRestart 手动重启服务（不保存配置）。
@@ -325,15 +290,47 @@ func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request) {
 	if restartCallback != nil {
 		log.Printf("收到手动重启请求，执行优雅重启")
 		writeJSON(w, http.StatusOK, map[string]any{"success": true, "graceful": true})
-		go func() { time.Sleep(time.Second); restartCallback() }()
-		return
+	} else {
+		log.Printf("收到手动重启请求（无回调），程序将退出以触发重启...")
+		writeJSON(w, http.StatusOK, map[string]any{"success": true})
 	}
-	log.Printf("收到手动重启请求（无回调），程序将退出以触发重启...")
-	writeJSON(w, http.StatusOK, map[string]any{"success": true})
-	go func() { time.Sleep(time.Second); os.Exit(0) }()
+	scheduleRestart()
 }
 
 // ---------- 工具 ----------
+
+func writeEnvSection(b *strings.Builder, title string, items []envConfigItem) {
+	b.WriteString("# " + title + "\n")
+	for _, item := range items {
+		if item.Comment != "" {
+			b.WriteString("## " + item.Comment + "\n")
+		}
+		b.WriteString(item.Key + "=" + item.Value + "\n")
+	}
+	b.WriteString("\n")
+}
+
+func writePreservedSection(b *strings.Builder, title string, lines []string) {
+	if len(lines) == 0 {
+		return
+	}
+	b.WriteString("# " + title + "\n")
+	for _, line := range lines {
+		b.WriteString(line + "\n")
+	}
+	b.WriteString("\n")
+}
+
+func scheduleRestart() {
+	go func() {
+		time.Sleep(time.Second)
+		if restartCallback != nil {
+			restartCallback()
+			return
+		}
+		os.Exit(0)
+	}()
+}
 
 func setOf(keys []string) map[string]bool {
 	m := make(map[string]bool, len(keys))

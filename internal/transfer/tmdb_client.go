@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	tmdbImageBaseURL  = "https://image.tmdb.org/t/p/"
-	tmdbAPIBaseURL    = "https://api.themoviedb.org/3"
-	defaultPosterSize = "w500"
+	tmdbImageBaseURL   = "https://image.tmdb.org/t/p/"
+	tmdbAPIBaseURL     = "https://api.themoviedb.org/3"
+	defaultPosterSize  = "w500"
+	tmdbSearchCacheMax = 512
 )
 
 // TmdbClient TMDB API 客户端。
@@ -40,11 +41,24 @@ func NewTmdbClient(apiKey, language string) (*TmdbClient, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("TMDB API Key 不能为空")
 	}
+
 	if language == "" {
 		language = "zh-CN"
 	}
 	c := &TmdbClient{APIKey: apiKey, Language: language, http: httpx.New(15 * time.Second), searchCache: map[string]*MediaInfo{}}
 	return c, nil
+}
+
+func (t *TmdbClient) cacheSearchResult(key string, media *MediaInfo) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if len(t.searchCache) >= tmdbSearchCacheMax {
+		for oldest := range t.searchCache {
+			delete(t.searchCache, oldest)
+			break
+		}
+	}
+	t.searchCache[key] = media
 }
 
 // searchResult 搜索结果项。
@@ -88,9 +102,7 @@ func (t *TmdbClient) Search(name string, year int, mtype string) *MediaInfo {
 		}
 		// 意译标题降级：文件名可能是"The Story of/by X"类意译，TMDB 查不到时剥掉修饰词用核心名再搜（须年份匹配防错配）
 		if d := t.searchFallback(name, year, mtype); d != nil {
-			t.mu.Lock()
-			t.searchCache[cacheKey] = d
-			t.mu.Unlock()
+			t.cacheSearchResult(cacheKey, d)
 			return d
 		}
 		log.Printf("TMDB 搜索无结果: %s (%d)", name, year)
@@ -150,9 +162,7 @@ func (t *TmdbClient) Search(name string, year int, mtype string) *MediaInfo {
 	}
 	detail := t.GetDetail(selected.ID, mtype)
 	if detail != nil {
-		t.mu.Lock()
-		t.searchCache[cacheKey] = detail
-		t.mu.Unlock()
+		t.cacheSearchResult(cacheKey, detail)
 		return detail
 	}
 	// 降级构造
@@ -164,9 +174,7 @@ func (t *TmdbClient) Search(name string, year int, mtype string) *MediaInfo {
 	}
 	log.Printf("TMDB 获取详情失败，用搜索结果降级构造: %s (id=%d)", fallbackTitle, selected.ID)
 	fb := &MediaInfo{Title: fallbackTitle, Year: fallbackYear, Type: mtype, TMDBID: selected.ID}
-	t.mu.Lock()
-	t.searchCache[cacheKey] = fb
-	t.mu.Unlock()
+	t.cacheSearchResult(cacheKey, fb)
 	return fb
 }
 

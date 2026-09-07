@@ -199,16 +199,10 @@ func ApplyConfig(data map[string]string) {
 	}
 
 	// 更新 TMDB 客户端
-	tmdbKeyChanged := false
 	if v, ok := data["ENV_TMDB_API_KEY"]; ok {
-		tmdbKeyChanged = true
 		if v != "" {
 			if e.TMDB == nil {
-				language := "zh-CN"
-				if e.TMDB != nil {
-					language = e.TMDB.Language
-				}
-				tmdb, err := NewTmdbClient(v, language)
+				tmdb, err := NewTmdbClient(v, "zh-CN")
 				if err == nil {
 					e.TMDB = tmdb
 				}
@@ -227,9 +221,6 @@ func ApplyConfig(data map[string]string) {
 		// 更新 Scraper 语言
 		if e.Scraper != nil {
 			e.Scraper = NewScraper(e.TMDB, e.Client, v)
-		}
-		if tmdbKeyChanged && e.TMDB != nil {
-			e.TMDB.Language = v
 		}
 	}
 
@@ -297,18 +288,19 @@ func TriggerTransferAfterSave(sourcePID int) bool {
 		return false // 该 PID 未配置整理
 	}
 
+	// 先在当前调用中合并触发请求，避免整理繁忙时为每次转存创建阻塞 goroutine。
+	organizeMu.Lock()
+	if organizeBusy {
+		organizePending = true
+		organizeMu.Unlock()
+		log.Printf("🔄 整理任务执行中，标记待整理: source_pid=%d (%s)", sourcePID, dirConf.Name)
+		return true
+	}
+	organizeBusy = true
+	organizeMu.Unlock()
+
 	// 异步触发整理（不阻塞转存流程）
 	go func() {
-		organizeMu.Lock()
-		if organizeBusy {
-			organizePending = true
-			organizeMu.Unlock()
-			log.Printf("🔄 整理任务执行中，标记待整理: source_pid=%d (%s)", sourcePID, dirConf.Name)
-			return
-		}
-		organizeBusy = true
-		organizeMu.Unlock()
-
 		defer func() {
 			organizeMu.Lock()
 			organizeBusy = false
