@@ -89,16 +89,28 @@
 
         /* ============ 侧边栏品牌区（替代原顶部栏） ============ */
         .drawer-brand {
+            position: relative;
             display: flex;
             align-items: flex-end; /* logo 底部与英文名称底部对齐 */
             gap: 6px;
             padding: 2px 8px 16px;
             margin-bottom: 10px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: none;
             font-size: 19px;
             font-weight: 600;
             letter-spacing: 0.2px;
         }
+        /* 侧边栏分割线：两端渐细（横向淡出，替代生硬实线） */
+        .drawer-brand::after,
+        .drawer-footer::before {
+            content: '';
+            position: absolute;
+            left: 8px; right: 8px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border) 18%, var(--border) 82%, transparent);
+            pointer-events: none;
+        }
+        .drawer-brand::after { bottom: 0; }
         .brand-icon {
             width: 67px; height: 67px;
             display: flex; align-items: center; justify-content: center;
@@ -143,12 +155,14 @@
 
         /* ============ 侧边栏底部操作区 ============ */
         .drawer-footer {
-            border-top: 1px solid var(--border);
+            position: relative;
+            border-top: none;
             padding-top: 14px;
             display: flex;
             flex-direction: column;
             gap: 4px;
         }
+        .drawer-footer::before { top: 0; }
 
         /* 保存配置：吸收上方剩余空间，媒体洗版下方留白且紧贴分隔线 */
         #saveEnvBtn { margin-top: auto; }
@@ -4830,9 +4844,13 @@
                     <span style="width:10px;height:10px;border-radius:50%;background:${colors[ui % colors.length]};display:inline-block;margin-right:4px;"></span>${escapeHtml(u.name)}
                 </span>`).join('');
 
+            // 用已结算的容器宽度一次性算定 SVG 像素高度，避免 height:auto 首帧为 0 的撑大顿挫
+            const cw = body.clientWidth || W;
+            const svgH = Math.max(60, Math.round(cw * H / W));
+
             body.innerHTML = `
                 <div style="margin:6px 0 2px;">${legend}</div>
-                <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">${grid}${xlabels}${lines}${points}</svg>`;
+                <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${svgH}px;display:block;">${grid}${xlabels}${lines}${points}</svg>`;
             // 跨 768px 断点时按当前视口重绘（matchMedia 事件只在状态变化时触发一次）
             if (_embyMQ) _embyMQ.onchange = null;
             _embyMQ = window.matchMedia('(max-width: 768px)');
