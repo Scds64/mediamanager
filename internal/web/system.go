@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strconv"
 	"time"
 
@@ -311,6 +312,7 @@ func (s *Server) handleEmbyStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	// 每次状态查询都从文件刷新结果 + 检查锁文件
 	rt.ReloadScanResult()
+	hasResult := rt.ScanResult != nil
 	writeJSON(w, http.StatusOK, map[string]any{
 		"configured":  rt.Configured,
 		"busy":        rt.Busy,
@@ -318,6 +320,11 @@ func (s *Server) handleEmbyStatus(w http.ResponseWriter, r *http.Request) {
 		"scan_result": rt.ScanResult,
 		"scan_error":  rt.ScanError,
 	})
+	// 查重结果只为本次响应服务；避免主进程长期持有整个重复文件明细。
+	if hasResult {
+		rt.ClearScanResult()
+		debug.FreeOSMemory()
+	}
 }
 
 func (s *Server) handleEmbyScan(w http.ResponseWriter, r *http.Request) {

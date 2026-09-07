@@ -289,32 +289,77 @@ func ScanResultFilePath() string { return scanResultFile }
 // 结果文件由子进程（-scan-duplicates）写出，读取时必须按分类还原为强类型，
 // 否则 json 会把分组数组解成 []interface{}，导致删除/清理时的类型断言全部失败。
 func LoadScanResult() (ScanResult, string) {
-	data, err := os.ReadFile(scanResultFile)
+	file, err := os.Open(scanResultFile)
 	if err != nil {
 		return nil, ""
 	}
-	var saved struct {
-		ScanResult map[string]json.RawMessage `json:"scan_result"`
-		LastScan   string                     `json:"last_scan"`
+	defer file.Close()
+	dec := json.NewDecoder(file)
+	startToken, err := dec.Token()
+	if err != nil {
+		return nil, ""
 	}
-	if err := json.Unmarshal(data, &saved); err != nil {
+	start, ok := startToken.(json.Delim)
+	if !ok || start != '{' {
 		return nil, ""
 	}
 	result := ScanResult{}
-	for lib, raw := range saved.ScanResult {
-		if lib == "stats" {
-			var st ScanStats
-			if err := json.Unmarshal(raw, &st); err == nil {
-				result[lib] = st
+	var lastScan string
+	for dec.More() {
+		fieldToken, err := dec.Token()
+		if err != nil {
+			return nil, ""
+		}
+		field, ok := fieldToken.(string)
+		if !ok {
+			return nil, ""
+		}
+		switch field {
+		case "last_scan":
+			if err := dec.Decode(&lastScan); err != nil {
+				return nil, ""
 			}
+		case "scan_result":
+			if err := decodeScanResult(dec, result); err != nil {
+				return nil, ""
+			}
+		}
+	}
+	if _, err := dec.Token(); err != nil {
+		return nil, ""
+	}
+	return result, lastScan
+}
+
+func decodeScanResult(dec *json.Decoder, result ScanResult) error {
+	if _, err := dec.Token(); err != nil {
+		return err
+	}
+	for dec.More() {
+		fieldToken, err := dec.Token()
+		if err != nil {
+			return err
+		}
+		field, ok := fieldToken.(string)
+		if !ok {
+			return fmt.Errorf("查重结果分类名称无效")
+		}
+		if field == "stats" {
+			var stats ScanStats
+			if err := dec.Decode(&stats); err != nil {
+				return err
+			}
+			result[field] = stats
 			continue
 		}
 		var groups []DupGroup
-		if err := json.Unmarshal(raw, &groups); err == nil {
-			result[lib] = groups
+		if err := dec.Decode(&groups); err != nil {
+			return err
 		}
+		result[field] = groups
 	}
-	return result, saved.LastScan
+	_, err := dec.Token()
+	return err
 }
 
 // SaveScanResult 持久化查重结果。
@@ -452,6 +497,16 @@ func (r *ScanRuntime) ReloadScanResult() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.reloadResult()
+}
+
+// ClearScanResult 释放主进程中暂存的查重明细；删除操作会按需从结果文件重新加载。
+func (r *ScanRuntime) ClearScanResult() {
+	if r == nil {
+		return
+	}
+	r.mu.Lock()
+	r.ScanResult = nil
+	r.mu.Unlock()
 }
 
 // GetScanRuntime 获取全局查重运行时。
