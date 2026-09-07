@@ -4113,7 +4113,12 @@
             const m = document.getElementById('scopeMenu');
             if (m && m.classList.contains('open')) m.classList.remove('open');
             const ses = document.querySelector('.hero-search');
-            if (ses && !ses.contains(e.target)) _clearHeroSearch();
+            // 整理历史卡片内的多选、分页和复选框操作不能清空搜索结果。
+            const historyCard = document.getElementById('history-card');
+            if (ses && !ses.contains(e.target) &&
+                !(historyCard && historyCard.contains(e.target))) {
+                _clearHeroSearch();
+            }
         });
         // 输入分发：整理/日志 scope 下不实时过滤海报，只等回车
         function heroSearchLiveScoped(kw) {
