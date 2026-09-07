@@ -95,8 +95,9 @@ type TransferExecutor struct {
 	// 目录 PID 缓存：(parentPID, dirName) -> childPID
 	dirPIDCache    map[string]int
 	dirPIDCacheMax int
-	// 目标目录文件列表缓存（任务级）
-	targetListingCache map[int64][]pan123.FileInfo
+	// 目标目录文件列表缓存（任务级，有上限防止内存峰值）
+	targetListingCache    map[int64][]pan123.FileInfo
+	targetListingCacheMax int
 }
 
 // ExecutorConfig 执行器配置。
@@ -129,6 +130,7 @@ func NewTransferExecutor(cfg ExecutorConfig) (*TransferExecutor, error) {
 		dirPIDCache:         map[string]int{},
 		dirPIDCacheMax:      20000,
 		targetListingCache:  map[int64][]pan123.FileInfo{},
+		targetListingCacheMax: 500,
 	}
 	if cfg.SkipExts != nil {
 		e.SkipExts = cfg.SkipExts
@@ -1192,7 +1194,10 @@ func (e *TransferExecutor) listTargetDir(ctx context.Context, pid int64) []pan12
 	if err != nil {
 		return nil
 	}
-	e.targetListingCache[pid] = items
+	// 容量上限保护：超出时不再缓存，避免任务级内存峰值
+	if len(e.targetListingCache) < e.targetListingCacheMax {
+		e.targetListingCache[pid] = items
+	}
 	return items
 }
 

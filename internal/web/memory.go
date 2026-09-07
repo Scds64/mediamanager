@@ -60,17 +60,23 @@ func (s *Server) recordMemSample(memMB float64) {
 	now := float64(time.Now().UnixNano()) / 1e9
 	s.memMu.Lock()
 	cutoff := now - memHistoryMax - 10
-	kept := make([][2]float64, 0, len(s.memHistory)+1)
-	for _, p := range s.memHistory {
-		if now-p[0] <= cutoff {
-			kept = append(kept, p)
+	// 原地滑动窗口：找到第一个未过期点，copy 到前面（零分配，不 make 新 slice）
+	firstValid := 0
+	for i := 0; i < len(s.memHistory); i++ {
+		if now-s.memHistory[i][0] > cutoff {
+			firstValid = i + 1
+		} else {
+			break
 		}
 	}
-	kept = append(kept, [2]float64{now, memMB})
-	if len(kept) > memHistoryMax {
-		kept = kept[len(kept)-memHistoryMax:]
+	if firstValid > 0 {
+		n := copy(s.memHistory, s.memHistory[firstValid:])
+		s.memHistory = s.memHistory[:n]
 	}
-	s.memHistory = kept
+	s.memHistory = append(s.memHistory, [2]float64{now, memMB})
+	if len(s.memHistory) > memHistoryMax {
+		s.memHistory = s.memHistory[len(s.memHistory)-memHistoryMax:]
+	}
 	s.memMu.Unlock()
 	s.saveMemHistory(false)
 }

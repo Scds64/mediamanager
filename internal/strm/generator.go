@@ -64,6 +64,7 @@ func NewFullSyncStrmHelper(client *pan123.Client, rmtMediaext, downloadMediaext 
 		autoDownload:     autoDownload,
 		concurrency:      concurrency,
 		strmFailDict:     make(map[string]string),
+		downloadList:     make([]DownloadItem, 0, 64), // 预分配，减少 goroutine 内 append 扩容拷贝
 		mediainfoDl:      NewMediaInfoDownloader(client),
 	}
 }

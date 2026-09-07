@@ -161,36 +161,45 @@ func (b *Bot) Start() {
 	go b.pollLoop()
 }
 
-// tgHTTPClient 返回全新的 HTTP 客户端（每次调用创建新连接）。
+// tgHTTPClient 返回复用的 HTTP 客户端（Client/Transport 只创建一次）。
 // 关键措施：
-//   - DisableKeepAlives: true  — 每次请求新建连接，避免复用被代理破坏的 TLS 会话
+//   - DisableKeepAlives: true  — 每次请求新建 TCP+TLS 连接，不复用连接（避免代理破坏 TLS 会话）
 //   - TLSNextProto: empty map  — 彻底禁用 HTTP/2
 //   - TLS 1.2 + 禁用会话复用  — 避免 TLS 1.3 和会话票证与透明代理的兼容问题
+//   - Client/Transport 对象复用 — 仅持有配置，不持有连接（DisableKeepAlives 保证每请求新连接）
+var (
+	tgClientOnce   sync.Once
+	tgCachedClient *http.Client
+)
+
 func tgHTTPClient() *http.Client {
-	return &http.Client{
-		Transport: &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 0,
-			}).DialContext,
-			DisableKeepAlives:     true,
-			MaxIdleConns:          0,
-			IdleConnTimeout:       0,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ResponseHeaderTimeout: 120 * time.Second,
-			ForceAttemptHTTP2:     false,
-			TLSNextProto:          make(map[string]func(authority string, c *tls.Conn) http.RoundTripper),
-			TLSClientConfig: &tls.Config{
-				MinVersion:             tls.VersionTLS12,
-				MaxVersion:             tls.VersionTLS12,
-				SessionTicketsDisabled: true,
+	tgClientOnce.Do(func() {
+		tgCachedClient = &http.Client{
+			Transport: &http.Transport{
+				DialContext: (&net.Dialer{
+					Timeout:   30 * time.Second,
+					KeepAlive: 0,
+				}).DialContext,
+				DisableKeepAlives:     true,
+				MaxIdleConns:          0,
+				IdleConnTimeout:       0,
+				TLSHandshakeTimeout:   10 * time.Second,
+				ResponseHeaderTimeout: 120 * time.Second,
+				ForceAttemptHTTP2:     false,
+				TLSNextProto:          make(map[string]func(authority string, c *tls.Conn) http.RoundTripper),
+				TLSClientConfig: &tls.Config{
+					MinVersion:             tls.VersionTLS12,
+					MaxVersion:             tls.VersionTLS12,
+					SessionTicketsDisabled: true,
+				},
 			},
-		},
-		Timeout: 180 * time.Second,
-	}
+			Timeout: 180 * time.Second,
+		}
+	})
+	return tgCachedClient
 }
 
-// freshHTTPClient 每次 Do() 创建一个全新的 http.Client，确保每条请求都是全新 TCP + TLS 连接。
+// freshHTTPClient 复用同一个 http.Client（每请求仍新建 TCP+TLS 连接，但 Client/Transport 对象不重建）。
 type freshHTTPClient struct{}
 
 func (c *freshHTTPClient) Do(req *http.Request) (*http.Response, error) {
@@ -213,17 +222,19 @@ func (b *Bot) pollLoop() {
 		default:
 		}
 
-		// 每次轮询创建全新的 BotAPI + HTTP 客户端，TLS 连接不复用
-		tg, err := tgbotapi.NewBotAPIWithClient(b.token, tgbotapi.APIEndpoint, &freshHTTPClient{})
-		if err != nil {
-			log.Printf("[Bot] 创建 TG Bot 失败（%v后重试）: %v", retry, err)
-			if !b.sleepCtx(retry) {
-				return
+		// BotAPI 只创建一次（HTTP Client 已复用，DisableKeepAlives 保证每请求新 TCP+TLS 连接）
+		if b.tg == nil {
+			tg, err := tgbotapi.NewBotAPIWithClient(b.token, tgbotapi.APIEndpoint, &freshHTTPClient{})
+			if err != nil {
+				log.Printf("[Bot] 创建 TG Bot 失败（%v后重试）: %v", retry, err)
+				if !b.sleepCtx(retry) {
+					return
+				}
+				retry = scaleRetry(retry, maxRetry)
+				continue
 			}
-			retry = scaleRetry(retry, maxRetry)
-			continue
+			b.tg = tg
 		}
-		b.tg = tg
 
 		if first {
 			b.registerCommands()
@@ -237,7 +248,7 @@ func (b *Bot) pollLoop() {
 		// 短轮询：timeout=0 表示立即返回，避免长连接被代理截断
 		u := tgbotapi.NewUpdate(offset)
 		u.Timeout = 0
-		updates, err := tg.GetUpdates(u)
+		updates, err := b.tg.GetUpdates(u)
 		if err != nil {
 			// 对 TLS 错误使用指数退避，其他错误使用短退避
 			if isTLSError(err) {

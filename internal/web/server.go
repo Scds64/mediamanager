@@ -63,6 +63,7 @@ func New(env *config.Config, opts ...Option) *Server {
 		staticDir:  "static",
 		tplDir:     "templates",
 		memStop:    make(chan struct{}),
+		memHistory: make([][2]float64, 0, memHistoryMax),
 	}
 	for _, o := range opts {
 		o(s)
