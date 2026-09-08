@@ -568,7 +568,7 @@
         #tab-system .entry-carousel .entry-card {
             position: absolute;
             top: 50%; left: 50%;
-            height: 88%;                 /* 相对卡片高度成比例，海报更大更饱满 */
+            height: 86%;                 /* 相对卡片高度成比例（留出中间海报 scale*透视 放大后的余量，避免上下被裁） */
             aspect-ratio: 2 / 3;
             border-radius: 16px;
             overflow: hidden;
@@ -667,7 +667,7 @@
         }
 
         /* ============ 历史表格 ============ */
-        .history-wrap { overflow-x: auto; overflow-y: hidden; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); }
+        .history-wrap { overflow: hidden; }   /* 不再自带外框：卡片本身即为外边框（同后台任务卡） */
         #history-card .card-title { margin-bottom: 12px; }
 
         /* ============ 内存占用卡片 ============ */
@@ -815,6 +815,19 @@
             width: 18px; height: 18px; cursor: pointer;
             accent-color: var(--primary); vertical-align: middle; margin: 0;
         }
+        /* 整理历史：去掉表头，内容区改为「后台任务」式的一行一行列表 */
+        .history-list { display: flex; flex-direction: column; }
+        .history-row { padding: 11px 0 9px; border-bottom: 1px solid var(--border); }
+        .history-row:last-child { border-bottom: none; }
+        .history-row-top { display: flex; align-items: center; gap: 10px; }
+        .history-row-title { font-size: 13.5px; font-weight: 500; color: var(--text-700); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .history-row-time { margin-left: auto; font-size: 12px; color: var(--text-500); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .history-row-sub { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+        .history-row-meta { font-size: 11px; color: var(--text-400); }
+        .history-row-sub .chip { margin-left: auto; }
+        .history-row-path { margin-top: 4px; font-size: 11px; color: var(--text-400); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .history-select-all { display: flex; align-items: center; gap: 8px; padding: 0 0 8px; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text-500); }
+        .history-wrap input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); margin: 0; flex-shrink: 0; }
         /* 后台任务卡片内：每项一行（名称+倒计时），下方弱化状态标签；倒计时醒目 */
         .bg-task-row { padding: 11px 0 9px; border-bottom: 1px solid var(--border); }
         .bg-task-row:last-child { border-bottom: none; padding-bottom: 2px; }
@@ -1906,19 +1919,11 @@
                         </span>
                     </div>
                     <div class="history-wrap">
-                        <table class="history-table">
-                            <thead>
-                                <tr>
-                                    <th class="history-select-col" style="display:none;"><input type="checkbox" onchange="selectAllHistory(this.checked)"></th>
-                                    <th>时间</th>
-                                    <th>标题</th>
-                                    <th>类型</th>
-                                    <th>状态</th>
-                                    <th>目标路径</th>
-                                </tr>
-                            </thead>
-                            <tbody id="historyBody"><tr><td colspan="6" class="empty-row">加载失败: Failed to fetch</td></tr></tbody>
-                        </table>
+                        <div class="history-select-all" style="display:none;">
+                            <input type="checkbox" onchange="selectAllHistory(this.checked)">
+                            <span>全选本页</span>
+                        </div>
+                        <div id="historyBody" class="history-list"><div class="empty-row">加载失败: Failed to fetch</div></div>
                     </div>
                     <div class="pager" id="history-pager"></div>
                 </div>
@@ -3971,8 +3976,7 @@
         async function loadHistory(page, silent) {
             if (page) historyPage = page;
             const body = document.getElementById('historyBody');
-            const colCount = historySelectMode ? 6 : 5;
-            if (!silent) body.innerHTML = `<tr><td colspan="${colCount}" class="empty-row">加载中...</td></tr>`;
+            if (!silent) body.innerHTML = `<div class="empty-row">加载中...</div>`;
             try {
                 const kw = historyKeyword.trim();
                 const r = await api(`/api/transfer/history?page=${historyPage}&size=${HISTORY_SIZE}&keyword=${encodeURIComponent(kw)}`);
@@ -3983,7 +3987,7 @@
                     return loadHistory();
                 }
                 if (!r.items || r.items.length === 0) {
-                    body.innerHTML = `<tr><td colspan="${colCount}" class="empty-row">暂无历史记录</td></tr>`;
+                    body.innerHTML = `<div class="empty-row">暂无历史记录</div>`;
                 } else {
                     body.innerHTML = r.items.map(i => {
                         const time = (i.transfer_time || '').substring(0, 19);
@@ -3995,25 +3999,32 @@
                         const title = i.media_title || i.file_name || '-';
                         const year = i.media_year ? ` (${i.media_year})` : '';
                         const se = (i.media_type === 'tv' && (i.season != null || i.episode != null))
-                            ? `<div style="font-size:11px;color:var(--text-400);line-height:1.4;">${i.season != null ? 'S' + String(i.season).padStart(2, '0') : ''}${i.episode != null ? 'E' + String(i.episode).padStart(2, '0') : ''}</div>`
+                            ? ` · ${i.season != null ? 'S' + String(i.season).padStart(2, '0') : ''}${i.episode != null ? 'E' + String(i.episode).padStart(2, '0') : ''}`
                             : '';
                         const checked = selectedHistoryIds.has(i.id) ? 'checked' : '';
-                        const selectCol = historySelectMode
-                            ? `<td><input type="checkbox" class="history-row-check" data-id="${i.id}" ${checked} onchange="updateHistorySelection()"></td>`
+                        const selectBox = historySelectMode
+                            ? `<input type="checkbox" class="history-row-check" data-id="${i.id}" ${checked} onchange="updateHistorySelection()">`
                             : '';
-                        return `<tr>
-                            ${selectCol}
-                            <td>${time}</td>
-                            <td>${title}${year}</td>
-                            <td>${i.media_type || '-'}${se}</td>
-                            <td>${status}</td>
-                            <td title="${(i.target_path||'').replace(/"/g,'&quot;')}">${path}</td>
-                        </tr>`;
+                        const pathLine = path
+                            ? `<div class="history-row-path" title="${(i.target_path||'').replace(/"/g,'&quot;')}">${path}</div>`
+                            : '';
+                        return `<div class="history-row">
+                            <div class="history-row-top">
+                                ${selectBox}
+                                <span class="history-row-title">${title}${year}</span>
+                                <span class="history-row-time">${time}</span>
+                            </div>
+                            <div class="history-row-sub">
+                                <span class="history-row-meta">${i.media_type || '-'}${se}</span>
+                                ${status}
+                            </div>
+                            ${pathLine}
+                        </div>`;
                     }).join('');
                 }
                 renderHistoryPager(totalPages);
             } catch (e) {
-                body.innerHTML = `<tr><td colspan="${colCount}" class="empty-row">加载失败: ${e.message}</td></tr>`;
+                body.innerHTML = `<div class="empty-row">加载失败: ${e.message}</div>`;
             }
         }
 
@@ -4194,8 +4205,8 @@
             if (btn) {
                 btn.classList.toggle('active', historySelectMode);
             }
-            // 显示/隐藏 checkbox 列
-            document.querySelectorAll('.history-select-col').forEach(el => el.style.display = historySelectMode ? '' : 'none');
+            // 显示/隐藏 全选行（原表格 checkbox 列）
+            document.querySelectorAll('.history-select-all').forEach(el => el.style.display = historySelectMode ? 'flex' : 'none');
             // 多选时隐藏卡片标题、显示标题栏上的批量操作按钮
             document.querySelectorAll('.history-title-label').forEach(el => el.style.display = historySelectMode ? 'none' : '');
             const actions = document.querySelector('.history-batch-actions');
