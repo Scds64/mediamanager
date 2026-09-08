@@ -1226,10 +1226,13 @@
             }
             .card { padding: 16px; }
             /* 移动端：订阅探索保留全出血横幅（不被通用 .card padding 覆盖） */
-            #tab-system .tmdb-entry-card.card { padding: 0; }
-            /* 移动端：订阅探索卡片出血占满屏幕宽度，突破 content padding */
-            #tab-system .cards-row:has(.tmdb-entry-card) { margin-left: -16px; margin-right: -16px; }
-            #tab-system .tmdb-entry-card { border-radius: 0; }
+            /* 移动端：订阅探索卡片出血占满屏幕宽度，突破 content padding；其他卡片保持正常宽度 */
+            #tab-system .tmdb-entry-card.card {
+                padding: 0;
+                margin-left: -16px;
+                margin-right: -16px;
+                border-radius: 0;
+            }
             /* 移动端：海报区给足高度，竖向海报更大气；首图预加载/加载失败时卡片也不塌陷、不跳动 */
             #tab-system .tmdb-entry-poster { min-height: 320px; }
             .cards-row { grid-template-columns: minmax(0, 1fr); }
