@@ -517,7 +517,7 @@
             margin: 0 0 4px 0;
             padding: 0;
         }
-        /* 系统状态 Tab：媒体信息 + 内存占用 + 订阅探索 三卡并排（订阅探索/媒体信息等宽 340px，内存占用吃满剩余宽度） */
+        /* 系统状态 Tab：订阅探索 + 媒体信息 + 内存占用 三卡并排（订阅探索/媒体信息等宽 340px，内存占用吃满剩余宽度） */
         #tab-system .cards-row { grid-template-columns: 340px 340px minmax(0, 1fr); }
         /* 后台 Tab：Emby 观看时长占宽列（左），后台任务 340px（右） */
         #tab-bg .cards-row { grid-template-columns: minmax(0, 1fr) 340px; }
@@ -1227,6 +1227,9 @@
             .card { padding: 16px; }
             /* 移动端：订阅探索保留全出血横幅（不被通用 .card padding 覆盖） */
             #tab-system .tmdb-entry-card.card { padding: 0; }
+            /* 移动端：订阅探索卡片出血占满屏幕宽度，突破 content padding */
+            #tab-system .cards-row:has(.tmdb-entry-card) { margin-left: -16px; margin-right: -16px; }
+            #tab-system .tmdb-entry-card { border-radius: 0; }
             /* 移动端：海报区给足高度，竖向海报更大气；首图预加载/加载失败时卡片也不塌陷、不跳动 */
             #tab-system .tmdb-entry-poster { min-height: 320px; }
             .cards-row { grid-template-columns: minmax(0, 1fr); }
@@ -1851,8 +1854,13 @@
                     </div>
                 </div>
 
-                <!-- 2. 媒体信息 + 内存占用 + 订阅探索 并排一行（订阅探索移到末尾） -->
+                <!-- 2. 订阅探索 + 媒体信息 + 内存占用 并排一行 -->
                 <div class="cards-row">
+                    <!-- 订阅探索（竖向海报 coverflow 轮播；点击左右海报切换，中间海报打开详情） -->
+                    <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
+                        <div id="tmdb-poster" class="tmdb-entry-poster">
+                        </div>
+                    </div>
                     <div class="card clickable-card emby-media-card" onclick="openEmbyModal()" role="button" title="打开媒体查重">
                         <div class="card-title">
                             媒体信息
@@ -1874,11 +1882,6 @@
                         </div>
                         <div class="mem-chart-wrap">
                             <svg id="mem-chart" viewBox="0 0 800 140" preserveAspectRatio="none"></svg>
-                        </div>
-                    </div>
-                    <!-- 3. 订阅探索（竖向海报 coverflow 轮播；点击左右海报切换，中间海报打开详情） -->
-                    <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
-                        <div id="tmdb-poster" class="tmdb-entry-poster">
                         </div>
                     </div>
                 </div>
