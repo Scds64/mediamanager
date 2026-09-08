@@ -361,11 +361,19 @@
         .card.clickable-card { cursor: pointer; }
         /* 媒体信息卡：flex 列布局，让底部扫描时间自然贴底 */
         .card.emby-media-card { display: flex; flex-direction: column; position: relative; }
+        /* 右栏：图例 + 上次扫描，整体左对齐（圆点与「上次扫描」起点同一竖线） */
+        .emby-stats-side {
+            display: flex; flex-direction: column;
+            align-self: stretch;     /* 撑满高度 */
+            justify-content: flex-end;   /* 内容贴底 */
+            align-items: flex-start;     /* 圆点与「上次扫描」仍左对齐 */
+            margin-left: auto;           /* 整列靠右 */
+            gap: 14px; min-width: 0;
+        }
         .emby-stats-footer {
-            position: absolute;
-            bottom: 18px;           /* 与卡片下内边距对齐 */
-            right: 24px;            /* 与卡片右内边距对齐 */
-            text-align: right;      /* 文字右对齐，贴合右下角 */
+            display: flex;          /* 「上次扫描」与时间同一行 */
+            align-items: baseline;
+            gap: 6px;
             line-height: 1.6;
         }
         .emby-stats-footer .esf-label,
@@ -656,15 +664,26 @@
         /* ============ 媒体信息（环形图 + 扇区标签） ============ */
         .emby-stats {
             display: flex;
-            justify-content: center;
-            padding: 10px 0 0;   /* 上边距 10px，与标题下边距合计为内容区上间距 20px */
+            align-items: center;
+            justify-content: flex-start;   /* 圆环贴卡片最左侧 */
+            gap: 18px;
+            padding: 0;          /* 标题行已去掉，无需额外上边距 */
+            flex: 1;             /* 撑满卡片高度，右栏内容才能贴到卡片底部 */
         }
         .emby-donut {
-            width: 283px;
-            height: 170px;   /* 200:120 = 5:3 不变形；已贴近内容区高度上限（订阅卡决定整行高度） */
+            width: 150px;
+            height: 150px;   /* 正方形：viewBox 100x100 等比，圆环居中 */
             display: block;
+            flex-shrink: 0;
             max-width: 100%;
         }
+        .emby-stats-legend { display: flex; flex-direction: column; gap: 12px; }
+        .emby-legend-item { display: flex; align-items: center; gap: 6px; }   /* 圆点与文字垂直居中对齐 */
+        .emby-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        /* 类别与数量同一行：● 电影 1,234 部 */
+        .emby-legend-name { font-size: 12px; color: var(--text-500); white-space: nowrap; }
+        .emby-legend-count { font-size: 13.5px; font-weight: 700; color: var(--text-900); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .emby-legend-unit { font-size: 10px; font-weight: 400; color: var(--text-400); margin-left: 2px; }
 
         /* ============ 历史表格 ============ */
         .history-wrap { overflow: hidden; }   /* 不再自带外框：卡片本身即为外边框（同后台任务卡） */
@@ -673,25 +692,33 @@
         /* ============ 内存占用卡片 ============ */
         /* 卡片为 flex 列，图表撑满标题下方剩余空间；下侧内边距单独收紧（默认 12px → 8px） */
         .card:has(.mem-chart-wrap) { display: flex; flex-direction: column; padding-bottom: 8px; }
+        /* 图表靠左（宽度与媒体信息圆环一致），数值与说明放右侧空白区 */
+        .mem-body { flex: 1; display: flex; align-items: center; gap: 18px; }
         .mem-chart-wrap {
             position: relative;
-            flex: 1;
-            margin-top: 10px;   /* 上边距 10px，与标题下边距合计为内容区上间距 20px */
+            flex: 0 0 150px;        /* 与 .emby-donut 同宽 */
+            width: 150px;
+            height: 150px;
         }
         .mem-chart-wrap svg {
             width: 100%;
             height: 100%;
-            min-height: 170px;   /* 手机端单列不互相拉伸，图表无固有高度会塌陷，用最小高度兜底 */
+            min-height: 0;
             display: block;
         }
+        .mem-side {
+            display: flex; flex-direction: column;
+            align-self: stretch;          /* 撑满高度 */
+            justify-content: flex-end;    /* 内容贴底 */
+            align-items: flex-end;        /* 文字右对齐，贴右下角 */
+            margin-left: auto;            /* 整块靠右 */
+            gap: 4px;
+        }
+        .mem-side-label { font-size: 11px; color: var(--text-500); }
         .mem-kpi {
-            position: absolute;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
             display: inline-flex;
             align-items: baseline;
-            gap: 6px;
+            gap: 4px;
         }
         .mem-kpi-value {
             font-size: 22px;
@@ -819,6 +846,8 @@
         .history-list { display: flex; flex-direction: column; }
         .history-row { padding: 11px 0 9px; border-bottom: 1px solid var(--border); }
         .history-row:last-child { border-bottom: none; }
+        .history-row.selectable { cursor: pointer; border-radius: 6px; }
+        .history-row.selectable:hover { background: rgba(99, 102, 241, 0.05); }
         .history-row-top { display: flex; align-items: center; gap: 10px; }
         .history-row-title { font-size: 13.5px; font-weight: 500; color: var(--text-700); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .history-row-time { margin-left: auto; font-size: 12px; color: var(--text-500); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -1878,26 +1907,21 @@
                         </div>
                     </div>
                     <div class="card clickable-card emby-media-card" onclick="openEmbyModal()" role="button" title="打开媒体查重">
-                        <div class="card-title">
-                            媒体信息
-                        </div>
                         <div id="emby-stats-grid" class="emby-stats">
                             <div style="color: var(--text-400); padding: 12px 0;">完成查重扫描后显示媒体库统计</div>
                         </div>
-                        <div id="emby-stats-footer" class="emby-stats-footer">
-                            <div class="esf-label">上次扫描</div>
-                            <div class="esf-time" id="emby-stats-time"></div>
-                        </div>
                     </div>
                     <div class="card">
-                        <div class="card-title">
-                            内存占用
-                            <span class="mem-kpi">
-                                <span class="mem-kpi-value" id="sys-proc-mem">-</span><span class="mem-kpi-unit">MB</span>
-                            </span>
-                        </div>
-                        <div class="mem-chart-wrap">
-                            <svg id="mem-chart" viewBox="0 0 800 140" preserveAspectRatio="none"></svg>
+                        <div class="mem-body">
+                            <div class="mem-chart-wrap">
+                                <svg id="mem-chart" viewBox="0 0 800 140" preserveAspectRatio="none"></svg>
+                            </div>
+                            <div class="mem-side">
+                                <div class="mem-kpi">
+                                    <span class="mem-kpi-value" id="sys-proc-mem">-</span><span class="mem-kpi-unit">MB</span>
+                                </div>
+                                <div class="mem-side-label">内存占用</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -4003,12 +4027,12 @@
                             : '';
                         const checked = selectedHistoryIds.has(i.id) ? 'checked' : '';
                         const selectBox = historySelectMode
-                            ? `<input type="checkbox" class="history-row-check" data-id="${i.id}" ${checked} onchange="updateHistorySelection()">`
+                            ? `<input type="checkbox" class="history-row-check" data-id="${i.id}" ${checked} onchange="updateHistorySelection()" onclick="event.stopPropagation()">`
                             : '';
                         const pathLine = path
                             ? `<div class="history-row-path" title="${(i.target_path||'').replace(/"/g,'&quot;')}">${path}</div>`
                             : '';
-                        return `<div class="history-row">
+                        return `<div class="history-row${historySelectMode ? ' selectable' : ''}"${historySelectMode ? ' onclick="toggleHistoryRow(this)"' : ''}>
                             <div class="history-row-top">
                                 ${selectBox}
                                 <span class="history-row-title">${title}${year}</span>
@@ -4220,6 +4244,14 @@
             }
             updateHistorySelection();
             loadHistory(historyPage, true);   // silent：不先清空成"加载中"占位，避免高度塌陷导致手机端滚动跳动
+        }
+
+        // 多选模式下点击整行即选中/取消该条（点复选框本身由 stopPropagation 避免二次翻转）
+        function toggleHistoryRow(row) {
+            const cb = row && row.querySelector('.history-row-check');
+            if (!cb) return;
+            cb.checked = !cb.checked;
+            updateHistorySelection();
         }
 
         function selectAllHistory(checked) {
@@ -4952,43 +4984,35 @@
             const mSeg = Math.max(mR * C, 0);
             const tSeg = Math.max(tR * C - GAP + OVERLAP, 0);
             const segCircle = (len, offset, color) => `
-                <circle cx="100" cy="60" r="${R}" fill="none" stroke="${color}" stroke-width="9" stroke-linecap="round"
-                    stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${offset}" transform="rotate(-90 100 60)"/>`;
-            // 固定方位标签：贝塞尔曲线引出 + 类别与数量上下两行
-            // 右上（电影）：-45° 方向，文字在右侧
-            const labelTR = (name, count) => {
-                const a = -Math.PI / 4;
-                const x0 = 100 + 45 * Math.cos(a), y0 = 60 + 45 * Math.sin(a);
-                const x1 = 100 + 52 * Math.cos(a), y1 = 60 + 52 * Math.sin(a);
-                const x2 = x1 + 5, y2 = y1 - 9;
-                const x3 = 152, y3 = y1 - 6;
-                return `
-                    <path d="M ${x0.toFixed(1)} ${y0.toFixed(1)} C ${x1.toFixed(1)} ${y1.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)} ${x3.toFixed(1)} ${y3.toFixed(1)}" fill="none" stroke="#CBD5E1" stroke-width="1"/>
-                    <text x="${x3 + 4}" y="${(y3 + 2).toFixed(1)}" text-anchor="start" font-size="8.5" fill="#64748B">${name}</text>
-                    <text x="${x3 + 4}" y="${(y3 + 13).toFixed(1)}" text-anchor="start" font-size="9" font-weight="700" fill="#0F172A">${fmtCnt(count)}<tspan font-size="7" fill="#94A3B8">部</tspan></text>`;
-            };
-            // 左下（电视剧）：135° 方向，文字在左侧
-            const labelBL = (name, count) => {
-                const a = 3 * Math.PI / 4;
-                const x0 = 100 + 45 * Math.cos(a), y0 = 60 + 45 * Math.sin(a);
-                const x1 = 100 + 52 * Math.cos(a), y1 = 60 + 52 * Math.sin(a);
-                const x2 = x1 - 5, y2 = y1 + 9;
-                const x3 = 48, y3 = y1 + 6;
-                return `
-                    <path d="M ${x0.toFixed(1)} ${y0.toFixed(1)} C ${x1.toFixed(1)} ${y1.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)} ${x3.toFixed(1)} ${y3.toFixed(1)}" fill="none" stroke="#CBD5E1" stroke-width="1"/>
-                    <text x="${x3 - 4}" y="${(y3 + 2).toFixed(1)}" text-anchor="end" font-size="8.5" fill="#64748B">${name}</text>
-                    <text x="${x3 - 4}" y="${(y3 + 13).toFixed(1)}" text-anchor="end" font-size="9" font-weight="700" fill="#0F172A">${fmtCnt(count)}<tspan font-size="7" fill="#94A3B8">部</tspan></text>`;
-            };
+                <circle cx="50" cy="50" r="${R}" fill="none" stroke="${color}" stroke-width="9" stroke-linecap="round"
+                    stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${offset}" transform="rotate(-90 50 50)"/>`;
+            // 图例（圆环右侧）：无引线，色点 + 类别（上）/ 数量（下）
+            const legendItem = (name, count, color) => `
+                <div class="emby-legend-item">
+                    <span class="emby-legend-dot" style="background:${color}"></span>
+                    <span>
+                        <span class="emby-legend-name">${name}</span>
+                        <span class="emby-legend-count">${fmtCnt(count)}<span class="emby-legend-unit">部</span></span>
+                    </span>
+                </div>`;
             grid.innerHTML = `
-                <svg class="emby-donut" viewBox="0 0 200 120">
-                    <circle cx="100" cy="60" r="${R}" fill="none" stroke="#EEF2F7" stroke-width="9"/>
+                <svg class="emby-donut" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="${R}" fill="none" stroke="#EEF2F7" stroke-width="9"/>
                     ${mR > 0 ? segCircle(mSeg, 0, 'var(--primary)') : ''}
                     ${tR > 0 ? segCircle(tSeg, -(mSeg + GAP), 'var(--success)') : ''}
-                    ${mR > 0 ? labelTR('电影', stats.movie_count) : ''}
-                    ${tR > 0 ? labelBL('电视剧', stats.tv_count) : ''}
-                    <text x="100" y="61" text-anchor="middle" font-size="14" font-weight="700" fill="#0F172A">${total.num}</text>
-                    <text x="100" y="74" text-anchor="middle" font-size="9" fill="#64748B">${total.unit}</text>
+                    <text x="50" y="51" text-anchor="middle" font-size="14" font-weight="700" fill="#0F172A">${total.num}</text>
+                    <text x="50" y="64" text-anchor="middle" font-size="9" fill="#64748B">${total.unit}</text>
                 </svg>
+                <div class="emby-stats-side">
+                    <div class="emby-stats-legend">
+                        ${mR > 0 ? legendItem('电影', stats.movie_count, 'var(--primary)') : ''}
+                        ${tR > 0 ? legendItem('电视剧', stats.tv_count, 'var(--success)') : ''}
+                    </div>
+                    <div class="emby-stats-footer">
+                        <span class="esf-label">上次扫描</span>
+                        <span class="esf-time" id="emby-stats-time"></span>
+                    </div>
+                </div>
             `;
             // 上次扫描时间：显示在卡片右下角，去掉年份
             const timeEl = document.getElementById('emby-stats-time');
