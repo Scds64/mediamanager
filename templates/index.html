@@ -532,40 +532,45 @@
             /* 桌面端订阅探索与媒体信息/内存占用同行，随 grid 行高拉伸等高（标题/图片为绝对定位，卡自身需 stretch 撑满行） */
             #tab-system .tmdb-entry-card { height: 100%; }
         }
-        /* 订阅探索海报：横向 12:7，高度与媒体信息圆环等高（内容区上下间距均为 20px） */
-        #tab-system .tmdb-entry-card { display: flex; flex-direction: column; }  /* flex 阻止标题/海报外边距折叠，保证卡高由海报撑起 */
-        /* 订阅探索：全出血媒体横幅 —— 海报铺满整卡，无托盘无嵌套，标题悬浮左上 */
+        /* 订阅探索卡：竖向海报 coverflow 轮播，铺满整卡，无托盘无嵌套 */
+        #tab-system .tmdb-entry-card { display: flex; flex-direction: column; }  /* flex 阻止外边距折叠，保证卡高由海报撑起 */
         #tab-system .tmdb-entry-card.card {
-            position: relative;      /* 标题 absolute 的锚点 */
-            background: var(--tray-bg);
+            position: relative;      /* 箭头 absolute 的锚点 */
+            background: none;        /* 去背景，卡片融入页面 */
             box-shadow: none;
             border: none;
             padding: 0;             /* 去除卡内边距，海报 100% 出血铺满 */
             overflow: hidden;        /* 圆角裁剪切海报 */
             cursor: pointer;
         }
-        #tab-system .tmdb-entry-card .card-title.tmdb-entry-title {
+        /* 左右切换箭头：无底悬浮图标，点击时变色 */
+        #tab-system .entry-nav {
             position: absolute;
-            top: 0; left: 0; right: 0;
-            z-index: 2;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 0;
-            padding: 14px 16px 22px;
-            background: linear-gradient(180deg, rgba(15,23,42,0.6), transparent);
-            color: #F1F5F9;
-            font-size: var(--fs-title);
-            font-weight: 600;
-            letter-spacing: 0.02em;
-            border-bottom: none;
-            text-shadow: 0 1px 2px rgba(15, 23, 42, 0.5);
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 5;
+            width: 42px; height: 42px;
+            display: flex; align-items: center; justify-content: center;
+            border: none;
+            border-radius: 999px;
+            background: none;
+            color: #F8FAFC;
+            font-size: 18px;
+            cursor: pointer;
+            transition: color .15s;
         }
+        #tab-system .entry-nav i { line-height: 1; }
+        #tab-system .entry-nav:active { color: var(--primary); }
+        #tab-system .entry-nav-prev { left: 6px; }
+        #tab-system .entry-nav-next { right: 6px; }
         #tab-system .tmdb-entry-poster {
-            position: relative;      /* 作为图片堆叠的锚点，支持交叉淡入淡出 */
+            position: relative;      /* 作为轮播 absolute 卡片的锚点 */
             width: 100%;
             flex: 1;               /* 撑满整卡（卡片为 flex 列布局，padding:0） */
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
             padding: 0;
             border-radius: 14px;
             background: none;
@@ -573,52 +578,31 @@
             overflow: hidden;
             box-sizing: border-box;
         }
-        /* 海报图绝对铺叠：opacity 0→1 过渡实现交叉淡化（旧图保留在下方，切换不挖空） */
-        #tab-system .tmdb-entry-poster img.entry-img {
-            position: absolute;
-            inset: 0;
+        /* 竖向海报 coverflow 轮播：多张 2:3 海报重叠，active（中间）放大前凸 */
+        #tab-system .entry-carousel {
+            position: relative;
             width: 100%;
             height: 100%;
+            perspective: 800px;
+        }
+        #tab-system .entry-carousel .entry-card {
+            position: absolute;
+            top: 50%; left: 50%;
+            height: 88%;                 /* 相对卡片高度成比例，海报更大更饱满 */
+            aspect-ratio: 2 / 3;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.04);
+            transition: transform .45s cubic-bezier(.22,.61,.36,1), opacity .45s ease;
+            pointer-events: none;        /* 不挡滑动手势，事件透传到海报容器 */
+        }
+        #tab-system .entry-carousel .entry-card img {
+            width: 100%; height: 100%;
             object-fit: cover;
-            border-radius: 0;
-            opacity: 0;
-            transition: opacity 0.5s ease;
+            display: block;
         }
-        #tab-system .tmdb-entry-poster img.entry-img.show { opacity: 1; }
         #tab-system .tmdb-entry-card.card:hover {
-            box-shadow: 0 14px 30px -14px rgba(15, 23, 42, 0.55);
-        }
-        /* 海报右下角三点指示器：去背景胶囊，只留 3 颗圆点 */
-        .poster-dots {
-            position: absolute;
-            right: 14px; bottom: 12px;
-            z-index: 3;
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 0;
-            background: none;
-        }
-        .poster-dots .dot {
-            width: 6px; height: 6px; border-radius: 999px;
-            background: rgba(241, 245, 249, 0.6);
-            transition: width .2s, background .2s;
-        }
-        .poster-dots .dot.active {
-            width: 18px;
-            background: #F1F5F9;
-            border-radius: 999px;
-        }
-        /* 海报片名叠加：位于海报底部，渐变背景保证可读性 */
-        .poster-title {
-            position: absolute;
-            left: 0; right: 0; bottom: 0;
-            z-index: 2;
-            padding: 24px 16px 10px;
-            background: linear-gradient(transparent, rgba(0,0,0,0.70));
-            color: rgba(255,255,255,0.82);
-            font-size: 13px; font-weight: 500;
-            line-height: 1.3;
-            pointer-events: none;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            box-shadow: none;
         }
         /* 通用搜索框（对齐截图样式） */
         .hero-search {
@@ -1264,8 +1248,8 @@
             .card { padding: 16px; }
             /* 移动端：订阅探索保留全出血横幅（不被通用 .card padding 覆盖） */
             #tab-system .tmdb-entry-card.card { padding: 0; }
-            /* 移动端：海报区给个合理高度，首图预加载/加载失败时卡片也不塌陷、不跳动 */
-            #tab-system .tmdb-entry-poster { min-height: 200px; }
+            /* 移动端：海报区给足高度，竖向海报更大气；首图预加载/加载失败时卡片也不塌陷、不跳动 */
+            #tab-system .tmdb-entry-poster { min-height: 420px; }
             .cards-row { grid-template-columns: minmax(0, 1fr); }
             #tab-system .cards-row { grid-template-columns: minmax(0, 1fr); }
             #tab-bg .cards-row { grid-template-columns: minmax(0, 1fr); }
@@ -1888,21 +1872,8 @@
                     </div>
                 </div>
 
-                <!-- 2. 订阅探索 + 媒体信息 + 内存占用 并排一行（桌面端三卡等高，海报由同行撑起高度） -->
+                <!-- 2. 媒体信息 + 内存占用 + 订阅探索 并排一行（订阅探索移到末尾） -->
                 <div class="cards-row">
-                    <!-- 1. 订阅探索（单张横向海报；左上角标签栏 + 右下角3点；移动端为首卡，桌面端为同行首列） -->
-                    <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
-                        <div class="card-title tmdb-entry-title">
-                            订阅探索
-                        </div>
-                        <div id="tmdb-poster" class="tmdb-entry-poster">
-                            <div class="poster-dots" aria-hidden="true">
-                                <span class="dot active"></span>
-                                <span class="dot"></span>
-                                <span class="dot"></span>
-                            </div>
-                        </div>
-                    </div>
                     <div class="card clickable-card emby-media-card" onclick="openEmbyModal()" role="button" title="打开媒体查重">
                         <div class="card-title">
                             媒体信息
@@ -1925,6 +1896,13 @@
                         <div class="mem-chart-wrap">
                             <svg id="mem-chart" viewBox="0 0 800 140" preserveAspectRatio="none"></svg>
                         </div>
+                    </div>
+                    <!-- 3. 订阅探索（竖向海报 coverflow 轮播；左/右两侧箭头切换，中间海报放大） -->
+                    <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
+                        <div id="tmdb-poster" class="tmdb-entry-poster">
+                        </div>
+                        <button class="entry-nav entry-nav-prev" type="button" aria-label="上一张" title="上一张" onclick="event.stopPropagation();_stepEntryPoster(-1)"><i class="fas fa-chevron-left"></i></button>
+                        <button class="entry-nav entry-nav-next" type="button" aria-label="下一张" title="下一张" onclick="event.stopPropagation();_stepEntryPoster(1)"><i class="fas fa-chevron-right"></i></button>
                     </div>
                 </div>
 
@@ -3009,98 +2987,89 @@
             </div>`;
         }
 
-        // 订阅探索入口海报：单张横向海报，每 10 秒随机切换；支持左右滑动/3 点指示
+        // 订阅探索入口：竖向海报 coverflow 轮播，左滑/右滑切换，中间海报放大前凸
         let _entryPosterItems = [];   // 当前轮换池（搜索过滤后可能只是全集的子集）
         let _entryPosterAll = [];    // 全量海报池（搜索清空时还原用）
+        let _entryPosterIdx = 0;     // 当前中间（active）海报下标
         let _entryPosterTimer = null;
-        let _entryPosterLastIdx = -1;
         let _entryPosterTouch = null;     // 记录滑动起点
+        function _entryImgSrc(i) {
+            return `https://image.tmdb.org/t/p/w780${i.poster_path || i.backdrop_path}`;
+        }
         function renderEntryPosters(items) {
             const strip = document.getElementById('tmdb-poster');
             if (!strip || !items) return;
-            // 横版海报（backdrop_path 16:9 landscape），同时过滤掉没横版的；保留顺序
-            const filtered = items.filter(i => i.backdrop_path);
-            _entryPosterItems = filtered.length ? filtered : items.filter(i => i.poster_path);
+            // 竖向海报优先用 poster_path（2:3），没有时退回 backdrop_path
+            const filtered = items.filter(i => i.poster_path || i.backdrop_path);
+            _entryPosterItems = filtered.length ? filtered : items;
             _entryPosterAll = _entryPosterItems.slice();   // 记录全量池，供搜索清空后还原
             if (_entryPosterItems.length === 0) return;
-            // 绑定触摸事件（仅绑一次）
-            if (!strip.dataset.swipedBound) {
-                strip.dataset.swipedBound = '1';
-                strip.addEventListener('touchstart', e => {
-                    if (!e.touches || !e.touches[0]) return;
-                    _entryPosterTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY, moved: false };
-                }, { passive: true });
-                strip.addEventListener('touchend', e => {
-                    const t = _entryPosterTouch; _entryPosterTouch = null;
-                    if (!t) return;
-                    const c = e.changedTouches && e.changedTouches[0];
-                    if (!c) return;
-                    const dx = c.clientX - t.x;
-                    const dy = c.clientY - t.y;
-                    if (Math.abs(dx) > Math.max(50, Math.abs(dy))) {
-                        // 左滑 -> 下一张；右滑 -> 上一张
-                        _showRandomEntryPoster(dx < 0 ? 'next' : 'prev');
-                    }
-                }, { passive: true });
-            }
-            // 首次随机渲染一张
-            _showRandomEntryPoster('rand');
-            // 启动定时器（清除旧的避免重复）
-            if (_entryPosterTimer) clearInterval(_entryPosterTimer);
-            _entryPosterTimer = setInterval(() => _showRandomEntryPoster('rand'), 10000);
+            _buildEntryCarousel();
         }
-        function _updatePosterDots(activeIndex) {
-            const dots = document.querySelectorAll('#tmdb-poster .poster-dots .dot');
-            if (!dots.length) return;
-            dots.forEach((d, i) => d.classList.toggle('active', i === activeIndex));
-        }
-        function _showRandomEntryPoster(mode) {
+        // 由当前 _entryPosterItems 重建轮播并回到中间态（首次/搜索后调用）
+        function _buildEntryCarousel() {
             const strip = document.getElementById('tmdb-poster');
-            if (!strip || _entryPosterItems.length === 0) return;
-            const n = _entryPosterItems.length;
-            let idx;
-            if (mode === 'next') {
-                idx = (_entryPosterLastIdx + 1 + n) % n;
-            } else if (mode === 'prev') {
-                idx = (_entryPosterLastIdx - 1 + n) % n;
-            } else {
-                if (n === 1) { idx = 0; }
-                else { do { idx = Math.floor(Math.random() * n); } while (idx === _entryPosterLastIdx); }
-            }
-            _entryPosterLastIdx = idx;
-            const i = _entryPosterItems[idx];
-            // 切换不用硬切 src：预加载就绪后新建一张绝对铺叠的新图淡入（旧图保留在其下交叉淡化），
-            // 过渡完成再移除旧图 —— 既无空窗、也不再"生硬"
-            const imgSrc = i.backdrop_path
-                ? `https://image.tmdb.org/t/p/w780${i.backdrop_path}`
-                : `https://image.tmdb.org/t/p/w780${i.poster_path}`;
-            const apply = () => {
-                const dots = strip.querySelector('.poster-dots');
+            if (!strip) return;
+            let car = strip.querySelector('.entry-carousel');
+            if (!car) { car = document.createElement('div'); car.className = 'entry-carousel'; strip.appendChild(car); }
+            // 按当前池重建卡片（含 preload 天然懒加载，长列表直接铺开缩放）
+            car.replaceChildren(..._entryPosterItems.map(it => {
+                const c = document.createElement('div');
+                c.className = 'entry-card';
                 const img = document.createElement('img');
-                img.className = 'entry-img';
-                img.src = imgSrc;
-                img.alt = escapeHtml(i.title);
-                if (dots) strip.insertBefore(img, dots); else strip.appendChild(img);
-                // 下一帧再加 .show，触发 opacity 0→1 过渡，与旧图完成交叉淡化
-                requestAnimationFrame(() => img.classList.add('show'));
-                // 过渡（0.5s）结束后清理旧图
-                const olds = Array.from(strip.querySelectorAll('img.entry-img.show')).filter(o => o !== img);
-                setTimeout(() => olds.forEach(o => o.remove()), 520);
-                // 更新片名叠加（永久元素，只改文字不重建）
-                let titleEl = strip.querySelector('.poster-title');
-                if (!titleEl) {
-                    titleEl = document.createElement('div');
-                    titleEl.className = 'poster-title';
-                    if (dots) strip.insertBefore(titleEl, dots); else strip.appendChild(titleEl);
+                img.loading = 'lazy';
+                img.alt = escapeHtml(it.title || it.name || '');
+                img.src = _entryImgSrc(it);
+                c.appendChild(img);
+                return c;
+            }));
+            _entryPosterIdx = Math.min(Math.floor(_entryPosterItems.length / 2), _entryPosterItems.length - 1);
+            _updateEntryCarousel();
+            _bindEntrySwipe(strip);   // 手势只绑一次
+            _restartEntryPoster();
+        }
+        function _updateEntryCarousel() {
+            const car = document.querySelector('#tmdb-poster .entry-carousel');
+            if (!car) return;
+            const n = _entryPosterItems.length;
+            const half = Math.floor((n - 1) / 2);
+            for (let k = 0; k < n; k++) {
+                const c = car.children[k];
+                let off = ((k - _entryPosterIdx) % n + n) % n;
+                if (off > half) off -= n;                      // 取最近一侧（绕环）
+                const abs = Math.abs(off);
+                // 中间放大 & 前凸，左右两侧缩小压暗，形成 coverflow 纵深感
+                const scale = abs === 0 ? 1.11 : abs === 1 ? 0.88 : 0.72;
+                const opacity = abs === 0 ? 1 : abs === 1 ? 0.85 : 0.35;
+                const tx = off * 84 + (off < 0 ? -10 : off > 0 ? 10 : 0);
+                const tz = abs === 0 ? 30 : 0;
+                c.style.cssText =
+                    `z-index:${100 - abs};opacity:${opacity};` +
+                    `transform:translate(-50%,-50%) translateX(${tx}px) translateZ(${tz}px) scale(${scale});`;
+                c.classList.toggle('active', abs === 0);
+            }
+        }
+        function _stepEntryPoster(dir) {
+            if (!_entryPosterItems.length || _entryPosterItems.length === 1) return;
+            _entryPosterIdx = (_entryPosterIdx + dir + _entryPosterItems.length) % _entryPosterItems.length;
+            _updateEntryCarousel();
+        }
+        function _bindEntrySwipe(strip) {
+            if (!strip || strip.dataset.swipedBound) return;
+            strip.dataset.swipedBound = '1';
+            strip.addEventListener('touchstart', e => {
+                if (!e.touches || !e.touches[0]) return;
+                _entryPosterTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }, { passive: true });
+            strip.addEventListener('touchend', e => {
+                const t = _entryPosterTouch; _entryPosterTouch = null;
+                if (!t || !e.changedTouches || !e.changedTouches[0]) return;
+                const c = e.changedTouches[0];
+                const dx = c.clientX - t.x, dy = c.clientY - t.y;
+                if (Math.abs(dx) > Math.max(50, Math.abs(dy))) {
+                    _stepEntryPoster(dx < 0 ? 1 : -1);   // 左滑 -> 下一张；右滑 -> 上一张
                 }
-                titleEl.textContent = i.title;
-                // 3 点指示：当前位置 active —— 由于实际海报池里数量远大于 3，此处用 idx mod 3 映射，表达"在三张轮换中的位置"
-                _updatePosterDots(((idx % 3) + 3) % 3);
-            };
-            const pre = new Image();
-            pre.onload = apply;
-            pre.onerror = () => {};   // 加载失败静默：不做刺眼的图替，保持当前画面
-            pre.src = imgSrc;
+            }, { passive: true });
         }
 
         async function loadTmdb(force, silent) {
@@ -4115,7 +4084,7 @@
         // 重开/重置海报轮换定时器
         function _restartEntryPoster() {
             if (_entryPosterTimer) clearInterval(_entryPosterTimer);
-            _entryPosterTimer = setInterval(() => _showRandomEntryPoster('rand'), 10000);
+            _entryPosterTimer = setInterval(() => _stepEntryPoster(1), 6000);
         }
         // ① 实时过滤订阅探索海报（标题包含匹配）；清空时还原全量池
         let _lastMediaMatches = -1;   // 记录上次匹配数，0→N 或 N→0 变化时才提示，避免打字刷屏
@@ -4124,8 +4093,7 @@
             if (!kw) {
                 _lastMediaMatches = -1;
                 _entryPosterItems = _entryPosterAll.slice();
-                _restartEntryPoster();
-                _showRandomEntryPoster('rand');
+                _buildEntryCarousel();
                 return;
             }
             const matches = _entryPosterAll.filter(i =>
@@ -4139,8 +4107,7 @@
             }
             _lastMediaMatches = matches.length;
             _entryPosterItems = matches;
-            _restartEntryPoster();
-            _showRandomEntryPoster('rand');
+            _buildEntryCarousel();
             // 海报若在视口区外（页面已滚走、搜索条脱流浮在顶部），滚到可见让用户看到过滤结果
             const ps = document.getElementById('tmdb-poster');
             if (ps) {
