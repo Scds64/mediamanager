@@ -389,6 +389,23 @@
             font-weight: 400;
         }
 
+        /* 卡片左上角悬浮标题（媒体信息 / 内存占用）：
+           字号/字重/颜色/字距与常规标题行 .card-title 完全一致（含移动端 15px 覆盖），
+           绝对定位悬浮于卡片左上角，不占内容行高；点击穿透，不挡整卡点击与图表交互 */
+        .card-float-title {
+            position: absolute;
+            top: 16px;            /* = #tab-system 卡内容区上边距，与「整理历史」标题同高 */
+            left: 24px;           /* = 桌面端卡片内容区左边距（移动端 .card padding=16px，下方媒体查询覆盖） */
+            font-size: var(--fs-title);
+            font-weight: 600;
+            color: var(--text-600);
+            letter-spacing: 0.035em;
+            line-height: 1.3;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 2;
+        }
+
         /* Toggle (Material switch) */
         .switch {
             display: inline-flex;
@@ -736,15 +753,8 @@
             gap: 1px;
             pointer-events: none;   /* 不挡图表交互 */
         }
-        /* 「内存占用」说明文字悬浮于卡片内部底侧，不占内容行高，让图表吃满整卡 */
+        /* 「内存占用」标题改为左上角悬浮 .card-float-title，卡片保持 relative 供其定位 */
         .card.mem-card { position: relative; }
-        .mem-side-label {
-            position: absolute;
-            left: 0; right: 0;
-            bottom: 8px;
-            text-align: center;
-            font-size: 9px; color: var(--text-400); font-weight: 400; line-height: 1.6;
-        }
         /* 数字字体与媒体信息圆环容量数字一致：UI 无衬线 700，去等宽/去数字特排 */
         .mem-kpi-value {
             font-size: 25px;
@@ -1309,6 +1319,8 @@
             /* 移动端保持清晰的四级字阶，避免标题、分组和字段标签大小混成一档 */
             .card-title { font-size: 15px; line-height: 1.3; }
             .card-title .hint { font-size: 11px; }
+            /* 左上角悬浮标题：移动端随 .card-title 缩至 15px，左边距对齐移动端 .card padding */
+            .card-float-title { font-size: 15px; left: 16px; }
             .cfg-card-label { font-size: 13px; line-height: 1.35; }
             .group-label { font-size: 12px; line-height: 1.35; }
             .group-row-label,
@@ -1920,11 +1932,14 @@
                         </div>
                     </div>
                     <div class="card clickable-card emby-media-card" onclick="openEmbyModal()" role="button" title="打开媒体查重">
+                        <div class="card-float-title">媒体信息</div>
                         <div id="emby-stats-grid" class="emby-stats">
                             <div style="color: var(--text-400); padding: 12px 0;">完成查重扫描后显示媒体库统计</div>
                         </div>
                     </div>
                     <div class="card mem-card">
+                        <!-- 「内存占用」标题悬浮于卡片左上角 -->
+                        <div class="card-float-title">内存占用</div>
                         <!-- 数值信息：位于卡片右上角，不占图表区布局 -->
                         <div class="mem-center">
                             <span class="mem-kpi-value" id="sys-proc-mem">-</span>
@@ -1934,7 +1949,6 @@
                             <div class="mem-chart-wrap">
                                 <svg id="mem-chart" viewBox="0 0 800 140" preserveAspectRatio="none"></svg>
                             </div>
-                            <div class="mem-side-label">内存占用</div>
                         </div>
                     </div>
                 </div>
@@ -5154,8 +5168,6 @@
                 if (Math.abs(dx) < 60 || Math.abs(dx) <= Math.abs(dy) * 1.3) return;
                 // 手指起点在订阅探索海报卡片上：只让海报自己切换，不切整页
                 if (se && se.closest && (se.closest('#tmdb-poster') || se.closest('.tmdb-entry-card'))) return;
-                // 手指起点在整理历史卡片内：该区有左右滑动分页，不切整页
-                if (se && se.closest && se.closest('#history-card')) return;
                 const drawer = document.getElementById('drawer');
                 const drawerOpen = !!drawer && drawer.classList.contains('open');
                 const onBtn = document.querySelector('#topSeg .seg-dot.on');
