@@ -2,6 +2,17 @@
 <html lang="zh-CN"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <script>
+        // iOS Safari：页面被浏览器缩放到 <100% 时，即使输入框字号=16px，实际渲染字号仍 <16px，
+        // 聚焦输入框仍会触发系统自动放大。仅 iOS 追加 maximum-scale=1：
+        // 新版 iOS 只封住这次聚焦自动放大，不禁止用户双指缩放；Android/桌面不受影响。
+        if (/iP(hone|od|ad)/.test(navigator.userAgent)) {
+            var _vp = document.querySelector('meta[name="viewport"]');
+            if (_vp && _vp.content.indexOf('maximum-scale') < 0) {
+                _vp.content = 'width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover';
+            }
+        }
+    </script>
     <title>MediaManager 配置管理</title>
     <link rel="icon" type="image/svg+xml" href="/static/logo1.svg">
     <link rel="manifest" href="/static/manifest.json">
