@@ -136,7 +136,7 @@ func catalogLocalStrms(strmPaths []string, localDir, panDir string,
 					}
 				}
 
-				rec := buildHistoryRecord(meta, transferMeta, matchedPath, strmPath, fmatched)
+				rec := buildHistoryRecord(meta, transferMeta, matchedPath, strmPath, info.Size, fmatched)
 				resCh <- workItem{rec: rec, matched: fmatched != nil}
 			}
 		}()
@@ -315,7 +315,7 @@ func matchPanFile(panFullPath, fileName string, size int64,
 
 // ---------- 构造 history 记录 ----------
 
-func buildHistoryRecord(strmMeta StrmMeta, transferMeta transfer.MetaInfo, matchedPath, localStrmPath string, matched *pan123.FileInfo) transfer.HistoryRecord {
+func buildHistoryRecord(strmMeta StrmMeta, transferMeta transfer.MetaInfo, matchedPath, localStrmPath string, strmSize int64, matched *pan123.FileInfo) transfer.HistoryRecord {
 	rec := transfer.HistoryRecord{}
 
 	if matched != nil {
@@ -327,13 +327,16 @@ func buildHistoryRecord(strmMeta StrmMeta, transferMeta transfer.MetaInfo, match
 		} else {
 			rec.TargetPath = localStrmPath
 		}
-		rec.FileSize = matched.Size
+		// STRM URL 中记录的是生成时的真实媒体文件大小，优先使用它；
+		// 网盘索引大小可能因接口返回不完整或文件状态变化而为 0。
+		rec.FileSize = strmSize
 	} else {
 		// orphan: 用 md5(本地STRM路径) 作为唯一标识
 		sum := md5.Sum([]byte(localStrmPath))
 		rec.FileID = "orphan_" + fmt.Sprintf("%x", sum)
 		rec.FileName = strmMeta.Title
 		rec.TargetPath = localStrmPath
+		rec.FileSize = strmSize
 	}
 
 	// 媒体信息：全部 ParseMeta 优先（从完整相对路径解析，专门为 STRM 设计）
