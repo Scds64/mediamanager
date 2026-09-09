@@ -4900,13 +4900,9 @@
             const grid = document.getElementById('emby-stats-grid');
             if (!grid) return;
             if (!stats) {
-<<<<<<< HEAD
-                grid.innerHTML = '<div style="color: var(--text-400); padding: 12px 0;">完成查重扫描后显示媒体库统计</div>';
+                grid.innerHTML = '<div style="color: var(--text-400); padding: 12px 0;">暂无整理记录</div>';
                 const capEl = document.getElementById('emby-cap');
                 if (capEl) capEl.innerHTML = '<span style="color:var(--text-400);font-size:9px;">—</span>';
-=======
-                grid.innerHTML = '<div style="color: var(--text-400); padding: 12px 0;">暂无整理记录</div>';
->>>>>>> 817ba8b (v0.7.60 基于整理记录刷新媒体统计)
                 return;
             }
             // 拆分容量字符串为 数字 + 单位（如 "86.3 TB" -> 86.3 / TB）
@@ -4934,17 +4930,11 @@
                     <text x="50" y="65" text-anchor="middle" font-size="7" fill="#94A3B8">${total.unit}</text>
                 </svg>
             `;
-<<<<<<< HEAD
             // 媒体计数：电影 / 电视剧 部数，显示在卡片底部中间（同一行）
             const capEl = document.getElementById('emby-cap');
             if (capEl) capEl.innerHTML = `
                 <span class="mc-group"><span class="mc-label">电影</span> <span class="mc-num">${stats.movie_count || 0}</span></span>
                 <span class="mc-group"><span class="mc-label">电视剧</span> <span class="mc-num">${stats.tv_count || 0}</span></span>`;
-=======
-            // 上次扫描时间：显示在卡片右下角，去掉年份
-            const timeEl = document.getElementById('emby-stats-time');
-            if (timeEl) timeEl.textContent = '整理记录';
->>>>>>> 817ba8b (v0.7.60 基于整理记录刷新媒体统计)
         }
 
         function renderEmbyDup(s) {
@@ -4953,10 +4943,6 @@
             const resultEl = document.getElementById('emby-dup-result');
             const actionsEl = document.getElementById('emby-dup-actions');
             const dvOn = localStorage.getItem('emby_dv_priority') !== '0';  // 杜比视界优先开关状态
-<<<<<<< HEAD
-            renderEmbyStats(s.scan_result ? s.scan_result.stats : null);
-=======
->>>>>>> 817ba8b (v0.7.60 基于整理记录刷新媒体统计)
             if (!alertEl) return;  // 弹窗未打开：只更新系统页圆环图
             alertEl.className = 'alert';
             alertEl.innerHTML = '';
