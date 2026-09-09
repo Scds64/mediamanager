@@ -56,7 +56,7 @@ func main() {
 
 	// 初始化日志（按天 + 按大小轮转）
 	initLogging(logPath)
-	log.Printf("[启动] 123bot-go 版本 %s 开始启动", version)
+	log.Printf("[启动] mediamanager-go 版本 %s 开始启动", version)
 
 	env, err := config.Load(envFile)
 	if err != nil {
@@ -214,7 +214,7 @@ func initLogging(path string) {
 	log.SetPrefix("")
 }
 
-var version = "0.7.60"
+var version = "0.8.1"
 
 func fatalf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)

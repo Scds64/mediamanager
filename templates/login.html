@@ -2,14 +2,14 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>登录 - 配置管理</title>
     <link rel="icon" type="image/svg+xml" href="/static/logo1.svg">
     <link rel="manifest" href="/static/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="theme-color" content="#F8FAFC">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#5436D6">
     <link rel="apple-touch-icon" href="/static/icon-180.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -19,7 +19,8 @@
             box-sizing: border-box;
         }
 
-        :root { color-scheme: light; }
+        /* 本页背景为深色渐变：声明 dark，使 iOS 独立窗口状态栏文字为白色（深色文字在蓝紫底上看不清） */
+        :root { color-scheme: dark; }
 
         input:-webkit-autofill {
             -webkit-box-shadow: 0 0 0 1000px rgba(60, 40, 120, 0.9) inset;
@@ -33,7 +34,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            /* 顶部让出状态栏/灵动岛，底部让出 Home 指示条；渐变背景仍铺满整屏 */
+            padding: calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));
             overflow: hidden;
             position: relative;
         }

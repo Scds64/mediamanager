@@ -43,6 +43,7 @@ type TmdbDetail struct {
 	Overview            string           `json:"overview"`
 	PosterPath          string           `json:"poster_path"`
 	BackdropPath        string           `json:"backdrop_path"`
+	LogoPath            string           `json:"logo_path"`
 	VoteAverage         float64          `json:"vote_average"`
 	VoteCount           int              `json:"vote_count"`
 	ReleaseDate         string           `json:"release_date"`
@@ -116,6 +117,26 @@ type tmdbDetailRaw struct {
 			Job  string `json:"job"`
 		} `json:"crew"`
 	} `json:"credits"`
+	Images struct {
+		Logos []struct {
+			FilePath string `json:"file_path"`
+			ISO6391  string `json:"iso_639_1"`
+		} `json:"logos"`
+	} `json:"images"`
+}
+
+func selectTmdbLogo(logos []struct {
+	FilePath string `json:"file_path"`
+	ISO6391  string `json:"iso_639_1"`
+}) string {
+	for _, language := range []string{"zh", "en", ""} {
+		for _, logo := range logos {
+			if logo.FilePath != "" && logo.ISO6391 == language {
+				return logo.FilePath
+			}
+		}
+	}
+	return ""
 }
 
 // GetTrending 获取 TMDB 趋势榜单（最多 30 条）。
@@ -254,7 +275,8 @@ func (t *TmdbClient) GetDetailDict(tmdbID int, mediaType string) *TmdbDetail {
 		mediaType = "movie"
 	}
 	data, err := t.getJSON(context.Background(), fmt.Sprintf("/%s/%d", mediaType, tmdbID), map[string]string{
-		"append_to_response": "credits,external_ids",
+		"append_to_response":     "credits,external_ids,images",
+		"include_image_language": "zh,en,null",
 	})
 	if err != nil {
 		log.Printf("TMDB 详情请求失败 (id=%d, type=%s): %v", tmdbID, mediaType, err)
@@ -293,6 +315,7 @@ func (t *TmdbClient) GetDetailDict(tmdbID int, mediaType string) *TmdbDetail {
 		Overview:         raw.Overview,
 		PosterPath:       raw.PosterPath,
 		BackdropPath:     raw.BackdropPath,
+		LogoPath:         selectTmdbLogo(raw.Images.Logos),
 		VoteAverage:      raw.VoteAverage,
 		VoteCount:        raw.VoteCount,
 		ReleaseDate:      date,
