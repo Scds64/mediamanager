@@ -892,7 +892,7 @@
         .bg-task-time .bg-time-num { font-variant-numeric: tabular-nums; letter-spacing: 0.2px; }
         .bg-task-time .bg-time-weak { font-size: 11px; font-weight: 500; color: var(--text-500); margin-left: 5px; font-variant-numeric: tabular-nums; letter-spacing: 0.2px; }
         .bg-task-state { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-400); }
-        .bg-task-state .bg-dot { width: 7px; height: 7px; border-radius: 50%; background: #10B981; flex-shrink: 0; }
+        .bg-task-state .bg-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
         .bg-task-state.off .bg-dot { background: var(--text-400); }
         .bg-task-state-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
         .bg-task-icon { transition: color .3s; }
@@ -1488,7 +1488,7 @@
         }
         .tmdb-subscribe-btn:hover { background: var(--primary); color: #fff; transform: scale(1.04); }
         .tmdb-subscribe-btn.subscribed {
-            background: #F59E0B;
+            background: var(--warning);
             color: #fff;
             box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
         }
@@ -1543,7 +1543,7 @@
             z-index: 1;
         }
         .tmdb-poster .tmdb-episode-badge.done {
-            background: #F59E0B;  /* 已追完（A=B），与已订阅按钮同款金色 */
+            background: var(--warning);  /* 已追完（A=B），与已订阅按钮同款金色 */
             color: #fff;
             box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
         }
@@ -1578,8 +1578,8 @@
         }
         .tmdb-dstrip-cell:hover { border-color: var(--primary); }
         .tmdb-dstrip-cell.selected {
-            background: #F59E0B;   /* 选中日期金色高亮 */
-            border-color: #F59E0B;
+            background: var(--warning);   /* 选中日期金色高亮 */
+            border-color: var(--warning);
             color: #fff;
         }
         .tmdb-dstrip-date {
@@ -2884,10 +2884,34 @@
             }
         }
 
-        function closeTmdbDetail() {
-            const overlay = document.querySelector('.tmdb-modal-overlay');
-            if (overlay) overlay.remove();
+        // ============ 统一弹层（全屏遮罩 + 居中卡片） ============
+        // TMDB 详情 / 媒体查重 / Emby 观看详情 三处原先各自 createElement + appendChild + 绑定遮罩关闭，
+        // 且 closeTmdbDetail 与 closeEmbyUsageDetail 都用 '.tmdb-modal-overlay' 取第一个匹配，
+        // 同时存在多个弹层时会误关他人。这里统一为「每弹层唯一 id + 统一开关 + 统一关闭按钮」。
+        function openOverlay(id, innerHtml, extraClass) {
+            closeOverlay(id);
+            const overlay = document.createElement('div');
+            overlay.className = 'tmdb-modal-overlay';
+            overlay.id = id;
+            overlay.innerHTML = `<div class="tmdb-modal${extraClass ? ' ' + extraClass : ''}">
+                <button class="tmdb-modal-close" onclick="closeOverlay('${id}')"><i class="fas fa-times"></i></button>
+                ${innerHtml}
+            </div>`;
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', function (e) { if (e.target === overlay) closeOverlay(id); });
+            return overlay;
         }
+        function closeOverlay(id) {
+            const el = id && document.getElementById(id);
+            if (el) el.remove();
+        }
+        // 弹层内的错误/空态：复用已有 body 容器（关闭按钮由 openOverlay 统一提供）
+        function showOverlayMessage(overlay, msg) {
+            const body = overlay.querySelector('.tmdb-modal-body');
+            if (body) body.innerHTML = `<div style="color: var(--text-600);">${escapeHtml(msg)}</div>`;
+        }
+
+        function closeTmdbDetail() { closeOverlay('tmdb-detail-overlay'); }
 
         function openTmdbDetailFromCard(card) {
             if (!card) return;
@@ -2899,35 +2923,17 @@
         }
 
         async function openTmdbDetail(item) {
-            closeTmdbDetail();
-            const overlay = document.createElement('div');
-            overlay.className = 'tmdb-modal-overlay';
-            overlay.innerHTML = `<div class="tmdb-modal">
-                <div class="tmdb-modal-body" style="text-align: center; padding: 40px;">加载详情...</div>
-            </div>`;
-            document.body.appendChild(overlay);
-            overlay.addEventListener('click', function (e) {
-                if (e.target === overlay) closeTmdbDetail();
-            });
+            const overlay = openOverlay('tmdb-detail-overlay',
+                '<div class="tmdb-modal-body" style="text-align: center; padding: 40px;">加载详情...</div>');
             try {
                 const data = await api(`/api/tmdb/detail?id=${encodeURIComponent(item.id)}&type=${encodeURIComponent(item.type)}`);
                 if (!data.configured || data.error || !data.detail) {
-                    overlay.innerHTML = `<div class="tmdb-modal">
-                        <button class="tmdb-modal-close" onclick="closeTmdbDetail()"><i class="fas fa-times"></i></button>
-                        <div class="tmdb-modal-body">
-                            <div style="color: var(--text-600);">${escapeHtml(data.error || '详情加载失败')}</div>
-                        </div>
-                    </div>`;
+                    showOverlayMessage(overlay, data.error || '详情加载失败');
                     return;
                 }
                 renderTmdbDetail(overlay, data.detail);
             } catch (e) {
-                overlay.innerHTML = `<div class="tmdb-modal">
-                    <button class="tmdb-modal-close" onclick="closeTmdbDetail()"><i class="fas fa-times"></i></button>
-                    <div class="tmdb-modal-body">
-                        <div style="color: var(--text-600);">详情加载失败：${escapeHtml(e.message || '请求失败')}</div>
-                        </div>
-                </div>`;
+                showOverlayMessage(overlay, '详情加载失败：' + (e.message || '请求失败'));
             }
         }
 
@@ -3385,13 +3391,17 @@
         }
 
         // ============ 通知与加载 ============
-        function showNotification(message, type = 'success') {
-            const n = document.getElementById('notification');
-            n.className = 'notification show ' + type;
+        // 通知条 / 页内提示：原先两套实现逐行重复（图标映射、innerHTML、定时收起），仅容器与收起时长不同
+        function _toast(el, message, type, className, timeout) {
+            if (!el) return;
+            el.className = className;
             const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
-            n.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
-            clearTimeout(window._notifyTimer);
-            window._notifyTimer = setTimeout(() => { n.classList.remove('show'); }, 4000);
+            el.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
+            clearTimeout(el._toastTimer);
+            el._toastTimer = setTimeout(() => { el.classList.remove('show'); }, timeout);
+        }
+        function showNotification(message, type = 'success') {
+            _toast(document.getElementById('notification'), message, type, 'notification show ' + type, 4000);
         }
 
         function showLoading(text = '处理中...') {
@@ -3401,13 +3411,8 @@
         function hideLoading() { document.getElementById('loading').classList.remove('show'); }
 
         function showTransferAlert(msg, type) {
-            const el = document.getElementById('transfer-alert');
-            if (!el) return;
-            el.className = 'alert alert-' + (type || 'info') + ' show';
-            const icon = type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle';
-            el.innerHTML = `<i class="fas fa-${icon}"></i> ${msg}`;
-            clearTimeout(window._transferAlertTimer);
-            window._transferAlertTimer = setTimeout(() => { el.classList.remove('show'); }, 6000);
+            const t = type || 'info';
+            _toast(document.getElementById('transfer-alert'), msg, t, 'alert alert-' + t + ' show', 6000);
         }
 
         // ============ API 调用 ============
@@ -4466,12 +4471,7 @@
         });
 
         function openEmbyModal() {
-            closeEmbyModal();
-            const overlay = document.createElement('div');
-            overlay.className = 'tmdb-modal-overlay';
-            overlay.id = 'emby-modal-overlay';
-            overlay.innerHTML = `<div class="tmdb-modal emby-modal">
-                <button class="tmdb-modal-close" onclick="closeEmbyModal()"><i class="fas fa-times"></i></button>
+            openOverlay('emby-modal-overlay', `
                 <div class="card">
                     <div class="card-title">
                         媒体查重
@@ -4483,18 +4483,11 @@
                     <div id="emby-dup-status"></div>
                     <div id="emby-dup-result"></div>
                 </div>
-            </div>`;
-            document.body.appendChild(overlay);
-            overlay.addEventListener('click', function (e) {
-                if (e.target === overlay) closeEmbyModal();
-            });
+            `, 'emby-modal');
             loadEmbyStatus();
         }
 
-        function closeEmbyModal() {
-            const overlay = document.getElementById('emby-modal-overlay');
-            if (overlay) overlay.remove();
-        }
+        function closeEmbyModal() { closeOverlay('emby-modal-overlay'); }
 
         // ============ 后台任务页 ============
         let _bgTasks = null;
@@ -4583,97 +4576,45 @@
             const t = _bgTasks;
 
             const ch = t.channel_monitor || {};
-            const chState = ch.active
-                ? '<span class="bg-task-state"><span class="bg-dot"></span>运行中</span>'
-                : '<span class="bg-task-state off"><span class="bg-dot"></span>未开启</span>';
-
             const tf = t.transfer || {};
-            let tfState;
-            if (!tf.scheduler_running) {
-                tfState = '<span class="bg-task-state off"><span class="bg-dot"></span>未开启</span>';
-            } else {
-                tfState = tf.scanning
-                    ? '<span class="bg-task-state"><span class="bg-dot" style="background:#F59E0B;"></span>整理中</span>'
-                    : '<span class="bg-task-state"><span class="bg-dot"></span>运行中</span>';
-            }
-
             const st = t.strm_full_sync || {};
-            let stState;
-            if (st.busy) {
-                stState = '<span class="bg-task-state"><span class="bg-dot" style="background:#F59E0B;"></span>同步中</span>';
-            } else if (st.full_sync_enabled) {
-                stState = '<span class="bg-task-state"><span class="bg-dot"></span>已启用</span>';
-            } else {
-                stState = '<span class="bg-task-state off"><span class="bg-dot"></span>未开启</span>';
-            }
-
-            let ctState;
-            if (st.catalog_busy) {
-                ctState = '<span class="bg-task-state"><span class="bg-dot" style="background:#F59E0B;"></span>梳理中</span>';
-            } else if (st.catalog_enabled) {
-                ctState = '<span class="bg-task-state"><span class="bg-dot"></span>已启用</span>';
-            } else {
-                ctState = '<span class="bg-task-state off"><span class="bg-dot"></span>未开启</span>';
-            }
-
-            let rwState;
-            if (st.rewrite_busy) {
-                rwState = '<span class="bg-task-state"><span class="bg-dot" style="background:#F59E0B;"></span>改写中</span>';
-            } else {
-                rwState = '<span class="bg-task-state off"><span class="bg-dot"></span>待执行</span>';
-            }
-
-            grid.innerHTML = `
+            // 状态标签：off=未开启(灰点)，busy=执行中(橙点)，on=已启用/运行中(绿点)
+            const tag = (state, text) =>
+                `<span class="bg-task-state${state === 'off' ? ' off' : ''}">` +
+                `<span class="bg-dot"${state === 'busy' ? ' style="background:var(--warning);"' : ''}></span>${text}</span>`;
+            // 五项任务的「状态判定 + 名称/图标/触发」集中在这张表里，
+            // 原先是 5 段 if/else + 5 段逐字同构的行 HTML 复制粘贴
+            const defs = [
+                { key: 'channel', icon: 'fa-broadcast-tower', name: '频道监控',
+                  title: '手动触发一次频道监控',
+                  state: tag(ch.active ? 'on' : 'off', ch.active ? '运行中' : '未开启') },
+                { key: 'transfer', icon: 'fa-folder-tree', name: '定时整理',
+                  title: '手动立即整理',
+                  state: !tf.scheduler_running ? tag('off', '未开启')
+                       : tf.scanning ? tag('busy', '整理中') : tag('on', '运行中') },
+                { key: 'strm', icon: 'fa-sync-alt', name: '全量同步 STRM',
+                  title: '手动全量同步 STRM',
+                  state: st.busy ? tag('busy', '同步中')
+                       : st.full_sync_enabled ? tag('on', '已启用') : tag('off', '未开启') },
+                { key: 'catalog', icon: 'fa-book', name: '全量 STRM 入册',
+                  title: '扫描本地+网盘 STRM，写入整理历史',
+                  state: st.catalog_busy ? tag('busy', '梳理中')
+                       : st.catalog_enabled ? tag('on', '已启用') : tag('off', '未开启') },
+                { key: 'rewrite', icon: 'fa-pen-to-square', name: '改写本地 STRM 地址',
+                  title: '用当前 302 地址重写本地所有 STRM 文件',
+                  state: st.rewrite_busy ? tag('busy', '改写中') : tag('off', '待执行') },
+            ];
+            grid.innerHTML = defs.map(d => `
                 <div class="bg-task-row">
                     <div class="bg-task-row-top">
-                        <span class="bg-task-name"><i class="fas fa-broadcast-tower bg-task-icon${_taskActive.channel ? ' active' : ''}" data-bg-icon="channel"></i>频道监控</span>
-                        <span class="bg-task-time" data-bg-next="channel"></span>
+                        <span class="bg-task-name"><i class="fas ${d.icon} bg-task-icon${_taskActive[d.key] ? ' active' : ''}" data-bg-icon="${d.key}"></i>${d.name}</span>
+                        <span class="bg-task-time"${d.key === 'rewrite' ? '' : ` data-bg-next="${d.key}"`}></span>
                     </div>
                     <div class="bg-task-state-row">
-                        ${chState}
-                        <button class="bg-trigger-btn" onclick="triggerBgTask('channel')" title="手动触发一次频道监控">></button>
+                        ${d.state}
+                        <button class="bg-trigger-btn" onclick="triggerBgTask('${d.key}')" title="${d.title}">></button>
                     </div>
-                </div>
-                <div class="bg-task-row">
-                    <div class="bg-task-row-top">
-                        <span class="bg-task-name"><i class="fas fa-folder-tree bg-task-icon${_taskActive.transfer ? ' active' : ''}" data-bg-icon="transfer"></i>定时整理</span>
-                        <span class="bg-task-time" data-bg-next="transfer"></span>
-                    </div>
-                    <div class="bg-task-state-row">
-                        ${tfState}
-                        <button class="bg-trigger-btn" onclick="triggerBgTask('transfer')" title="手动立即整理">></button>
-                    </div>
-                </div>
-                <div class="bg-task-row">
-                    <div class="bg-task-row-top">
-                        <span class="bg-task-name"><i class="fas fa-sync-alt bg-task-icon${_taskActive.strm ? ' active' : ''}" data-bg-icon="strm"></i>全量同步 STRM</span>
-                        <span class="bg-task-time" data-bg-next="strm"></span>
-                    </div>
-                    <div class="bg-task-state-row">
-                        ${stState}
-                        <button class="bg-trigger-btn" onclick="triggerBgTask('strm')" title="手动全量同步 STRM">></button>
-                    </div>
-                </div>
-                <div class="bg-task-row">
-                    <div class="bg-task-row-top">
-                        <span class="bg-task-name"><i class="fas fa-book bg-task-icon${_taskActive.catalog ? ' active' : ''}" data-bg-icon="catalog"></i>全量 STRM 入册</span>
-                        <span class="bg-task-time" data-bg-next="catalog"></span>
-                    </div>
-                    <div class="bg-task-state-row">
-                        ${ctState}
-                        <button class="bg-trigger-btn" onclick="triggerBgTask('catalog')" title="扫描本地+网盘 STRM，写入整理历史">></button>
-                    </div>
-                </div>
-                <div class="bg-task-row">
-                    <div class="bg-task-row-top">
-                        <span class="bg-task-name"><i class="fas fa-pen-to-square bg-task-icon${_taskActive.rewrite ? ' active' : ''}" data-bg-icon="rewrite"></i>改写本地 STRM 地址</span>
-                        <span class="bg-task-time"></span>
-                    </div>
-                    <div class="bg-task-state-row">
-                        ${rwState}
-                        <button class="bg-trigger-btn" onclick="triggerBgTask('rewrite')" title="用当前 302 地址重写本地所有 STRM 文件">></button>
-                    </div>
-                </div>`;
+                </div>`).join('');
             renderBgCountdown();
         }
 
@@ -4733,21 +4674,21 @@
             }
         }
 
-        function fmtDuration(sec) {
+        // 秒 -> 可读时长。style='short' 为紧凑式（3h05m），默认中文长式（3小时5分）
+        function fmtDuration(sec, style) {
             sec = Math.max(0, Math.round(sec || 0));
+            if (style === 'short') {
+                if (sec < 60) return sec + 's';
+                const m = Math.round(sec / 60);
+                if (m < 60) return m + 'm';
+                const h = Math.floor(m / 60);
+                return (m % 60) ? `${h}h${String(m % 60).padStart(2, '0')}m` : h + 'h';
+            }
             if (sec < 60) return sec + '秒';
             const m = Math.floor(sec / 60), s = sec % 60;
             if (m < 60) return s ? `${m}分${s}秒` : `${m}分钟`;
             const h = Math.floor(m / 60), mm = m % 60;
             return mm ? `${h}小时${mm}分` : `${h}小时`;
-        }
-
-        function fmtDurShort(sec) {
-            if (sec < 60) return Math.round(sec) + 's';
-            const m = Math.round(sec / 60);
-            if (m < 60) return m + 'm';
-            const h = Math.floor(m / 60);
-            return (m % 60) ? `${h}h${String(m % 60).padStart(2, '0')}m` : h + 'h';
         }
 
         function renderEmbyUsageChart() {
@@ -4790,7 +4731,7 @@
                 const y = MT + ph * k / 4;
                 const v = maxV * (1 - k / 4);
                 grid += `<line x1="${ML}" y1="${y}" x2="${W - MR}" y2="${y}" stroke="var(--text-400)" stroke-opacity="0.15" stroke-width="1"/>`;
-                grid += `<text x="${ML - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="var(--text-400)" style="font-variant-numeric:tabular-nums">${fmtDurShort(v)}</text>`;
+                grid += `<text x="${ML - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="var(--text-400)" style="font-variant-numeric:tabular-nums">${fmtDuration(v, 'short')}</text>`;
             }
             let xlabels = '';
             days.forEach((d, i) => {
@@ -4799,38 +4740,11 @@
 
             let lines = '', points = '';
             // 保形平滑（monotone cubic Hermite）：切线按相邻割线限制，抑制过冲（曲线不会先冲出再回落）
-            function smoothPath(xs, ys) {
-                const n = xs.length;
-                if (n < 2) return 'M ' + xs[0].toFixed(1) + ' ' + ys[0].toFixed(1);
-                const sd = new Array(n - 1);
-                for (let i = 0; i < n - 1; i++) {
-                    const dx = xs[i + 1] - xs[i], dy = ys[i + 1] - ys[i];
-                    sd[i] = dx > 0 ? dy / dx : 0;
-                }
-                const m = new Array(n);
-                m[0] = sd[0]; m[n - 1] = sd[n - 2];
-                for (let i = 1; i < n - 1; i++) {
-                    if (sd[i - 1] * sd[i] <= 0) { m[i] = 0; continue; }
-                    const w1 = 2 * sd[i] + sd[i - 1], w2 = sd[i] + 2 * sd[i - 1];
-                    const denom = w1 / sd[i - 1] + w2 / sd[i];
-                    m[i] = (w1 + w2 !== 0 && denom !== 0) ? (w1 + w2) / denom : 0;
-                }
-                let d = `M ${xs[0].toFixed(1)} ${ys[0].toFixed(1)}`;
-                for (let i = 0; i < n - 1; i++) {
-                    const x0 = xs[i], y0 = ys[i], x1 = xs[i + 1], y1 = ys[i + 1];
-                    const dx = x1 - x0;
-                    if (dx <= 0) continue;
-                    const c1x = x0 + dx / 3, c1y = y0 + m[i] * dx / 3;
-                    const c2x = x1 - dx / 3, c2y = y1 - m[i + 1] * dx / 3;
-                    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`;
-                }
-                return d;
-            }
             users.forEach((u, ui) => {
                 const c = colors[ui % colors.length];
-                const xs = (u.durations || []).map((v, i) => xAt(i));
-                const ys = (u.durations || []).map((v, i) => yAt(v || 0));
-                const dPath = smoothPath(xs, ys);
+                // 复用 _smoothPath（同一套 monotone cubic Hermite 算法），入参 zip 成 [x, y] 即可
+                const pts = (u.durations || []).map((v, i) => [xAt(i), yAt(v || 0)]);
+                const dPath = _smoothPath(pts);
                 // 平滑曲线本体
                 lines += `<path d="${dPath}" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
                 // 加一条透明的粗命中层（保留原折线上的任意点点击逻辑）
@@ -4889,17 +4803,9 @@
         }
 
         async function showEmbyUsageDay(userId, userName, date) {
-            closeEmbyUsageDetail();
-            const overlay = document.createElement('div');
-            overlay.className = 'tmdb-modal-overlay';
-            overlay.innerHTML = `<div class="tmdb-modal">
-                <button class="tmdb-modal-close" onclick="closeEmbyUsageDetail()"><i class="fas fa-times"></i></button>
-                <div class="tmdb-modal-body" style="text-align:center;padding:40px;">加载中...</div>
-            </div>`;
-            document.body.appendChild(overlay);
-            overlay.addEventListener('click', function (e) {
-                if (e.target === overlay) closeEmbyUsageDetail();
-            });
+            const overlay = openOverlay('emby-usage-overlay',
+                '<div class="tmdb-modal-body" style="text-align:center;padding:40px;">加载中...</div>');
+            const body = overlay.querySelector('.tmdb-modal-body');
             try {
                 const data = await api(`/api/emby/usage/detail?userId=${encodeURIComponent(userId)}&date=${encodeURIComponent(date)}`);
                 const body = overlay.querySelector('.tmdb-modal-body');
@@ -4956,10 +4862,7 @@
             }
         }
 
-        function closeEmbyUsageDetail() {
-            const overlay = document.querySelector('.tmdb-modal-overlay');
-            if (overlay) overlay.remove();
-        }
+        function closeEmbyUsageDetail() { closeOverlay('emby-usage-overlay'); }
 
         let _embyScanStarted = false;  // 本会话是否点击过开始扫描：未点击则不显示历史扫描结果
 
