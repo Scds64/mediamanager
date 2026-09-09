@@ -342,39 +342,25 @@
             color: var(--primary-hover);
         }
         .clickable-card { cursor: pointer; }
-        /* 媒体信息分区：flex 列布局；底部「上次扫描」悬浮于分区下方，不占内容行高 */
+        /* 媒体信息分区：flex 列布局 */
         .emby-media-card { display: flex; flex-direction: column; position: relative; }
-        .emby-stats-footer {
-            position: absolute;     /* 脱离 flex 流悬浮于卡片内部底侧 → 圆环可用整卡高度居中 */
-            left: 0; right: 0;
-            bottom: 10px;
-            display: flex;          /* 「上次扫描」与时间同一行 */
-            align-items: baseline;
-            justify-content: center;   /* 底部中间 */
-            gap: 6px;
-            line-height: 1.6;
-        }
-        .emby-stats-footer .esf-label,
-        .emby-stats-footer .esf-time {
-            font-size: 9px;
-            color: var(--text-400);
-            font-weight: 400;
-        }
-        /* 媒体信息卡片左下方：电影 / 电视剧 部数（左对齐，离边缘 16px） */
+        /* 媒体信息卡片底部中间：电影 / 电视剧 部数（同一行，原「上次扫描」位置） */
         .media-cap {
             position: absolute;
-            left: 16px;
-            bottom: 22px;
+            left: 0; right: 0;
+            bottom: 10px;            /* 原「上次扫描」位置：底部中间 */
             display: flex;
-            flex-direction: column;
-            align-items: flex-start;   /* 左对齐 */
-            gap: 0;                  /* 电影/电视剧两行间距（比默认 3px 减小 3px，电视剧底部位置不变） */
-            text-align: left;
+            flex-direction: row;     /* 同一行 */
+            align-items: center;
+            justify-content: center;
+            gap: 14px;               /* 电影组 与 电视剧组 之间间距 */
+            font-size: 9px;
+            font-weight: 400;
+            color: var(--text-400);  /* 与「上次扫描」文字同大小同色 */
             pointer-events: none;   /* 不挡整卡点击 */
         }
-        .media-cap .mc-row { display: flex; align-items: center; gap: 4px; font-size: 11px; }
-        .media-cap .mc-ico { width: 13px; text-align: center; font-size: 10px; color: var(--text-400); }
-        .media-cap .mc-num { font-weight: 500; color: var(--text-400); font-size: 11px; }   /* 与图标同色同格式 */
+        .media-cap .mc-group { display: inline-flex; align-items: center; gap: 4px; }
+        .media-cap .mc-num { font-weight: 400; color: var(--text-400); font-size: 9px; }
 
         /* 卡片左上角悬浮标题（媒体信息 / 内存占用）：
            字号/字重/颜色/字距与常规标题行 .card-title 完全一致（含移动端 15px 覆盖），
@@ -535,10 +521,14 @@
             margin: 0 0 4px 0;
             padding: 0;
         }
-        /* 系统状态 Tab：订阅探索占满剩余宽度，媒体信息 + 内存占用 合并为一卡（原两卡 240px + 中间间距） */
-        #tab-system .cards-row { grid-template-columns: minmax(0, 1fr) 480px; }
-        /* 合并卡：沿用原正方形卡高度，订阅探索海报拉伸至同高 */
-        #tab-system .sys-combo-card { height: 240px; }
+        /* 系统状态 Tab：订阅探索 / 搜索框 / 合并卡 统一单列堆叠，顺序固定为「订阅探索 → 搜索框 → 合并卡」，
+           手机与桌面完全一致（搜索框始终在订阅探索卡片之后，不再做手机端特例） */
+        #tab-system .cards-row { grid-template-columns: minmax(0, 1fr); }
+        #tab-system .cards-row > .tmdb-entry-card { order: 1; grid-column: 1 / -1; }
+        #tab-system .cards-row > .hero-search { order: 2; grid-column: 1 / -1; margin: 4px 0 0; }
+        #tab-system .cards-row > .sys-combo-card { order: 3; }
+        /* 合并卡：固定高度 210px，手机与桌面完全一致（不再按端区分） */
+        #tab-system .sys-combo-card { height: 210px; }
 
         /* ============ 媒体信息 + 内存占用 合并卡 ============ */
         /* 一张卡内含左右两分区（左媒体信息 / 右内存占用），中间竖排长虚线分隔；
@@ -576,8 +566,6 @@
             .drawer-overlay { display: none !important; }
             /* 桌面端顶部工具行（系统/后台、返回、日志、保存）是移动端专用，桌面用左侧导航，整行隐藏 */
             .top-toolbar { display: none !important; }
-            /* 桌面端订阅探索与媒体信息/内存占用同行，随 grid 行高拉伸等高（标题/图片为绝对定位，卡自身需 stretch 撑满行） */
-            #tab-system .tmdb-entry-card { height: 100%; }
         }
         /* 订阅探索卡：竖向海报 coverflow 轮播，铺满整卡，无托盘无嵌套 */
         #tab-system .tmdb-entry-card { display: flex; flex-direction: column; }  /* flex 阻止外边距折叠，保证卡高由海报撑起 */
@@ -597,7 +585,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 0;
+            min-height: 300px;     /* 桌面端单列时必须有高度（轮播海报为绝对定位不占文档流，min-height:0 会塌缩为 0）；手机端被 320px 覆盖 */
             padding: 0;
             border-radius: 14px;
             background: none;
@@ -657,8 +645,6 @@
         }
         .hero-search .hero-search-input::placeholder { color: var(--text-400); }
 
-        /* 搜索框放入卡片行 grid 内：占满整行（桌面=行首一条，其余卡片在下一行同排） */
-        .cards-row .hero-search { grid-column: 1 / -1; margin: 0; }
 
         /* 搜索多功能图标 + 作用域菜单：右侧图标点击弹出「影视/整理」 */
         .search-filter {
@@ -1303,12 +1289,6 @@
             /* 移动端：海报区给足高度，竖向海报更大气；首图预加载/加载失败时卡片也不塌陷、不跳动 */
             #tab-system .tmdb-entry-poster { min-height: 320px; }
             .cards-row { grid-template-columns: minmax(0, 1fr); }
-            /* 移动端：合并卡整行显示（需带 #tab-system 前缀才能覆盖桌面端的 1fr 480px 两列） */
-            #tab-system .cards-row { grid-template-columns: minmax(0, 1fr); }
-            /* 移动端行内排序：订阅探索卡 → 搜索框 → 媒体信息/内存占用合并卡 */
-            #tab-system .cards-row > .hero-search { order: 2; grid-column: 1 / -1; margin: 4px 0 0; }
-            #tab-system .cards-row > .tmdb-entry-card { order: 1; grid-column: 1 / -1; }
-            #tab-system .cards-row > .sys-combo-card { order: 3; height: 210px; }
             /* 移动端：合并卡两分区内边距随 .card 统一收至 16px */
             .sys-combo-card .emby-media-card { padding: 16px 16px 12px; }
             .sys-combo-card .mem-card { padding: 16px 16px 8px; }
@@ -1912,7 +1892,7 @@
                 <div id="transfer-alert"></div>
 
                 <!-- 2. 订阅探索 + （媒体信息 / 内存占用合并卡）并排一行
-                     （搜索框放在同一 grid 内作首行/指定位置项，移动端经 order 置于订阅探索卡下方） -->
+                     （搜索框与订阅探索、合并卡同处一张 grid 内，统一顺序「订阅探索 → 搜索框 → 合并卡」，手机桌面一致） -->
                 <div class="cards-row">
                     <!-- 搜索卡片：右侧多功能图标点击弹出作用域菜单：「影视」过滤订阅探索海报，「整理」回车过滤整理历史 -->
                     <div class="hero-search">
@@ -4899,13 +4879,13 @@
             }
         }
 
-        function renderEmbyStats(stats, lastScan) {
+        function renderEmbyStats(stats) {
             const grid = document.getElementById('emby-stats-grid');
             if (!grid) return;
             if (!stats) {
                 grid.innerHTML = '<div style="color: var(--text-400); padding: 12px 0;">完成查重扫描后显示媒体库统计</div>';
                 const capEl = document.getElementById('emby-cap');
-                if (capEl) capEl.innerHTML = '<span style="color:var(--text-400);font-size:12px;">—</span>';
+                if (capEl) capEl.innerHTML = '<span style="color:var(--text-400);font-size:9px;">—</span>';
                 return;
             }
             // 拆分容量字符串为 数字 + 单位（如 "86.3 TB" -> 86.3 / TB）
@@ -4932,23 +4912,12 @@
                     <text x="50" y="54" text-anchor="middle" font-size="17" font-weight="700" fill="#0F172A">${total.num}</text>
                     <text x="50" y="65" text-anchor="middle" font-size="7" fill="#94A3B8">${total.unit}</text>
                 </svg>
-                <div class="emby-stats-footer">
-                    <span class="esf-label">上次扫描</span>
-                    <span class="esf-time" id="emby-stats-time"></span>
-                </div>
             `;
-            // 媒体计数：电影 / 电视剧 部数，显示在卡片右上角（参考内存占用数据位置）
+            // 媒体计数：电影 / 电视剧 部数，显示在卡片底部中间（同一行）
             const capEl = document.getElementById('emby-cap');
             if (capEl) capEl.innerHTML = `
-                <div class="mc-row"><span class="mc-ico"><i class="fas fa-film"></i></span><span class="mc-num">${stats.movie_count || 0}</span></div>
-                <div class="mc-row"><span class="mc-ico"><i class="fas fa-tv"></i></span><span class="mc-num">${stats.tv_count || 0}</span></div>`;
-            // 上次扫描时间：显示在卡片底部中间，去掉年份
-            const timeEl = document.getElementById('emby-stats-time');
-            if (timeEl) {
-                const t = lastScan || '-';
-                // 去掉年份（如 "2026-09-04 15:30" → "09-04 15:30"）
-                timeEl.textContent = t.length >= 10 ? t.slice(5) : t;
-            }
+                <span class="mc-group"><span class="mc-label">电影</span> <span class="mc-num">${stats.movie_count || 0}</span></span>
+                <span class="mc-group"><span class="mc-label">电视剧</span> <span class="mc-num">${stats.tv_count || 0}</span></span>`;
         }
 
         function renderEmbyDup(s) {
@@ -4957,7 +4926,7 @@
             const resultEl = document.getElementById('emby-dup-result');
             const actionsEl = document.getElementById('emby-dup-actions');
             const dvOn = localStorage.getItem('emby_dv_priority') !== '0';  // 杜比视界优先开关状态
-            renderEmbyStats(s.scan_result ? s.scan_result.stats : null, s.last_scan);
+            renderEmbyStats(s.scan_result ? s.scan_result.stats : null);
             if (!alertEl) return;  // 弹窗未打开：只更新系统页圆环图
             alertEl.className = 'alert';
             alertEl.innerHTML = '';
