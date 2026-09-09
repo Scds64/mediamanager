@@ -28,8 +28,6 @@
             /* MoviePilot / Material Design 调色板 */
             --primary: #6366F1;            /* indigo-500 */
             --primary-hover: #4F46E5;       /* indigo-600，contained 按钮 hover 色 */
-            --title-icon-1: #8B94C8;       /* 标题图标渐变起点(灰蓝) */
-            --title-icon-2: #B4BAD9;       /* 标题图标渐变终点(浅灰蓝) */
             --primary-light: #EEF2FF;      /* indigo-50 */
             --primary-soft: rgba(99, 102, 241, 0.12);
             --success: #10B981;            /* emerald-500 */
@@ -38,7 +36,6 @@
             --warning-soft: #FFFBEB;
             --danger: #EF4444;             /* red-500 */
             --danger-soft: #FEF2F2;
-            --info: #0EA5E9;               /* sky-500 */
             --info-soft: #F0F9FF;
 
             --text-900: #18181B;           /* zinc-900 冷墨黑、无蓝感 */
@@ -47,14 +44,12 @@
             --text-500: #71717A;           /* zinc-500 中级灰 */
             --text-400: #A1A1AA;           /* zinc-400 浅灰 */
             --text-300: #D4D4D8;           /* zinc-300 线框浅灰 */
-            --text: var(--text-900);       /* 语义别名：正文主色 */
 
             --bg: #F4F4F5;                 /* zinc-100 冷中性底、不发蓝不发黄 */
             --surface: #FFFFFF;
             --border: #E4E4E7;             /* zinc-200 */
             --border-strong: #D4D4D8;      /* zinc-300 */
             --card-hi-light: rgba(161, 161, 170, 0.14);   /* 卡片顶部内高光（冷灰，无蓝味） */
-            --tray-bg: linear-gradient(160deg, #EEF2FF 0%, #F1F1F4 100%);  /* 海报底只保留一抹蓝+中性灰 */
             --shadow-3: 0 2px 8px -1px rgba(24, 24, 27, 0.07), 0 10px 28px -6px rgba(24, 24, 27, 0.11);
 
             --radius-sm: 10px;
@@ -151,19 +146,6 @@
             letter-spacing: 4px;
             color: var(--text-400);
         }
-        .drawer-close {
-            display: none;
-            margin-left: auto;
-            background: transparent;
-            border: none;
-            color: var(--text-500);
-            font-size: 18px;
-            cursor: pointer;
-            padding: 6px 8px;
-            border-radius: var(--radius-sm);
-        }
-        .drawer-close:hover { background: #F1F5F9; color: var(--text-900); }
-
         /* ============ 侧边栏底部操作区 ============ */
         .drawer-footer {
             position: relative;
@@ -200,21 +182,11 @@
         .btn:disabled { opacity: 0.55; cursor: not-allowed; }
         .btn:active:not(:disabled) { transform: translateY(0); }
 
-        .btn-contained {
-            background: var(--primary); color: #fff;
-            box-shadow: 0 1px 2px rgba(99, 102, 241, 0.22);
-        }
-        .btn-contained:hover:not(:disabled) { background: var(--primary-hover); box-shadow: 0 1px 3px rgba(99, 102, 241, 0.30); }
-        .btn-contained:active:not(:disabled) { transform: translateY(0.5px); }
-
         .btn-tonal {
             background: var(--primary-soft); color: var(--primary-hover);
         }
         .btn-tonal:hover:not(:disabled) { background: rgba(99, 102, 241, 0.20); }
         .btn-tonal:active:not(:disabled) { background: rgba(99, 102, 241, 0.26); }
-
-        .btn-success { background: var(--success); color: #fff; }
-        .btn-success:hover:not(:disabled) { background: #059669; }
 
         .btn-danger { background: var(--danger); color: #fff; }
         .btn-danger:hover:not(:disabled) { background: #DC2626; }
@@ -369,9 +341,9 @@
         .card-title-icon-btn:hover:not(:disabled) {
             color: var(--primary-hover);
         }
-        .card.clickable-card { cursor: pointer; }
-        /* 媒体信息卡：flex 列布局；底部「上次扫描」悬浮于卡片下方，不占内容行高 */
-        .card.emby-media-card { display: flex; flex-direction: column; position: relative; }
+        .clickable-card { cursor: pointer; }
+        /* 媒体信息分区：flex 列布局；底部「上次扫描」悬浮于分区下方，不占内容行高 */
+        .emby-media-card { display: flex; flex-direction: column; position: relative; }
         .emby-stats-footer {
             position: absolute;     /* 脱离 flex 流悬浮于卡片内部底侧 → 圆环可用整卡高度居中 */
             left: 0; right: 0;
@@ -548,16 +520,42 @@
             margin: 0 0 4px 0;
             padding: 0;
         }
-        /* 系统状态 Tab：订阅探索占满剩余宽度，媒体信息 / 内存占用 为正方形卡片（240px） */
-        #tab-system .cards-row { grid-template-columns: minmax(0, 1fr) 240px 240px; }
-        /* 媒体信息 / 内存占用：正方形（宽高相等，不随行高拉伸） */
-        #tab-system .emby-media-card,
-        #tab-system .mem-card { aspect-ratio: 1 / 1; align-self: start; }
+        /* 系统状态 Tab：订阅探索占满剩余宽度，媒体信息 + 内存占用 合并为一卡（原两卡 240px + 中间间距） */
+        #tab-system .cards-row { grid-template-columns: minmax(0, 1fr) 480px; }
+        /* 合并卡：沿用原正方形卡高度，订阅探索海报拉伸至同高 */
+        #tab-system .sys-combo-card { height: 240px; }
+
+        /* ============ 媒体信息 + 内存占用 合并卡 ============ */
+        /* 一张卡内含左右两分区（左媒体信息 / 右内存占用），中间竖排长虚线分隔；
+           分区沿用原卡内边距与左上角悬浮标题，视觉效果与合并前的两张卡一致 */
+        #tab-system .card.sys-combo-card {
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            padding: 0;             /* 内边距下放到各分区，虚线方可上下贯通 */
+            overflow: hidden;
+        }
+        .sys-combo-card .combo-pane {
+            position: relative;
+            flex: 1 1 0;            /* 两分区等分卡宽 */
+            min-width: 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .sys-combo-card .emby-media-card { padding: 16px 24px 12px; }
+        .sys-combo-card .mem-card { padding: 16px 24px 8px; }
+        /* 中间长虚线：9px 长划 + 6px 间隔；上下各留 12px，不与卡边相连 */
+        .sys-combo-card .combo-divider {
+            flex: 0 0 1px;
+            width: 1px;
+            margin: 12px 0;
+            background-image: repeating-linear-gradient(to bottom, var(--border-strong) 0 9px, transparent 9px 15px);
+        }
         /* 后台 Tab：Emby 观看时长占宽列（左），后台任务 340px（右） */
         #tab-bg .cards-row { grid-template-columns: minmax(0, 1fr) 340px; }
         /* 后台任务的两个卡片（桌面端并入「系统状态」Tab 整理历史上方）保持原两列布局 */
         @media (min-width: 769px) {
-            #tab-system #bg-cards-row { grid-template-columns: minmax(0, 1fr) 340px; }
             /* 桌面端隐藏移动端汉堡按钮和 drawer 遮罩 */
             .hamburger-btn { display: none !important; }
             .drawer-overlay { display: none !important; }
@@ -613,9 +611,6 @@
             width: 100%; height: 100%;
             object-fit: cover;
             display: block;
-        }
-        #tab-system .tmdb-entry-card.card:hover {
-            box-shadow: none;
         }
         /* 通用搜索框（对齐截图样式） */
         .hero-search {
@@ -718,9 +713,9 @@
         .history-wrap { overflow: hidden; }   /* 不再自带外框：卡片本身即为外边框（同后台任务卡） */
         #history-card .card-title { margin-bottom: 12px; }
 
-        /* ============ 内存占用卡片 ============ */
-        /* 卡片为 flex 列，图表撑满标题下方剩余空间；下侧内边距单独收紧（默认 12px → 8px） */
-        .card:has(.mem-chart-wrap) { display: flex; flex-direction: column; padding-bottom: 8px; }
+        /* ============ 内存占用分区（合并卡内右半） ============ */
+        /* 分区为 flex 列，图表撑满标题下方剩余空间；下侧内边距单独收紧（默认 12px → 8px） */
+        .mem-card { display: flex; flex-direction: column; padding-bottom: 8px; }
         /* 图表居中（与媒体信息圆环同尺寸），数值叠在图表正中，说明文字在图表正下方 */
         .mem-body {
             flex: 1;
@@ -743,7 +738,7 @@
             min-height: 0;
             display: block;
         }
-        /* 数值信息：固定在卡片右上角（mem-card 为 relative），不占图表区布局 */
+        /* 数值信息：固定在分区右上角（mem-card 为 relative），不占图表区布局 */
         .mem-center {
             position: absolute;
             inset: auto 14px auto auto;   /* 右上角：上/右 14px */
@@ -753,8 +748,7 @@
             gap: 1px;
             pointer-events: none;   /* 不挡图表交互 */
         }
-        /* 「内存占用」标题改为左上角悬浮 .card-float-title，卡片保持 relative 供其定位 */
-        .card.mem-card { position: relative; }
+        /* 「内存占用」标题为左上角悬浮 .card-float-title，分区保持 relative 供其定位 */
         /* 数字字体与媒体信息圆环容量数字一致：UI 无衬线 700，去等宽/去数字特排 */
         .mem-kpi-value {
             font-size: 25px;
@@ -868,9 +862,7 @@
         .history-batch-link:hover:not(.disabled) { text-decoration: underline; }
         .history-batch-link.disabled { opacity: 0.4; cursor: not-allowed; text-decoration: none; }
         /* 多选 checkbox：放大便于点击选中 */
-        .history-select-col { width: 40px; padding-left: 8px; }
-        .history-table input[type="checkbox"],
-        .history-select-col input[type="checkbox"] {
+        .history-table input[type="checkbox"] {
             width: 18px; height: 18px; cursor: pointer;
             accent-color: var(--primary); vertical-align: middle; margin: 0;
         }
@@ -912,8 +904,6 @@
         }
         .bg-trigger-btn:hover { color: var(--primary-hover); }
         .bg-trigger-btn:active { opacity: .65; }
-        #emby-usage-load { color: var(--primary); }
-        #emby-usage-load:hover { color: var(--primary-hover); }
 
         /* ============ Inline alert ============ */
         .alert {
@@ -1062,7 +1052,6 @@
         }
         .group-card .switch { display: flex; }
         .group-card .cfg-card-head { margin-bottom: 2px; }
-        .group-card .cfg-card-label { min-width: 0; }
         /* 上下排列的分组卡片：字段单列、贴底对齐 */
         .group-card.single-col .group-grid {
             display: flex;
@@ -1278,7 +1267,7 @@
                 border-top: 1px solid var(--border);
                 position: sticky;
                 bottom: 0;
-                background: var(--drawer-bg, #FAFAFB);  /* 随抽屉背景，避免内容透出 */
+                background: #FAFAFB;                    /* 随抽屉背景，避免内容透出 */
             }
             .content {
                 overflow-x: clip;                       /* 裁掉横向溢出但不产生滚动容器，保证 sticky 生效 */
@@ -1296,13 +1285,15 @@
             /* 移动端：海报区给足高度，竖向海报更大气；首图预加载/加载失败时卡片也不塌陷、不跳动 */
             #tab-system .tmdb-entry-poster { min-height: 320px; }
             .cards-row { grid-template-columns: minmax(0, 1fr); }
-            /* 移动端：订阅探索整行出血，媒体信息与内存占用两卡并排同一行 */
-            #tab-system .cards-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-            /* 移动端行内排序：订阅探索卡 → 搜索框 → 媒体信息/内存占用 */
+            /* 移动端：合并卡整行显示（需带 #tab-system 前缀才能覆盖桌面端的 1fr 480px 两列） */
+            #tab-system .cards-row { grid-template-columns: minmax(0, 1fr); }
+            /* 移动端行内排序：订阅探索卡 → 搜索框 → 媒体信息/内存占用合并卡 */
             #tab-system .cards-row > .hero-search { order: 2; grid-column: 1 / -1; margin: 4px 0 0; }
             #tab-system .cards-row > .tmdb-entry-card { order: 1; grid-column: 1 / -1; }
-            #tab-system .cards-row > .emby-media-card,
-            #tab-system .cards-row > .mem-card { order: 3; }
+            #tab-system .cards-row > .sys-combo-card { order: 3; height: 210px; }
+            /* 移动端：合并卡两分区内边距随 .card 统一收至 16px */
+            .sys-combo-card .emby-media-card { padding: 16px 16px 12px; }
+            .sys-combo-card .mem-card { padding: 16px 16px 8px; }
             #tab-bg .cards-row { grid-template-columns: minmax(0, 1fr); }
             .cfg-grid { grid-template-columns: 1fr; }
             .form-row { grid-template-columns: 1fr; gap: 14px; }
@@ -1334,15 +1325,9 @@
         }
 
         /* ============ TMDB 影视榜单 ============ */
-        /* 订阅探索入口海报：默认样式由 #tab-system 卡片级规则接管（全出血横幅） */
+        /* 订阅探索入口海报：尺寸/布局由 #tab-system .tmdb-entry-poster（更高特异性）全权接管，
+           此处只保留交互属性（唯一不会被上层覆盖覆盖的部分） */
         .tmdb-entry-poster {
-            width: 100%;
-            display: block;
-            padding: 0;
-            border-radius: 14px;
-            background: none;
-            box-sizing: border-box;
-            overflow: hidden;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
@@ -1806,7 +1791,6 @@
                     <span class="t1">Media</span>
                     <span class="t2">Manager</span>
                 </span>
-                <button class="drawer-close" onclick="toggleDrawer()"><i class="fas fa-times"></i></button>
             </div>
             <a class="nav-item active drawer-hide-mobile" data-tab="system" onclick="switchTab('system')">
                 <i class="fas fa-tachometer-alt"></i><span>系统状态</span>
@@ -1909,7 +1893,7 @@
             <section class="tab-panel active" id="tab-system">
                 <div id="transfer-alert"></div>
 
-                <!-- 2. 订阅探索 + 媒体信息 + 内存占用 并排一行
+                <!-- 2. 订阅探索 + （媒体信息 / 内存占用合并卡）并排一行
                      （搜索框放在同一 grid 内作首行/指定位置项，移动端经 order 置于订阅探索卡下方） -->
                 <div class="cards-row">
                     <!-- 搜索卡片：右侧多功能图标点击弹出作用域菜单：「影视」过滤订阅探索海报，「整理」回车过滤整理历史 -->
@@ -1931,23 +1915,27 @@
                         <div id="tmdb-poster" class="tmdb-entry-poster">
                         </div>
                     </div>
-                    <div class="card clickable-card emby-media-card" onclick="openEmbyModal()" role="button" title="打开媒体查重">
-                        <div class="card-float-title">媒体信息</div>
-                        <div id="emby-stats-grid" class="emby-stats">
-                            <div style="color: var(--text-400); padding: 12px 0;">完成查重扫描后显示媒体库统计</div>
+                    <!-- 媒体信息 + 内存占用 合并卡：左半媒体信息（点击打开媒体查重），右半内存占用，中间长虚线分隔 -->
+                    <div class="card sys-combo-card">
+                        <div class="combo-pane clickable-card emby-media-card" onclick="openEmbyModal()" role="button" title="打开媒体查重">
+                            <div class="card-float-title">媒体信息</div>
+                            <div id="emby-stats-grid" class="emby-stats">
+                                <div style="color: var(--text-400); padding: 12px 0;">完成查重扫描后显示媒体库统计</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="card mem-card">
-                        <!-- 「内存占用」标题悬浮于卡片左上角 -->
-                        <div class="card-float-title">内存占用</div>
-                        <!-- 数值信息：位于卡片右上角，不占图表区布局 -->
-                        <div class="mem-center">
-                            <span class="mem-kpi-value" id="sys-proc-mem">-</span>
-                            <span class="mem-kpi-unit">MB</span>
-                        </div>
-                        <div class="mem-body">
-                            <div class="mem-chart-wrap">
-                                <svg id="mem-chart" viewBox="0 0 800 140" preserveAspectRatio="none"></svg>
+                        <div class="combo-divider" aria-hidden="true"></div>
+                        <div class="combo-pane mem-card">
+                            <!-- 「内存占用」标题悬浮于分区左上角 -->
+                            <div class="card-float-title">内存占用</div>
+                            <!-- 数值信息：位于分区右上角，不占图表区布局 -->
+                            <div class="mem-center">
+                                <span class="mem-kpi-value" id="sys-proc-mem">-</span>
+                                <span class="mem-kpi-unit">MB</span>
+                            </div>
+                            <div class="mem-body">
+                                <div class="mem-chart-wrap">
+                                    <svg id="mem-chart" viewBox="0 0 800 140" preserveAspectRatio="none"></svg>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2342,7 +2330,7 @@
 
     <script>
         // ============ 全局状态 ============
-        let envData = { sections: {}, order: [] };
+        let envData = { sections: {} };
         const BOOLEAN_KEYS = new Set(['ENV_AUTHORIZATION', 'ENV_AUTO_MAKE_JSON', 'ENV_MAKE_NEW_LINK']);
         const SECRET_PATTERNS = /SECRET|TOKEN|PASSWORD|COOKIE/i;
         // 分享类转存目录 ID（5 个共用同一目录，UI 合并为一个输入框）
@@ -4106,6 +4094,12 @@
         // 清空顶部搜索：输入框文字清空，影视海报还原全量、整理历史还原全量
         function _clearHeroSearch() {
             const inp = document.querySelector('.hero-search .hero-search-input');
+            const kw = inp ? (inp.value || '').trim() : '';
+            // 无可清内容（输入框已空 + 海报未被过滤 + 历史无关键词）时直接返回：
+            // 否则「点击页面任意位置」都会走一遍还原逻辑，重建海报轮播（闪一下并跳回中间那张）
+            const posterFiltered = _entryPosterItems.length !== _entryPosterAll.length ||
+                !_entryPosterItems.every((it, i) => it === _entryPosterAll[i]);
+            if (!kw && !posterFiltered && !(_searchScope === 'history' && historyKeyword)) return;
             if (inp) inp.value = '';
             heroSearchLive('');                     // 影视过滤还原全量海报
             if (_searchScope === 'history' && historyKeyword) {
@@ -4142,6 +4136,11 @@
             kw = (kw || '').trim().toLowerCase();
             if (!kw) {
                 _lastMediaMatches = -1;
+                // 当前已是全量池：无需重建。_buildEntryCarousel 会重新铺一遍 <img>
+                // 并把轮播索引复位到中间，空调用会表现为「海报闪一下、跳回第一张」
+                const same = _entryPosterItems.length === _entryPosterAll.length &&
+                    _entryPosterItems.every((it, i) => it === _entryPosterAll[i]);
+                if (same) return;
                 _entryPosterItems = _entryPosterAll.slice();
                 _buildEntryCarousel();
                 return;
