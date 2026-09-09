@@ -1819,6 +1819,15 @@
             .tmdb-poster { margin: 3px 3px 0; }  /* 缩小海报左右外边距，海报间距更紧凑 */
             .tmdb-poster .tmdb-score { font-size: 11px; padding: 2px 8px; }  /* 手机端评分标签与右上角集数角标一致 */
             .tmdb-modal-hero img { max-height: 260px; object-fit: contain; }
+            /* 手机端演员固定每行 5 个：10 人正好两行满排，照片随列宽自适应 */
+            .tmdb-modal-cast {
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 10px 6px;
+                justify-items: center;
+            }
+            .tmdb-cast-item { width: 100%; }
+            .tmdb-cast-item img { width: 100%; height: auto; aspect-ratio: 2 / 3; }
         }
 
         /* ============ 日志动态：移动端日志页列表样式（桌面右上角弹窗已移除，样式不再需要） ============ */
