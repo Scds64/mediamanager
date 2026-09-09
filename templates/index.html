@@ -2447,10 +2447,12 @@
                     window._embyUsageAuto = true;
                     loadEmbyUsage();
                 }
-                loadBgTasks();   // 后台任务由常驻轮询持续刷新，切换时读取缓存，不再强刷重渲
+                loadBgTasks();   // 后台任务由轮询持续刷新，切换时读取缓存，不再强刷重渲
                 startBgCountdown();
+                startBgTasksPolling();
             } else {
                 stopBgCountdown();
+                stopBgTasksPolling();   // 离开后台 Tab 即停轮询，避免后台无谓请求
             }
         }
 
@@ -3286,11 +3288,8 @@
 
         async function loadSystemUsage() {
             try {
-                const res = await fetch('/api/system/usage');
-                if (!res.ok) return;
-                const data = await res.json();
-                if (data.error) return;
-
+                // 统一走 api()：否则会绕过 401 -> 跳 /login，登录过期后本轮询只会静默失败
+                const data = await api('/api/system/usage');
                 const memMb = data.process.memory_mb;
                 document.getElementById('sys-proc-mem').textContent = memMb;
                 // 服务端历史为 [时间戳, 值] 列表（跨设备共享）；无历史时本地累积
@@ -3867,34 +3866,6 @@
         // 点击后二次确认；触发中对应任务图标高亮（蓝色），结束恢复。
         // transfer/strm 为后台任务，触发成功后轮询状态接口，任务真正结束时图标恢复。
         const _taskActive = { channel: false, transfer: false, strm: false, catalog: false, rewrite: false };
-        let _bgPollTimer = null;
-
-        function startBgPoll() {
-            if (_bgPollTimer) return;
-            _bgPollTimer = setInterval(pollBgTaskIcons, 3000);
-        }
-        function stopBgPoll() {
-            if (_bgPollTimer) { clearInterval(_bgPollTimer); _bgPollTimer = null; }
-        }
-
-        async function pollBgTaskIcons() {
-            try {
-                const st = await api('/api/tasks/status');
-                _bgTasks = st;
-                const ch = st.channel_monitor || {};
-                const tf = st.transfer || {};
-                const sm = st.strm_full_sync || {};
-                _taskActive.channel = !!ch.scanning;
-                _taskActive.transfer = !!tf.scanning;
-                _taskActive.strm = !!sm.busy;
-                _taskActive.catalog = !!sm.catalog_busy;
-                _taskActive.rewrite = !!sm.rewrite_busy;
-                renderBgTasks();
-                renderBgCountdown();
-                if (_embyUsage) renderEmbyUsageChart();
-                if (!_taskActive.channel && !_taskActive.transfer && !_taskActive.strm && !_taskActive.catalog) stopBgPoll();
-            } catch (e) { /* 轮询失败忽略，下一轮再试 */ }
-        }
 
         async function triggerBgTask(kind) {
             const cfgs = {
@@ -3914,7 +3885,7 @@
                     const r = await api('/api/monitor/trigger', 'POST', {});
                     if (r.started) {
                         _taskActive.channel = true;
-                        startBgPoll();
+                        startBgTasksPolling(true);
                         showNotification('频道监控扫描已触发，可到日志查看结果', 'success');
                     } else {
                         showNotification(r.message || '已有扫描在进行中，请稍后再试', 'info');
@@ -3925,7 +3896,7 @@
                     if (r.success) {
                         showNotification('整理任务已触发', 'success');
                         loadHistory();
-                        startBgPoll();
+                        startBgTasksPolling(true);
                     } else {
                         showNotification(r.message || r.error || '整理失败', 'error');
                     }
@@ -3937,14 +3908,14 @@
                     } catch (e2) {
                         if (e2.message.includes('Failed to fetch') || e2.message.includes('NetworkError')) {
                             showNotification('任务已触发，结果将通过 Telegram 通知', 'success');
-                            startBgPoll();
+                            startBgTasksPolling(true);
                         } else {
                             throw e2;
                         }
                     }
                     if (r) {
                         showNotification(r.message || '任务已触发', 'success');
-                        startBgPoll();
+                        startBgTasksPolling(true);
                     }
                 } else if (kind === 'catalog') {
                     showLoading('正在全量 STRM 入册...');
@@ -3954,14 +3925,14 @@
                     } catch (e2) {
                         if (e2.message.includes('Failed to fetch') || e2.message.includes('NetworkError')) {
                             showNotification('任务已触发，结果将通过 Telegram 通知', 'success');
-                            startBgPoll();
+                            startBgTasksPolling(true);
                         } else {
                             throw e2;
                         }
                     }
                     if (r) {
                         showNotification(r.message || '任务已触发', 'success');
-                        startBgPoll();
+                        startBgTasksPolling(true);
                     }
                 } else if (kind === 'rewrite') {
                     showLoading('正在改写本地 STRM 地址...');
@@ -3971,14 +3942,14 @@
                     } catch (e2) {
                         if (e2.message.includes('Failed to fetch') || e2.message.includes('NetworkError')) {
                             showNotification('改写任务已触发，结果将通过 Telegram 通知', 'success');
-                            startBgPoll();
+                            startBgTasksPolling(true);
                         } else {
                             throw e2;
                         }
                     }
                     if (r) {
                         showNotification(r.message || '改写任务已触发', 'success');
-                        startBgPoll();
+                        startBgTasksPolling(true);
                     }
                 }
             } catch (e) {
@@ -4538,11 +4509,29 @@
             if (_bgCountTimer) { clearInterval(_bgCountTimer); _bgCountTimer = null; }
         }
 
-        // 后台任务数据常驻轮询（10s 间隔），tab 切换时不强刷，由轮询保持新鲜
+        // ============ 后台任务状态轮询（单一数据源） ============
+        // 原先 3s 的 pollBgTaskIcons 与 10s 的 loadBgTasks 各自拉同一个 /api/tasks/status，
+        // 每轮接口被请求两遍、renderBgTasks() 把整块 DOM 重写两遍。现在只有一个定时器：
+        // 手动触发任务或有任务在跑时用 3s 快轮询，全部空闲后自动回落 10s（由 loadBgTasks 回调切换）。
+        const BG_POLL_FAST = 3000, BG_POLL_IDLE = 10000;
         let _bgTasksTimer = null;
-        function startBgTasksPolling() {
-            if (_bgTasksTimer) return;
-            _bgTasksTimer = setInterval(() => loadBgTasks(true), 10000);
+        let _bgTasksInterval = 0;
+        function _bgAnyTaskActive() {
+            return !!(_taskActive.channel || _taskActive.transfer || _taskActive.strm ||
+                      _taskActive.catalog || _taskActive.rewrite);
+        }
+        function startBgTasksPolling(fast) {
+            const interval = (fast || _bgAnyTaskActive()) ? BG_POLL_FAST : BG_POLL_IDLE;
+            if (_bgTasksTimer && interval === _bgTasksInterval) return;   // 间隔未变：保留现有定时器
+            if (_bgTasksTimer) clearInterval(_bgTasksTimer);
+            _bgTasksInterval = interval;
+            _bgTasksTimer = setInterval(() => loadBgTasks(true), interval);
+        }
+        function stopBgTasksPolling() {
+            if (!_bgTasksTimer) return;
+            clearInterval(_bgTasksTimer);
+            _bgTasksTimer = null;
+            _bgTasksInterval = 0;
         }
 
         async function loadBgTasks(force) {
@@ -4556,8 +4545,10 @@
                 _bgTasks = await api('/api/tasks/status');
                 _bgLoaded = true;
                 // 同步图标高亮：页面打开时已有任务在跑也亮起
+                const ch = _bgTasks.channel_monitor || {};
                 const tf = _bgTasks.transfer || {};
                 const sm = _bgTasks.strm_full_sync || {};
+                _taskActive.channel = !!ch.scanning;
                 _taskActive.transfer = !!tf.scanning;
                 _taskActive.strm = !!sm.busy;
                 _taskActive.catalog = !!sm.catalog_busy;
@@ -4566,6 +4557,8 @@
                 renderBgCountdown();
                 // 后台任务卡片高度已确定 → 重绘 Emby 图表以适应
                 if (_embyUsage) renderEmbyUsageChart();
+                // 任务开始/结束：在快轮询与空闲轮询之间自动切换
+                startBgTasksPolling();
             } catch (e) {
                 grid.innerHTML = `<div class="empty-row">任务状态加载失败: ${escapeHtml(e.message)}</div>`;
             }
@@ -5222,7 +5215,6 @@
             } catch (e) {}
             loadTmdb(false, true);  // 静默预取榜单，填充订阅探索入口海报
             startLogsPolling();
-            startBgTasksPolling();  // 后台任务常驻轮询，切换系统/后台时不强刷
             bindPageSwipe();
             bindLogsSwipeBack();
             switchTab(initialTab);
