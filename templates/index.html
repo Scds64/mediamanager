@@ -1226,6 +1226,7 @@
                 position: absolute;
                 left: 0;
                 right: 0;
+                margin: 0;                    /* 绝对定位 left/right:0 已占满屏宽，抵消基础规则的 -16px 出血，避免双倍外推 */
                 background: transparent;
                 pointer-events: none;
             }
@@ -1295,7 +1296,7 @@
             #topToolbar.mode-log .save-btn,
             #topToolbar.mode-log .top-seg { display: none !important; }
             #topToolbar.mode-log .back-btn { display: inline-flex !important; }
-            /* 移动端：drawer 中隐藏「系统状态/日志动态/后台任务/保存配置」——这 4 项入口在顶部按钮与默认页内 */
+            /* 移动端：drawer 中隐藏「系统状态/日志动态/后台任务/订阅探索/保存配置」——这些入口在顶部按钮/系统页海报与默认页内 */
             .drawer-hide-mobile { display: none !important; }
             /* 移动端：drawer 遮罩层 */
             .drawer-overlay {
@@ -1412,35 +1413,35 @@
             border-radius: 0;
             display: block;
         }
-        /* 订阅探索弹层（更深层窗口）：全屏遮罩 + 居中卡片 */
-        .tmdb-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 1000;
-            background: rgba(15, 23, 42, 0.55);
-            backdrop-filter: blur(2px);
-            overflow-y: auto;
-            padding: 32px 16px;
-        }
-        .tmdb-overlay-body {
-            max-width: 1200px;
-            margin: 0 auto;
-            position: relative;
-            background: var(--surface);
-            border-radius: var(--radius);
-            padding: 20px;
-            box-shadow: none;
-            border: 1px solid var(--border);
-        }
-        .tmdb-overlay-header {
-            display: flex;
+        /* ============ 订阅探索 / 海报详情：整页 Tab（替代原全屏弹层） ============ */
+        /* 页内返回条：仅桌面端显示（手机端用顶部工具栏返回键，见下方移动端媒体查询） */
+        .tmdb-back {
+            display: inline-flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border);
-            font-weight: 600;
-            color: var(--text-900);
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-500);
+            cursor: pointer;
+            margin: 2px 2px 10px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: color 0.18s ease;
+        }
+        .tmdb-back:hover { color: var(--primary); }
+        .tmdb-back i { font-size: 12px; }
+        /* 页内返回条在手机端隐藏：返回由顶部工具栏返回键承担（须置于基础规则之后，避免被覆盖） */
+        @media (max-width: 768px) { .tmdb-back { display: none; } }
+        /* 整页卡片容器：与其他 Tab 页一致（半透明底由全局 .card 覆盖层统一给定） */
+        .tmdb-page { min-height: 220px; }
+        .tmdb-page-head { margin-bottom: 2px !important; }
+        /* 详情页：hero 满卡出血、圆角由卡片裁切 */
+        .tmdb-detail-page { padding: 0; overflow: hidden; }
+        /* 详情 hero：桌面固定高度 cover 裁剪，手机沿用弹层时代的 contain（可看全图） */
+        .tmdb-detail-page .tmdb-modal-hero { min-height: 0; }
+        .tmdb-detail-page .tmdb-modal-hero img { width: 100%; height: 380px; object-fit: cover; }
+        @media (max-width: 768px) {
+            .tmdb-detail-page .tmdb-modal-hero img { height: auto; max-height: 260px; object-fit: contain; }
         }
         .tmdb-toolbar {
             display: flex;
@@ -1887,6 +1888,9 @@
             <a class="nav-item drawer-hide-mobile" data-tab="bg" onclick="switchTab('bg')">
                 <i class="fas fa-tasks"></i><span>后台任务</span>
             </a>
+            <a class="nav-item drawer-hide-mobile" data-tab="tmdb" onclick="switchTab('tmdb')">
+                <i class="fas fa-compass"></i><span>订阅探索</span>
+            </a>
             <a class="nav-item" data-tab="user" onclick="switchTab('user')">
                 <i class="fas fa-user-cog"></i><span>用户配置</span>
             </a>
@@ -1923,7 +1927,7 @@
                     <i class="fas fa-bars"></i>
                 </button>
                 <!-- 返回（编辑态） -->
-                <button class="toolbar-icon-btn back-btn mode-edit-left" onclick="switchTab('system')" aria-label="返回系统状态">
+                <button class="toolbar-icon-btn back-btn mode-edit-left" onclick="goTopBack()" aria-label="返回">
                     <i class="fas fa-chevron-left"></i>
                 </button>
                 <!-- 中间分段指示：系统 / 后台 两个淡色点，当前页的点变为短横线（形似订阅探索右下角） -->
@@ -1997,7 +2001,7 @@
                         </div>
                     </div>
                     <!-- 订阅探索（单张横向海报；圆点或左右滑动切换，点击海报打开详情） -->
-                    <div class="card tmdb-entry-card" onclick="toggleTmdbPanel()" role="button" title="点击打开订阅探索">
+                    <div class="card tmdb-entry-card" onclick="openTmdbPanel()" role="button" title="点击打开订阅探索">
                         <div id="tmdb-poster" class="tmdb-entry-poster">
                         </div>
                     </div>
@@ -2144,12 +2148,15 @@
                 </div>
             </section>
 
-            <!-- ============ 订阅探索 弹层（更深层窗口） ============ -->
-            <div id="tmdb-overlay" class="tmdb-overlay" style="display: none;">
-                <div class="tmdb-overlay-body">
-                    <button class="tmdb-modal-close" onclick="closeTmdbPanel()"><i class="fas fa-times"></i></button>
-                    <div class="tmdb-overlay-header">
-                        <span>订阅探索</span>
+            <!-- ============ 订阅探索（整页 Tab，替代原全屏弹层） ============ -->
+            <section class="tab-panel" id="tab-tmdb">
+                <div class="tmdb-back" onclick="goTopBack()" role="button" title="返回系统状态">
+                    <i class="fas fa-chevron-left"></i><span>返回系统</span>
+                </div>
+                <div class="card tmdb-page">
+                    <div class="card-title tmdb-page-head">
+                        订阅探索
+                        <span class="hint">榜单 / 已订阅 / 追剧日历</span>
                     </div>
                     <div class="tmdb-toolbar list-only">
                         <div class="tmdb-seg" id="tmdb-type-seg">
@@ -2176,11 +2183,19 @@
                             <button type="button" id="tmdb-search-clear" class="tmdb-search-clear" aria-label="清除搜索" onclick="tmdbClearSearch()"><i class="fas fa-times"></i></button>
                         </div>
                     </div>
-                    <div id="tmdb-content" style="min-height: 200px;">
-                        <div style="color: var(--text-400); padding: 40px; text-align: center;">加载中...</div>
-                    </div>
+                    <div id="tmdb-content" style="min-height: 200px;"></div>
                 </div>
-            </div>
+            </section>
+
+            <!-- ============ 海报详情（订阅探索 的下级整页，点榜单海报进入） ============ -->
+            <section class="tab-panel" id="tab-tmdb-detail">
+                <div class="tmdb-back" onclick="goTopBack()" role="button" title="返回订阅探索">
+                    <i class="fas fa-chevron-left"></i><span>返回订阅探索</span>
+                </div>
+                <div class="card tmdb-page tmdb-detail-page">
+                    <div id="tmdb-detail-content"></div>
+                </div>
+            </section>
 
             <!-- ============ Tab 3: 文件整理 ============ -->
             <section class="tab-panel" id="tab-transfer">
@@ -2443,6 +2458,11 @@
         function switchTab(tab) {
             const prevTab = switchTab._last;
             switchTab._last = tab;
+            // 海报详情页无内容时（URL 直达/刷新落地）自动回退订阅探索，避免空白页
+            if (tab === 'tmdb-detail') {
+                const dc = document.getElementById('tmdb-detail-content');
+                if (dc && !dc.firstElementChild) { switchTab('tmdb'); return; }
+            }
             const panel = document.getElementById('tab-' + tab);
             const prevPanel = prevTab ? document.getElementById('tab-' + prevTab) : null;
             const isSysBg = !!prevPanel && ((tab === 'system' && prevTab === 'bg') || (tab === 'bg' && prevTab === 'system'));
@@ -2474,12 +2494,12 @@
             // 侧边栏"保存配置"按钮始终显示（不随 tab 隐藏）
 
             // 移动端：进入 5 个设置类 Tab 时切换顶部工具行：汉堡/分段/日志 → 返回/空/保存；同时隐藏搜索框
-            // 进入 logs tab 时：只显示左返回按钮，其余全部隐藏
+            // 进入 logs / 订阅探索 / 海报详情 tab 时：只显示左返回按钮，其余全部隐藏
             const SUB_TABS = { user: 1, 'transfer-save': 1, transfer: 1, strm: 1, mediawarp: 1 };
             const toolbar = document.getElementById('topToolbar');
             if (toolbar) {
                 toolbar.classList.toggle('mode-edit', !!SUB_TABS[tab]);
-                toolbar.classList.toggle('mode-log', tab === 'logs');
+                toolbar.classList.toggle('mode-log', tab === 'logs' || tab === 'tmdb' || tab === 'tmdb-detail');
             }
 
             // 顶部中间指示点高亮：system / bg
@@ -2541,6 +2561,30 @@
                 stopBgCountdown();
                 stopBgTasksPolling();   // 离开后台 Tab 即停轮询，避免后台无谓请求
             }
+
+            // ============ 订阅探索 / 海报详情：整页化管理 ============
+            // 离开这两个整页（回系统等）时释放榜单与详情内容，严格内存控制；
+            // 返回订阅探索页且榜单区为空时，按当前视图（榜单/已订阅/追剧日历）重新加载
+            if ((prevTab === 'tmdb' || prevTab === 'tmdb-detail') && tab !== 'tmdb' && tab !== 'tmdb-detail') {
+                const listBox = document.getElementById('tmdb-content');
+                if (listBox) listBox.innerHTML = '';
+                const detailBox = document.getElementById('tmdb-detail-content');
+                if (detailBox) detailBox.innerHTML = '';
+            }
+            if (tab === 'tmdb') {
+                const listBox = document.getElementById('tmdb-content');
+                if (listBox && !listBox.firstElementChild) renderTmdbView();
+            }
+            // 进入订阅探索/海报详情整页：滚动归顶，避免承接上一页滚动位置从页面中段看起
+            if (tab === 'tmdb' || tab === 'tmdb-detail') window.scrollTo(0, 0);
+        }
+
+        // 顶部工具栏返回键 / 页内返回条统一后退：详情 → 订阅探索 → 系统
+        function goTopBack() {
+            const cur = document.querySelector('.tab-panel.active');
+            const curTab = cur ? (cur.id || '').replace('tab-', '') : '';
+            if (curTab === 'tmdb-detail') switchTab('tmdb');
+            else switchTab('system');
         }
 
         // ============ 后台任务卡片：桌面端与移动端一致，都放在「后台」Tab 页面 ============
@@ -2859,25 +2903,16 @@
             }
         }
 
-        function toggleTmdbPanel() {
-            // 点击海报：打开更深层弹层窗口；进入当前视图（榜单 / 已订阅）
-            const overlay = document.getElementById('tmdb-overlay');
-            if (overlay) {
-                overlay.style.display = '';
-                // 点击遮罩（卡片之外）关闭
-                overlay.onclick = function (e) { if (e.target === overlay) closeTmdbPanel(); };
-            }
+        function openTmdbPanel() {
+            // 系统页中间海报点击：切换到「订阅探索」整页（内容为空时会按当前视图自动加载，见 switchTab）
+            switchTab('tmdb');
+        }
+
+        // 进入订阅探索页且榜单区为空时，按当前视图重新加载（榜单 / 已订阅 / 追剧日历）
+        function renderTmdbView() {
             if (_tmdbView === 'subscribed') showSubscribed();
             else if (_tmdbView === 'calendar') showCalendar();
             else loadTmdb();
-        }
-
-        function closeTmdbPanel() {
-            // 返回上层窗口；同时清空榜单内容释放内存（严格内存控制）
-            const overlay = document.getElementById('tmdb-overlay');
-            if (overlay) overlay.style.display = 'none';
-            const content = document.getElementById('tmdb-content');
-            if (content) content.innerHTML = '';
         }
 
         function _tmdbUpdateActive(segId, attr, value) {
@@ -2971,10 +3006,10 @@
             }
         }
 
-        // ============ 统一弹层（全屏遮罩 + 居中卡片） ============
-        // TMDB 详情 / 媒体查重 / Emby 观看详情 三处原先各自 createElement + appendChild + 绑定遮罩关闭，
-        // 且 closeTmdbDetail 与 closeEmbyUsageDetail 都用 '.tmdb-modal-overlay' 取第一个匹配，
+        // ============ 统一弹层（全屏遮罩 + 居中卡片，媒体查重 / Emby 观看详情使用） ============
+        // 原先各功能各自 createElement + 绑定遮罩关闭，且都以 '.tmdb-modal-overlay' 取第一个匹配，
         // 同时存在多个弹层时会误关他人。这里统一为「每弹层唯一 id + 统一开关 + 统一关闭按钮」。
+        // （TMDB 榜单与海报详情已改为整页 Tab，不再使用弹层。）
         function openOverlay(id, innerHtml, extraClass) {
             closeOverlay(id);
             const overlay = document.createElement('div');
@@ -2992,13 +3027,6 @@
             const el = id && document.getElementById(id);
             if (el) el.remove();
         }
-        // 弹层内的错误/空态：复用已有 body 容器（关闭按钮由 openOverlay 统一提供）
-        function showOverlayMessage(overlay, msg) {
-            const body = overlay.querySelector('.tmdb-modal-body');
-            if (body) body.innerHTML = `<div style="color: var(--text-600);">${escapeHtml(msg)}</div>`;
-        }
-
-        function closeTmdbDetail() { closeOverlay('tmdb-detail-overlay'); }
 
         function openTmdbDetailFromCard(card) {
             if (!card) return;
@@ -3010,21 +3038,25 @@
         }
 
         async function openTmdbDetail(item) {
-            const overlay = openOverlay('tmdb-detail-overlay',
-                '<div class="tmdb-modal-body" style="text-align: center; padding: 40px;">加载详情...</div>');
+            const box = document.getElementById('tmdb-detail-content');
+            if (!box) return;
+            box.innerHTML = '<div style="text-align:center;padding:48px 20px;color:var(--text-500);">加载详情...</div>';
+            switchTab('tmdb-detail');   // 先切页占位，避免点击海报后界面无响应
             try {
                 const data = await api(`/api/tmdb/detail?id=${encodeURIComponent(item.id)}&type=${encodeURIComponent(item.type)}`);
                 if (!data.configured || data.error || !data.detail) {
-                    showOverlayMessage(overlay, data.error || '详情加载失败');
+                    box.innerHTML = `<div style="padding:48px 20px;text-align:center;color:var(--text-600);">${escapeHtml(data.error || '详情加载失败')}</div>`;
                     return;
                 }
-                renderTmdbDetail(overlay, data.detail);
+                renderTmdbDetail(data.detail);
             } catch (e) {
-                showOverlayMessage(overlay, '详情加载失败：' + (e.message || '请求失败'));
+                box.innerHTML = '<div style="padding:48px 20px;text-align:center;color:var(--text-600);">详情加载失败：' + escapeHtml(e.message || '请求失败') + '</div>';
             }
         }
 
-        function renderTmdbDetail(overlay, d) {
+        function renderTmdbDetail(d) {
+            const box = document.getElementById('tmdb-detail-content');
+            if (!box) return;
             const heroUrl = d.backdrop_path
                 ? `https://image.tmdb.org/t/p/w780${d.backdrop_path}`
                 : (d.poster_path ? `https://image.tmdb.org/t/p/w500${d.poster_path}` : '');
@@ -3048,12 +3080,10 @@
                 return `<div class="tmdb-cast-item">${avatar}<div>${escapeHtml(c.name)}</div><div style="color:var(--text-400);font-size:10px;">${escapeHtml(c.character || '')}</div></div>`;
             }).join('');
 
-            overlay.innerHTML = `<div class="tmdb-modal">
-                <button class="tmdb-modal-close" onclick="closeTmdbDetail()"><i class="fas fa-times"></i></button>
-                <div class="tmdb-modal-hero">
+            box.innerHTML = `<div class="tmdb-modal-hero">
                     ${heroUrl
                         ? `<img src="${heroUrl}" alt="${escapeHtml(d.title)}" onerror="this.remove()">`
-                        : '<div style="padding: 40px; color: var(--text-400);">暂无大图</div>'}
+                        : '<div style="padding: 40px; text-align:center; color: var(--text-500);">暂无大图</div>'}
                 </div>
                 <div class="tmdb-modal-body">
                     <div class="tmdb-modal-title">${escapeHtml(mainTitle)}</div>
@@ -3064,8 +3094,7 @@
                     ${directors ? `<div class="tmdb-modal-section">${escapeHtml(directors)}</div>` : ''}
                     ${creators ? `<div class="tmdb-modal-section">${escapeHtml(creators)}</div>` : ''}
                     ${castHtml ? `<div class="tmdb-modal-section">演员</div><div class="tmdb-modal-cast">${castHtml}</div>` : ''}
-                </div>
-            </div>`;
+                </div>`;
         }
 
         function escapeHtml(value) {
@@ -3433,16 +3462,16 @@
             }
         });
 
-        // Esc 关闭最上层弹层：详情/查重 > 订阅探索 > 抽屉
+        // Esc：先关仍存在的通用弹层（媒体查重等）；再在订阅探索/详情整页逐级返回；最后关抽屉
         document.addEventListener('keydown', function (e) {
             if (e.key !== 'Escape') return;
             if (document.querySelector('.tmdb-modal-overlay')) {
-                closeTmdbDetail();
                 closeEmbyModal();
                 return;
             }
-            const panel = document.getElementById('tmdb-overlay');
-            if (panel && panel.style.display !== 'none') { closeTmdbPanel(); return; }
+            const cur = document.querySelector('.tab-panel.active');
+            const curTab = cur ? (cur.id || '').replace('tab-', '') : '';
+            if (curTab === 'tmdb' || curTab === 'tmdb-detail') { goTopBack(); return; }
             const drawer = document.getElementById('drawer');
             if (drawer && drawer.classList.contains('open')) {
                 setDrawer(false);
@@ -4263,17 +4292,13 @@
                 if (inp) inp.value = '';
             }
         }
-        // 打开订阅探索弹窗并搜索该关键词（影视作用域回车时触发，弹窗展示匹配影片）
+        // 打开订阅探索整页并搜索该关键词（影视作用域回车时触发，页内展示匹配影片）
         function openTmdbSearch(kw) {
             if (_tmdbView !== 'list') { _tmdbView = 'list'; _applyToolbarMode(); }
-            const overlay = document.getElementById('tmdb-overlay');
-            if (overlay) {
-                overlay.style.display = '';
-                overlay.onclick = function (e) { if (e.target === overlay) closeTmdbPanel(); };
-            }
             // 不在前端显示自动填词：搜索框保持为空，仅语言内部带关键词搜索，安静展示结果
             _tmdbQuery = kw;
             loadTmdb();
+            switchTab('tmdb');
         }
         // 搜索日志：打开日志页 + 后端全文件关键词过滤；记录过滤词避免轮询冲刷掉结果
         async function heroSearchLogs(kw) {
@@ -5159,8 +5184,8 @@
                 const t = e.touches && e.touches[0];
                 const segEl = document.getElementById('topSeg');
                 const blocked =
-                    !!document.querySelector('.tmdb-overlay.show, .tmdb-modal-overlay.show') ||
-                    (segEl && getComputedStyle(segEl).display === 'none'); // 设置子页/日志页
+                    !!document.querySelector('.tmdb-modal-overlay') ||
+                    (segEl && getComputedStyle(segEl).display === 'none'); // 设置子页/日志页/订阅探索页
                 if (blocked || !t) { sx = 0; return; }
                 sx = t.clientX; sy = t.clientY; se = e.target;
             }, { passive: true });
@@ -5217,7 +5242,7 @@
         // ============ 初始化 ============
         (async function init() {
             const hash = (location.hash || '').replace('#', '');
-            const validTabs = ['system', 'user', 'transfer-save', 'transfer', 'strm', 'mediawarp', 'logs', 'bg'];
+            const validTabs = ['system', 'user', 'transfer-save', 'transfer', 'strm', 'mediawarp', 'logs', 'bg', 'tmdb', 'tmdb-detail'];
             const initialTab = validTabs.includes(hash) ? hash : 'system';
             await loadEnv();
             loadOAuthStatus();
