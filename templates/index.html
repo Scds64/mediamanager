@@ -350,7 +350,7 @@
             bottom: 10px;
             display: flex;          /* 「上次扫描」与时间同一行 */
             align-items: baseline;
-            justify-content: center;
+            justify-content: center;   /* 底部中间 */
             gap: 6px;
             line-height: 1.6;
         }
@@ -360,6 +360,21 @@
             color: var(--text-400);
             font-weight: 400;
         }
+        /* 媒体信息卡片左下方：电影 / 电视剧 部数（左对齐，离边缘 16px） */
+        .media-cap {
+            position: absolute;
+            left: 16px;
+            bottom: 22px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;   /* 左对齐 */
+            gap: 0;                  /* 电影/电视剧两行间距（比默认 3px 减小 3px，电视剧底部位置不变） */
+            text-align: left;
+            pointer-events: none;   /* 不挡整卡点击 */
+        }
+        .media-cap .mc-row { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+        .media-cap .mc-ico { width: 13px; text-align: center; font-size: 10px; color: var(--text-400); }
+        .media-cap .mc-num { font-weight: 500; color: var(--text-400); font-size: 11px; }   /* 与图标同色同格式 */
 
         /* 卡片左上角悬浮标题（媒体信息 / 内存占用）：
            字号/字重/颜色/字距与常规标题行 .card-title 完全一致（含移动端 15px 覆盖），
@@ -1922,6 +1937,7 @@
                     <div class="card sys-combo-card">
                         <div class="combo-pane clickable-card emby-media-card" onclick="openEmbyModal()" role="button" title="打开媒体查重">
                             <div class="card-float-title">媒体信息</div>
+                            <div class="media-cap" id="emby-cap"></div>
                             <div id="emby-stats-grid" class="emby-stats">
                                 <div style="color: var(--text-400); padding: 12px 0;">完成查重扫描后显示媒体库统计</div>
                             </div>
@@ -4888,6 +4904,8 @@
             if (!grid) return;
             if (!stats) {
                 grid.innerHTML = '<div style="color: var(--text-400); padding: 12px 0;">完成查重扫描后显示媒体库统计</div>';
+                const capEl = document.getElementById('emby-cap');
+                if (capEl) capEl.innerHTML = '<span style="color:var(--text-400);font-size:12px;">—</span>';
                 return;
             }
             // 拆分容量字符串为 数字 + 单位（如 "86.3 TB" -> 86.3 / TB）
@@ -4919,7 +4937,12 @@
                     <span class="esf-time" id="emby-stats-time"></span>
                 </div>
             `;
-            // 上次扫描时间：显示在卡片右下角，去掉年份
+            // 媒体计数：电影 / 电视剧 部数，显示在卡片右上角（参考内存占用数据位置）
+            const capEl = document.getElementById('emby-cap');
+            if (capEl) capEl.innerHTML = `
+                <div class="mc-row"><span class="mc-ico"><i class="fas fa-film"></i></span><span class="mc-num">${stats.movie_count || 0}</span></div>
+                <div class="mc-row"><span class="mc-ico"><i class="fas fa-tv"></i></span><span class="mc-num">${stats.tv_count || 0}</span></div>`;
+            // 上次扫描时间：显示在卡片底部中间，去掉年份
             const timeEl = document.getElementById('emby-stats-time');
             if (timeEl) {
                 const t = lastScan || '-';
