@@ -2421,6 +2421,7 @@
                 if (!window._embyLoaded) {
                     window._embyLoaded = true;
                     loadEmbyStatus();
+                    loadMediaStats();
                 }
             } else if (tab !== 'bg') {
                 // 仅进入其它设置类/日志页时才停轮询；回到 system/bg 时继续常驻
@@ -3870,6 +3871,7 @@
         // 点击后二次确认；触发中对应任务图标高亮（蓝色），结束恢复。
         // transfer/strm 为后台任务，触发成功后轮询状态接口，任务真正结束时图标恢复。
         const _taskActive = { channel: false, transfer: false, strm: false, catalog: false, rewrite: false };
+        let _transferWasActive = false;
 
         async function triggerBgTask(kind) {
             const cfgs = {
@@ -3895,12 +3897,14 @@
                         showNotification(r.message || '已有扫描在进行中，请稍后再试', 'info');
                     }
                 } else if (kind === 'transfer') {
+                    _transferWasActive = true;
                     showNotification('正在扫描整理...', 'info');
                     const r = await api('/api/transfer/run', 'POST', {});
                     if (r.success) {
                         showNotification('整理任务已触发', 'success');
                         loadHistory();
                         startBgTasksPolling(true);
+                        loadMediaStats();
                     } else {
                         showNotification(r.message || r.error || '整理失败', 'error');
                     }
@@ -4314,6 +4318,7 @@
                     showTransferAlert(`已删除 ${r.deleted||0} 条`, 'success');
                 }
                 loadHistory();
+                loadMediaStats();
             } catch (e) {
                 showTransferAlert('删除失败: ' + e.message, 'error');
             }
@@ -4449,6 +4454,15 @@
             return v.toFixed(1) + ' PB';
         }
 
+        async function loadMediaStats() {
+            try {
+                const stats = await api('/api/media/stats');
+                renderEmbyStats(stats);
+            } catch (e) {
+                showNotification('加载媒体统计失败: ' + e.message, 'error');
+            }
+        }
+
         async function loadEmbyStatus() {
             try {
                 const s = await api('/api/emby/status');
@@ -4541,7 +4555,10 @@
                 const tf = _bgTasks.transfer || {};
                 const sm = _bgTasks.strm_full_sync || {};
                 _taskActive.channel = !!ch.scanning;
-                _taskActive.transfer = !!tf.scanning;
+                const transferActive = !!tf.scanning;
+                if (_transferWasActive && !transferActive) loadMediaStats();
+                _transferWasActive = transferActive;
+                _taskActive.transfer = transferActive;
                 _taskActive.strm = !!sm.busy;
                 _taskActive.catalog = !!sm.catalog_busy;
                 _taskActive.rewrite = !!sm.rewrite_busy;
@@ -4883,9 +4900,13 @@
             const grid = document.getElementById('emby-stats-grid');
             if (!grid) return;
             if (!stats) {
+<<<<<<< HEAD
                 grid.innerHTML = '<div style="color: var(--text-400); padding: 12px 0;">完成查重扫描后显示媒体库统计</div>';
                 const capEl = document.getElementById('emby-cap');
                 if (capEl) capEl.innerHTML = '<span style="color:var(--text-400);font-size:9px;">—</span>';
+=======
+                grid.innerHTML = '<div style="color: var(--text-400); padding: 12px 0;">暂无整理记录</div>';
+>>>>>>> 817ba8b (v0.7.60 基于整理记录刷新媒体统计)
                 return;
             }
             // 拆分容量字符串为 数字 + 单位（如 "86.3 TB" -> 86.3 / TB）
@@ -4913,11 +4934,17 @@
                     <text x="50" y="65" text-anchor="middle" font-size="7" fill="#94A3B8">${total.unit}</text>
                 </svg>
             `;
+<<<<<<< HEAD
             // 媒体计数：电影 / 电视剧 部数，显示在卡片底部中间（同一行）
             const capEl = document.getElementById('emby-cap');
             if (capEl) capEl.innerHTML = `
                 <span class="mc-group"><span class="mc-label">电影</span> <span class="mc-num">${stats.movie_count || 0}</span></span>
                 <span class="mc-group"><span class="mc-label">电视剧</span> <span class="mc-num">${stats.tv_count || 0}</span></span>`;
+=======
+            // 上次扫描时间：显示在卡片右下角，去掉年份
+            const timeEl = document.getElementById('emby-stats-time');
+            if (timeEl) timeEl.textContent = '整理记录';
+>>>>>>> 817ba8b (v0.7.60 基于整理记录刷新媒体统计)
         }
 
         function renderEmbyDup(s) {
@@ -4926,7 +4953,10 @@
             const resultEl = document.getElementById('emby-dup-result');
             const actionsEl = document.getElementById('emby-dup-actions');
             const dvOn = localStorage.getItem('emby_dv_priority') !== '0';  // 杜比视界优先开关状态
+<<<<<<< HEAD
             renderEmbyStats(s.scan_result ? s.scan_result.stats : null);
+=======
+>>>>>>> 817ba8b (v0.7.60 基于整理记录刷新媒体统计)
             if (!alertEl) return;  // 弹窗未打开：只更新系统页圆环图
             alertEl.className = 'alert';
             alertEl.innerHTML = '';
@@ -4951,7 +4981,7 @@
                 resultEl.innerHTML = '';
                 return;
             }
-            const libs = Object.keys(s.scan_result).filter(k => k !== 'stats');
+            const libs = Object.keys(s.scan_result);
             if (!libs.length) {
                 // 只有本会话点击过「开始扫描」才显示扫描结果，避免服务器上的历史结果误导
                 resultEl.innerHTML = _embyScanStarted
@@ -5030,6 +5060,7 @@
                 }
                 showNotification(msg, (r.fail_list && r.fail_list.length) ? 'error' : 'success');
                 loadEmbyStatus();
+                loadMediaStats();
             } catch (e) {
                 showNotification('删除失败: ' + e.message, 'error');
             }

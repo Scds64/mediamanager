@@ -304,6 +304,38 @@ func (h *TransferHistory) CountFilter(status, keyword string) int {
 	return n
 }
 
+// MediaStats 汇总成功整理记录中的媒体容量和媒体数量。
+// 统计在 SQLite 内完成，只返回汇总值，避免把历史明细加载到内存。
+type MediaStats struct {
+	MovieCount int   `json:"movie_count"`
+	MovieSize  int64 `json:"movie_size"`
+	TVCount    int   `json:"tv_count"`
+	TVSize     int64 `json:"tv_size"`
+	TotalSize  int64 `json:"total_size"`
+}
+
+func (h *TransferHistory) MediaStats() MediaStats {
+	var stats MediaStats
+	err := h.db.QueryRow(fmt.Sprintf(`
+		SELECT
+			COUNT(DISTINCT CASE WHEN media_type='movie' AND media_title <> ''
+				THEN media_title || '|' || COALESCE(media_year, '') END),
+			COALESCE(SUM(CASE WHEN media_type='movie' THEN file_size ELSE 0 END), 0),
+			COUNT(DISTINCT CASE WHEN media_type IN ('tv', 'series') AND media_title <> ''
+				THEN media_title || '|' || COALESCE(media_year, '') END),
+			COALESCE(SUM(CASE WHEN media_type IN ('tv', 'series') THEN file_size ELSE 0 END), 0)
+		FROM %s
+		WHERE status='success'`, historyTable)).Scan(
+		&stats.MovieCount, &stats.MovieSize, &stats.TVCount, &stats.TVSize,
+	)
+	if err != nil {
+		log.Printf("[transfer_history] MediaStats 查询失败: %v", err)
+		return MediaStats{}
+	}
+	stats.TotalSize = stats.MovieSize + stats.TVSize
+	return stats
+}
+
 // Delete 删除单条记录。
 func (h *TransferHistory) Delete(historyID int) bool {
 	res, err := h.db.Exec(fmt.Sprintf("DELETE FROM %s WHERE id=?", historyTable), historyID)

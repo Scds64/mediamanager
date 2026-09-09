@@ -113,15 +113,6 @@ type DupGroup struct {
 	RedundantSize int64     `json:"redundant_size"`
 }
 
-// ScanStats 媒体状态统计。
-type ScanStats struct {
-	MovieCount int   `json:"movie_count"`
-	MovieSize  int64 `json:"movie_size"`
-	TVCount    int   `json:"tv_count"`
-	TVSize     int64 `json:"tv_size"`
-	TotalSize  int64 `json:"total_size"`
-}
-
 // ScanResult 查重扫描结果（键为中文分类名，与前端一致）。
 type ScanResult map[string]any
 
@@ -153,11 +144,8 @@ func ScanDuplicates(strmPaths string) ScanResult {
 		return info
 	}
 
-	// 第一遍：统计分组数量和媒体总量
+	// 第一遍：统计分组数量
 	counts := map[scanKey]int{}
-	tvUnep := map[[2]any]bool{} // 无集号剧集 (标题, 年份)
-	var movieSize, tvSize int64
-
 	IterStrmFiles(roots, func(p string) {
 		meta := ParseMeta(p)
 		if meta.Title == "" {
@@ -168,13 +156,9 @@ func ScanDuplicates(strmPaths string) ScanResult {
 			return
 		}
 		if meta.Kind == "tv" {
-			tvSize += size
 			if meta.Episode == -1 {
-				tvUnep[[2]any{meta.Title, meta.Year}] = true
 				return
 			}
-		} else {
-			movieSize += size
 		}
 		key := scanKey{kind: meta.Kind, title: meta.Title, year: meta.Year, season: meta.Season, episode: meta.Episode}
 		counts[key]++
@@ -244,23 +228,6 @@ func ScanDuplicates(strmPaths string) ScanResult {
 		})
 	}
 
-	// 媒体状态统计
-	movieCount := 0
-	tvSet := map[[2]any]bool{}
-	for k := range counts {
-		if k.kind == "movie" {
-			movieCount++
-		} else {
-			tvSet[[2]any{k.title, k.year}] = true
-		}
-	}
-	result["stats"] = ScanStats{
-		MovieCount: movieCount,
-		MovieSize:  movieSize,
-		TVCount:    len(tvSet) + len(tvUnep),
-		TVSize:     tvSize,
-		TotalSize:  movieSize + tvSize,
-	}
 	return result
 }
 
@@ -345,11 +312,10 @@ func decodeScanResult(dec *json.Decoder, result ScanResult) error {
 			return fmt.Errorf("查重结果分类名称无效")
 		}
 		if field == "stats" {
-			var stats ScanStats
-			if err := dec.Decode(&stats); err != nil {
+			var ignored map[string]any
+			if err := dec.Decode(&ignored); err != nil {
 				return err
 			}
-			result[field] = stats
 			continue
 		}
 		var groups []DupGroup

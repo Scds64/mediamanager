@@ -167,6 +167,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 
 	// 整理
 	mux.HandleFunc("GET /api/transfer/status", s.authWrap(s.handleTransferStatus))
+	mux.HandleFunc("GET /api/media/stats", s.authWrap(s.handleMediaStats))
 	mux.HandleFunc("GET /api/transfer/dirs", s.authWrap(s.handleTransferGetDirs))
 	mux.HandleFunc("POST /api/transfer/dirs", s.authWrap(s.handleTransferSaveDirs))
 	mux.HandleFunc("POST /api/transfer/run", s.authWrap(s.handleTransferRun))
