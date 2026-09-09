@@ -350,7 +350,7 @@ func (t *TmdbClient) GetDetailDict(tmdbID int, mediaType string) *TmdbDetail {
 			}
 		}
 	}
-	for _, c := range raw.Credits.Cast[:min(10, len(raw.Credits.Cast))] {
+	for _, c := range raw.Credits.Cast[:min(8, len(raw.Credits.Cast))] {
 		d.Cast = append(d.Cast, TmdbCastMember{Name: c.Name, Character: c.Character, ProfilePath: c.ProfilePath})
 	}
 	return d
