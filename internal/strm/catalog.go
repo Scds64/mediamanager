@@ -136,7 +136,7 @@ func catalogLocalStrms(strmPaths []string, localDir, panDir string,
 					}
 				}
 
-				rec := buildHistoryRecord(meta, transferMeta, matchedPath, strmPath, info.Size, fmatched)
+				rec := buildHistoryRecord(meta, transferMeta, panRelativePath(matchedPath, panDir), strmPath, info.Size, fmatched)
 				resCh <- workItem{rec: rec, matched: fmatched != nil}
 			}
 		}()
@@ -361,13 +361,37 @@ func buildHistoryRecord(strmMeta StrmMeta, transferMeta transfer.MetaInfo, match
 	}
 
 	rec.Status = "success"
-	rec.Version = transfer.CalcVersionScore(rec.FileName)
+	versionName := rec.FileName
+	if matched == nil || versionName == "" {
+		versionName = transferMeta.RawName
+	}
+	if versionName == "" {
+		versionName = filepath.Base(localStrmPath)
+	}
+	rec.Version = transfer.CalcVersionScore(versionName)
 	if matched != nil {
 		rec.TransferType = "catalog"
 	} else {
 		rec.TransferType = "catalog_orphan"
 	}
+
 	return rec
+}
+
+// panRelativePath 统一历史记录中的网盘路径格式，与常规整理使用的相对路径一致。
+func panRelativePath(fullPath, panRoot string) string {
+	fullPath = strings.Trim(strings.ReplaceAll(fullPath, "\\", "/"), "/")
+	panRoot = strings.Trim(strings.ReplaceAll(panRoot, "\\", "/"), "/")
+	if fullPath == "" {
+		return ""
+	}
+	if panRoot != "" {
+		prefix := panRoot + "/"
+		if strings.HasPrefix(fullPath, prefix) {
+			return strings.TrimPrefix(fullPath, prefix)
+		}
+	}
+	return fullPath
 }
 
 func firstNonEmpty(values ...string) string {

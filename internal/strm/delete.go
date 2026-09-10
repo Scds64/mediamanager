@@ -70,8 +70,11 @@ func LocalStrmCandidates(panPath string, mappings [][2]string) []string {
 	for _, mapping := range mappings {
 		localDir, panDir := mapping[0], mapping[1]
 		panParts := splitPath(strings.ReplaceAll(panDir, "\\", "/"))
-		if len(panParts) > 0 && equalParts(parts[:min(len(panParts), len(parts))], panParts) {
+		if len(panParts) > 0 && len(parts) >= len(panParts) && equalParts(parts[:len(panParts)], panParts) {
 			candidates = append(candidates, JoinStrm(localDir, parts[len(panParts):]))
+		} else if len(parts) > 0 {
+			// 整理历史使用相对网盘根目录的路径（如“电影/xxx.mkv”）。
+			candidates = append(candidates, JoinStrm(localDir, parts))
 		}
 	}
 	if len(candidates) == 0 && !strings.HasPrefix(norm, "/") && len(mappings) > 0 {
