@@ -84,7 +84,7 @@ type usageEvent struct {
 
 // usageEmbyClient 按需创建 Emby 客户端（懒加载）；未配置返回 nil。
 func usageEmbyClient() *strm.EmbyClient {
-	return strm.NewEmbyClient(envGet("ENV_MWARP_MEDIASERVER_ADDR", ""), envGet("ENV_MWARP_MEDIASERVER_AUTH", ""))
+	return strm.GetEmbyRuntime()
 }
 
 // parseEmbyTime 解析 Emby 返回的时间（RFC3339 变体），失败返回零值。

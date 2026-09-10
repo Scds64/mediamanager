@@ -121,14 +121,15 @@ type ExecutorConfig struct {
 // NewTransferExecutor 创建整理执行器。
 func NewTransferExecutor(cfg ExecutorConfig) (*TransferExecutor, error) {
 	e := &TransferExecutor{
-		Client:                cfg.Client,
-		MovieFormat:           cfg.MovieFormat,
-		TVFormat:              cfg.TVFormat,
-		DefaultTransferType:   cfg.DefaultTransferType,
-		SkipExts:              DefaultSkipExts,
-		EnableScrape:          cfg.EnableScrape,
-		dirPIDCache:           map[string]int{},
-		dirPIDCacheMax:        20000,
+		Client:              cfg.Client,
+		MovieFormat:         cfg.MovieFormat,
+		TVFormat:            cfg.TVFormat,
+		DefaultTransferType: cfg.DefaultTransferType,
+		SkipExts:            DefaultSkipExts,
+		EnableScrape:        cfg.EnableScrape,
+		dirPIDCache:         map[string]int{},
+		// 目录 ID 只需覆盖近期整理任务，避免长期运行后缓存无限接近大上限。
+		dirPIDCacheMax:        4096,
 		targetListingCache:    map[int64][]pan123.FileInfo{},
 		targetListingCacheMax: 500,
 	}

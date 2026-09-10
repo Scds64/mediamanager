@@ -133,17 +133,6 @@ func ScanDuplicates(strmPaths string) ScanResult {
 		return nil
 	}
 
-	// 缓存 ReadURL 结果，避免两遍扫描重复读取文件
-	urlCache := map[string]StrmInfo{}
-	cachedReadURL := func(p string) StrmInfo {
-		if info, ok := urlCache[p]; ok {
-			return info
-		}
-		info := ReadURL(p)
-		urlCache[p] = info
-		return info
-	}
-
 	// 第一遍：统计分组数量
 	counts := map[scanKey]int{}
 	IterStrmFiles(roots, func(p string) {
@@ -151,7 +140,7 @@ func ScanDuplicates(strmPaths string) ScanResult {
 		if meta.Title == "" {
 			return
 		}
-		size := cachedReadURL(p).Size
+		size := ReadURL(p).Size
 		if size == 0 {
 			return
 		}
@@ -171,7 +160,7 @@ func ScanDuplicates(strmPaths string) ScanResult {
 		if meta.Title == "" {
 			return
 		}
-		info := cachedReadURL(p)
+		info := ReadURL(p)
 		if info.Size == 0 {
 			return
 		}

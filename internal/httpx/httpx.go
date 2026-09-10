@@ -23,8 +23,8 @@ type Client struct {
 // New 创建客户端（直连，透明代理自动处理；需显式代理请使用 SetProxy）。
 func New(timeout time.Duration) *Client {
 	transport := &http.Transport{
-		MaxIdleConns:          100,
-		MaxIdleConnsPerHost:   10,
+		MaxIdleConns:          16,
+		MaxIdleConnsPerHost:   4,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ResponseHeaderTimeout: 60 * time.Second,

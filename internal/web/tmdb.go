@@ -20,6 +20,9 @@ import (
 var (
 	tmdbCacheMu sync.Mutex
 	tmdbCache   = map[string][2]any{}
+	webTMDBMu   sync.Mutex
+	webTMDBKey  string
+	webTMDB     *transfer.TmdbClient
 )
 
 const (
@@ -47,8 +50,25 @@ func tmdbClient() *transfer.TmdbClient {
 	if key == "" {
 		return nil
 	}
-	c, _ := transfer.NewTmdbClient(key, "")
-	return c
+	if executor := transfer.GetTransferExecutor(); executor != nil && executor.TMDB != nil && executor.TMDB.APIKey == key {
+		return executor.TMDB
+	}
+	webTMDBMu.Lock()
+	defer webTMDBMu.Unlock()
+	if webTMDB != nil && webTMDBKey == key {
+		return webTMDB
+	}
+	c, err := transfer.NewTmdbClient(key, "")
+	if err != nil {
+		return nil
+	}
+	webTMDBKey = key
+	webTMDB = c
+	return webTMDB
+}
+
+func embyClient() *strm.EmbyClient {
+	return strm.GetEmbyRuntime()
 }
 
 // ---------- GET /api/tmdb ----------
@@ -147,13 +167,19 @@ func (s *Server) handleTMDBSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(items) > 0 {
 		tmdbCacheMu.Lock()
+		now := time.Now()
+		for k, cached := range tmdbCache {
+			if now.Sub(cached[0].(time.Time)) >= tmdbCacheTTL {
+				delete(tmdbCache, k)
+			}
+		}
 		if len(tmdbCache) >= 50 {
 			for k := range tmdbCache {
 				delete(tmdbCache, k)
 				break
 			}
 		}
-		tmdbCache[cacheKey] = [2]any{time.Now(), items}
+		tmdbCache[cacheKey] = [2]any{now, items}
 		tmdbCacheMu.Unlock()
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -289,7 +315,7 @@ func (s *Server) handleMediaEpisodes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Emby 已收录条目数
-	embyClient := strm.NewEmbyClient(envGet("ENV_MWARP_MEDIASERVER_ADDR", ""), envGet("ENV_MWARP_MEDIASERVER_AUTH", ""))
+	embyClient := embyClient()
 	if embyClient != nil {
 		ctx := context.Background()
 		if mediaType == "movie" {

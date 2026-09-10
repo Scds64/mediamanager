@@ -399,7 +399,7 @@ func (s *Server) handleEmbyDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := transferClient()
-	embyClient := strm.NewEmbyClient(envGet("ENV_MWARP_MEDIASERVER_ADDR", ""), envGet("ENV_MWARP_MEDIASERVER_AUTH", ""))
+	embyClient := strm.GetEmbyRuntime()
 	var history *transfer.TransferHistory
 	if ex := transfer.GetTransferExecutor(); ex != nil {
 		history = ex.History
