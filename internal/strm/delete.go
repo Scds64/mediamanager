@@ -267,6 +267,10 @@ func DeleteItems(ctx context.Context, client *pan123.Client, items []DeleteItem,
 		localPath := item.Path
 		panPath := item.PanPath
 		panFileID := item.PanFileID
+		// 编目 orphan 记录的 target_path 存的是本地 STRM 路径而非网盘路径（见 catalog.go 的 buildHistoryRecord）
+		if localPath == "" && strings.HasSuffix(strings.ToLower(strings.ReplaceAll(panPath, "\\", "/")), ".strm") {
+			localPath, panPath = panPath, ""
+		}
 		tryDelete := func() error {
 			// 1. 本地 STRM：直接路径 + 从网盘路径反推的候选路径（覆盖整理场景），存在即删
 			var strmPathsDel []string
