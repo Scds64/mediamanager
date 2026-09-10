@@ -1414,7 +1414,9 @@
             display: block;
         }
         /* ============ 订阅探索 / 海报详情：整页 Tab（替代原全屏弹层） ============ */
-        /* 页内返回条：仅桌面端显示（手机端用顶部工具栏返回键，见下方移动端媒体查询） */
+        /* 页内返回条：手机端由顶部工具栏返回键承担（下方 ≤768px 媒体查询隐藏）；
+           桌面端「订阅探索」页也不再显示返回按钮（下方 ≥769px 媒体查询隐藏）——桌面有左侧导航，
+           返回系统状态直接点导航项即可，避免同一入口重复出现 */
         .tmdb-back {
             display: inline-flex;
             align-items: center;
@@ -1432,6 +1434,8 @@
         .tmdb-back i { font-size: 12px; }
         /* 页内返回条在手机端隐藏：返回由顶部工具栏返回键承担（须置于基础规则之后，避免被覆盖） */
         @media (max-width: 768px) { .tmdb-back { display: none; } }
+        /* 桌面端隐藏「订阅探索」页左上角「返回系统」：返回入口收敛到左侧导航（Esc 仍可逐级返回） */
+        @media (min-width: 769px) { #tab-tmdb .tmdb-back { display: none; } }
         /* 整页卡片容器：与其他 Tab 页一致（半透明底由全局 .card 覆盖层统一给定） */
         .tmdb-page { min-height: 220px; }
         .tmdb-page-head { margin-bottom: 12px !important; }
@@ -1705,7 +1709,7 @@
         }
         .tmdb-modal {
             background: var(--surface);
-            border-radius: var(--radius);
+            border-radius: var(--radius-card);   /* 与页面 .card 四角一致（弹层也是一张卡） */
             max-width: 800px;
             width: 100%;
             max-height: 85vh;
