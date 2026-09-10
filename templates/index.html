@@ -3142,7 +3142,7 @@
             </div>`;
         }
 
-        // 订阅探索入口：单张横向海报，最多三张，30 分钟自动轮换
+        // 订阅探索入口：单张横向海报，最多十张，30 分钟自动轮换
         let _entryPosterItems = [];
         let _entryPosterAll = [];
         let _entryPosterIdx = 0;
@@ -3156,7 +3156,7 @@
             const strip = document.getElementById('tmdb-poster');
             if (!strip || !items) return;
             const filtered = items.filter(i => i.backdrop_path || i.poster_path);
-            _entryPosterAll = filtered.slice(0, 3);
+            _entryPosterAll = filtered.slice(0, 10);
             _entryPosterItems = _entryPosterAll.slice();
             if (_entryPosterItems.length === 0) return;
             _buildEntryCarousel();
