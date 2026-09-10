@@ -136,7 +136,7 @@ func catalogLocalStrms(strmPaths []string, localDir, panDir string,
 					}
 				}
 
-				rec := buildHistoryRecord(meta, transferMeta, panRelativePath(matchedPath, panDir), strmPath, info.Size, fmatched)
+				rec := buildHistoryRecord(meta, transferMeta, info.Name, panRelativePath(matchedPath, panDir), strmPath, info.Size, fmatched)
 				resCh <- workItem{rec: rec, matched: fmatched != nil}
 			}
 		}()
@@ -315,7 +315,7 @@ func matchPanFile(panFullPath, fileName string, size int64,
 
 // ---------- 构造 history 记录 ----------
 
-func buildHistoryRecord(strmMeta StrmMeta, transferMeta transfer.MetaInfo, matchedPath, localStrmPath string, strmSize int64, matched *pan123.FileInfo) transfer.HistoryRecord {
+func buildHistoryRecord(strmMeta StrmMeta, transferMeta transfer.MetaInfo, versionName, matchedPath, localStrmPath string, strmSize int64, matched *pan123.FileInfo) transfer.HistoryRecord {
 	rec := transfer.HistoryRecord{}
 
 	if matched != nil {
@@ -361,12 +361,8 @@ func buildHistoryRecord(strmMeta StrmMeta, transferMeta transfer.MetaInfo, match
 	}
 
 	rec.Status = "success"
-	versionName := rec.FileName
-	if matched == nil || versionName == "" {
-		versionName = transferMeta.RawName
-	}
 	if versionName == "" {
-		versionName = filepath.Base(localStrmPath)
+		versionName = transferMeta.RawName
 	}
 	rec.Version = transfer.CalcVersionScore(versionName)
 	if matched != nil {

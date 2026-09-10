@@ -105,7 +105,7 @@ func TestCatalogMatchFlow(t *testing.T) {
 			}
 
 			// 验证 buildHistoryRecord（包含 ParseMeta fallback 的最终值）
-			rec := buildHistoryRecord(meta, transferMeta, panFullPath, tc.strmPath, info.Size, matched)
+			rec := buildHistoryRecord(meta, transferMeta, info.Name, panFullPath, tc.strmPath, info.Size, matched)
 			if rec.FileSize != info.Size {
 				t.Errorf("FileSize: expect STRM size=%d got=%d", info.Size, rec.FileSize)
 			}

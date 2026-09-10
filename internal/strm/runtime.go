@@ -627,6 +627,11 @@ func SetupTransferDeleteCallback() {
 			PanPath:   oldTargetPath,
 			PanFileID: fid,
 		}}
+		if strings.HasSuffix(strings.ToLower(oldTargetPath), ".strm") {
+			items[0].Path = oldTargetPath
+			items[0].PanPath = ""
+			items[0].PanFileID = 0
+		}
 		emby := GetEmbyRuntime()
 		DeleteItems(ctx, rt.client, items, nil, emby, rt.Paths, history)
 	})

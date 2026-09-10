@@ -334,6 +334,9 @@ func DeleteItems(ctx context.Context, client *pan123.Client, items []DeleteItem,
 			history.DeleteByFileID(fid)
 		}
 		for _, item := range items {
+			if item.ID != "" {
+				history.DeleteByFileID(item.ID)
+			}
 			if item.PanFileID != 0 {
 				history.DeleteByFileID(int64ToString(item.PanFileID))
 			}
