@@ -1485,12 +1485,49 @@
             box-shadow: none;
             font-weight: 600;
         }
-        /* 已订阅按钮：选中态配色互换（深底白字，区别于其余白色凸起按钮） */
-        #tmdb-sub-btn.active,
-        #tmdb-cal-btn.active {
+        /* 标题栏视图页签（榜单 / 已订阅 / 追剧日历）：纯文字 + 下划线滑动，无按钮外观 */
+        .tmdb-view-tabs {
+            display: inline-flex;
+            align-items: center;
+            gap: 22px;
+            background: none;
+            padding: 0;
+        }
+        .tmdb-view-tab {
+            position: relative;      /* 下划线定位锚点 */
+            display: inline-block;
+            padding: 2px 1px 8px;    /* 下内边距为下划线留出位置 */
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            line-height: 1.3;
+            color: var(--text-400);
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: color 0.2s ease;
+        }
+        .tmdb-view-tab:hover { color: var(--text-700); }
+        .tmdb-view-tab.active { color: var(--text-900); font-weight: 600; }
+        /* 下划线：与文字等宽，切换时横向展开/收起 */
+        .tmdb-view-tab::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 2px;
+            border-radius: 2px;
             background: var(--primary);
-            color: #fff;
-            box-shadow: none;
+            transform: scaleX(0);
+            transform-origin: center;
+            opacity: 0;
+            transition: transform 0.24s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease;
+        }
+        .tmdb-view-tab.active::after { transform: scaleX(1); opacity: 1; }
+        @media (max-width: 768px) {
+            .tmdb-view-tabs { gap: 16px; }
+            .tmdb-view-tab { font-size: 14px; }
         }
         .tmdb-search {
             position: relative;
@@ -2159,8 +2196,11 @@
                 </div>
                 <div class="card tmdb-page">
                     <div class="card-title tmdb-page-head">
-                        订阅探索
-                        <span class="hint">榜单 / 已订阅 / 追剧日历</span>
+                        <div class="tmdb-view-tabs" id="tmdb-view-seg">
+                            <span class="tmdb-view-tab active" id="tmdb-view-list" data-view="list" onclick="setTmdbView('list')">TMDB榜单</span>
+                            <span class="tmdb-view-tab" id="tmdb-view-sub" data-view="subscribed" onclick="setTmdbView('subscribed')">已订阅</span>
+                            <span class="tmdb-view-tab" id="tmdb-view-cal" data-view="calendar" onclick="setTmdbView('calendar')">追剧日历</span>
+                        </div>
                     </div>
                     <div class="tmdb-toolbar list-only">
                         <div class="tmdb-seg" id="tmdb-type-seg">
@@ -2176,10 +2216,6 @@
                         <div class="tmdb-seg" id="tmdb-time-seg">
                             <button data-window="day" onclick="setTmdbTimeWindow('day')">今日</button>
                             <button data-window="week" class="active" onclick="setTmdbTimeWindow('week')">本周</button>
-                        </div>
-                        <div class="tmdb-seg" id="tmdb-sub-seg">
-                            <button id="tmdb-sub-btn" onclick="setTmdbView(_tmdbView === 'subscribed' ? 'list' : 'subscribed')">已订阅</button>
-                            <button id="tmdb-cal-btn" onclick="setTmdbView(_tmdbView === 'calendar' ? 'list' : 'calendar')">追剧日历</button>
                         </div>
                         <div class="tmdb-search">
                             <i class="fas fa-search"></i>
@@ -2669,12 +2705,13 @@
             return hit || null;
         }
 
-        // 已订阅视图：优先用本地缓存，只对新增关键词搜索（增量更新）；无订阅/无结果回退榜单
+        // 已订阅视图：优先用本地缓存，只对新增关键词搜索（增量更新）；无订阅/无结果在内容区显示空态
         async function showSubscribed() {
             const content = document.getElementById('tmdb-content');
             if (!content) return;
+            const emptyHtml = '<div style="color: var(--text-400); padding: 40px; text-align: center;">暂无订阅</div>';
             const keys = getSubscribedKeys();
-            if (!keys.length) { setTmdbView('list'); return; }  // 空态回退榜单
+            if (!keys.length) { content.innerHTML = emptyHtml; return; }  // 未配置订阅关键词：留在已订阅页显示空态
             const cache = getSubCache();
             const keySet = new Set(keys);
             // 移除缓存中已取消订阅的条目
@@ -2698,7 +2735,7 @@
             // 过滤无结果占位符：不能按引用（_NO_RESULT）比较——占位符经 localStorage
             // JSON 序列化/反序列化后是新对象，引用比较失效，会渲染出无标题无海报的空卡片
             const items = keys.slice(0, 60).map(k => cache[k]).filter(it => it && !it._noResult);
-            if (!items.length) { setTmdbView('list'); return; }  // 无结果回退榜单
+            if (!items.length) { content.innerHTML = emptyHtml; return; }  // 无结果：显示空态，不回退榜单
             content.innerHTML = `<div class="tmdb-grid">${items.map(it => renderTmdbCard(it, 'w185', true)).join('')}</div>`;
             // 用 setTimeout 延迟到浏览器 paint 之后，再异步补充集数角标
             setTimeout(() => fillEpisodeBadges(), 0);
@@ -2876,20 +2913,49 @@
             });
         }
 
-        // 切换视图：已订阅 / 追剧日历 / 榜单（工具栏保持显示，按钮 active 态指示当前视图）
+        // 切换视图：榜单 / 已订阅 / 追剧日历（标题栏三段按钮指示当前视图）
         // 榜单视图显示榜单控件与搜索框；已订阅/追剧日历视图隐藏
         function _applyToolbarMode() {
             const toolbar = document.querySelector('.tmdb-toolbar');
             if (toolbar) toolbar.classList.toggle('list-only', _tmdbView === 'list');
         }
 
+        // 标题栏视图页签选中态（与 _tmdbView 同步）
+        function _updateViewSeg() {
+            document.querySelectorAll('#tmdb-view-seg [data-view]').forEach(el => {
+                el.classList.toggle('active', el.dataset.view === _tmdbView);
+            });
+        }
+
+        // 移动端左右滑动切换视图（TMDB榜单 → 已订阅 → 追剧日历，到头不循环）
+        (function () {
+            const box = document.getElementById('tab-tmdb') || document.getElementById('tmdb-content');
+            if (!box) return;
+            const ORDER = ['list', 'subscribed', 'calendar'];
+            let sx = 0, sy = 0, st = 0;
+            box.addEventListener('touchstart', e => {
+                if (e.touches.length !== 1) return;
+                sx = e.touches[0].clientX;
+                sy = e.touches[0].clientY;
+                st = Date.now();
+            }, { passive: true });
+            box.addEventListener('touchend', e => {
+                const t = e.changedTouches[0];
+                if (!t || Date.now() - st > 600) return;
+                const dx = t.clientX - sx, dy = t.clientY - sy;
+                // 横向位移需明显大于纵向，避免与页面上下滚动冲突
+                if (Math.abs(dx) < 30 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+                const i = ORDER.indexOf(_tmdbView);
+                if (i < 0) return;
+                const next = ORDER[dx < 0 ? i + 1 : i - 1];   // 左滑下一个，右滑上一个
+                if (next) setTmdbView(next);
+            }, { passive: true });
+        })();
+
         function setTmdbView(view) {
             _tmdbView = view;
             _applyToolbarMode();
-            const subBtn = document.getElementById('tmdb-sub-btn');
-            const calBtn = document.getElementById('tmdb-cal-btn');
-            if (subBtn) subBtn.classList.toggle('active', view === 'subscribed');
-            if (calBtn) calBtn.classList.toggle('active', view === 'calendar');
+            _updateViewSeg();
             if (view === 'subscribed') showSubscribed();
             else if (view === 'calendar') showCalendar();
             else loadTmdb();
@@ -2900,10 +2966,7 @@
             if (_tmdbView === 'subscribed' || _tmdbView === 'calendar') {
                 _tmdbView = 'list';
                 _applyToolbarMode();
-                const b = document.getElementById('tmdb-sub-btn');
-                const c = document.getElementById('tmdb-cal-btn');
-                if (b) b.classList.remove('active');
-                if (c) c.classList.remove('active');
+                _updateViewSeg();
             }
         }
 
