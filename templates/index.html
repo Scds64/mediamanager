@@ -2932,16 +2932,18 @@
             const box = document.getElementById('tab-tmdb') || document.getElementById('tmdb-content');
             if (!box) return;
             const ORDER = ['list', 'subscribed', 'calendar'];
-            let sx = 0, sy = 0, st = 0;
+            let sx = 0, sy = 0, st = 0, se = null;
             box.addEventListener('touchstart', e => {
-                if (e.touches.length !== 1) return;
+                se = e.touches.length === 1 ? e.target : null;
+                if (!se) return;
                 sx = e.touches[0].clientX;
                 sy = e.touches[0].clientY;
                 st = Date.now();
             }, { passive: true });
             box.addEventListener('touchend', e => {
                 const t = e.changedTouches[0];
-                if (!t || Date.now() - st > 600) return;
+                if (!t || !se || Date.now() - st > 600) return;
+                if (se.closest('.tmdb-dstrip-scroll')) return;   // 日期条内横滑归它自己滚动
                 const dx = t.clientX - sx, dy = t.clientY - sy;
                 // 横向位移需明显大于纵向，避免与页面上下滚动冲突
                 if (Math.abs(dx) < 30 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
