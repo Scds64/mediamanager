@@ -4200,7 +4200,7 @@
                     body.innerHTML = `<div class="empty-row">暂无历史记录</div>`;
                 } else {
                     body.innerHTML = r.items.map(i => {
-                        const time = (i.transfer_time || '').substring(0, 19);
+                        const time = (i.transfer_time || '').substring(0, 19).replace('T', ' · ');
                         const status = i.status === 'success'
                             ? '<span class="chip chip-ok">成功</span>'
                             : '<span class="chip chip-err">失败</span>';
