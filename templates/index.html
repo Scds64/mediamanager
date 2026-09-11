@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -3172,7 +3172,7 @@
                 const img = document.createElement('img');
                 img.loading = 'lazy';
                 img.alt = '';
-                img.src = _entryImgSrc(it);
+                img.src = `https://image.tmdb.org/t/p/original${it.backdrop_path || it.poster_path}`;
                 c.appendChild(img);
                 const brand = document.createElement('img');
                 brand.className = 'entry-brand';
