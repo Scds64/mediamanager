@@ -306,7 +306,11 @@
         }
         .tab-panel { display: none; animation: fadeIn 0.28s ease; }
         .tab-panel.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        /* 只淡入、不做位移：原来 from 里的 translateY(6px) 会把整个面板下推 6px 再回位，
+           系统页海报是 margin-top 负值顶到 y=0 的（见 .tmdb-entry-card.card），面板一下推
+           顶上就露出一条 6px 的浅色底边 —— 也就是「切页时顶部一条白线一闪」加「海报先降
+           一点再回去」。这两条是同一个位移。 */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         /* 系统/后台 切换：带方向的横向滑入动画（由 switchTab 依据切换方向添加对应 class） */
         @keyframes slideInL { from { opacity: 0; transform: translateX(-42px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes slideInR { from { opacity: 0; transform: translateX(42px); } to { opacity: 1; transform: translateX(0); } }
@@ -563,8 +567,8 @@
         #tab-system .cards-row > .tmdb-entry-card { order: 1; grid-column: 1 / -1; }
         #tab-system .cards-row > .hero-search { order: 2; grid-column: 1 / -1; margin: 4px 0 0; }
         #tab-system .cards-row > .sys-combo-card { order: 3; }
-        /* 合并卡：固定高度 210px，手机与桌面完全一致（不再按端区分） */
-        #tab-system .sys-combo-card { height: 210px; }
+        /* 合并卡：固定高度 190px，手机与桌面完全一致（不再按端区分） */
+        #tab-system .sys-combo-card { height: 190px; }
 
         /* ============ 媒体信息 + 内存占用 合并卡 ============ */
         /* 一张卡内含左右两分区（左媒体信息 / 右内存占用），中间竖排长虚线分隔；
@@ -765,8 +769,8 @@
         }
         .emby-donut {
             width: 100%;
-            max-width: 150px;
-            max-height: 150px;
+            max-width: 145px;
+            max-height: 145px;
             aspect-ratio: 1 / 1;   /* 正方形，随卡片宽度自适应缩放 */
             height: auto;
             flex: 0 1 auto;
@@ -1355,16 +1359,16 @@
                 border-radius: 0;
                 margin-top: calc(-1 * (58px + env(safe-area-inset-top)));
                 padding-top: calc(58px + env(safe-area-inset-top));
-                min-height: calc(400px + env(safe-area-inset-top));
+                min-height: calc(428px + env(safe-area-inset-top));
                 background: transparent;
                 box-shadow: none;
             }
             #tab-system .tmdb-entry-poster {
-                min-height: 342px;
+                min-height: 370px;
                 border-radius: 0;
                 background: transparent;
             }
-            #tab-system .entry-carousel { min-height: 342px; }
+            #tab-system .entry-carousel { min-height: 370px; }
             .cards-row { grid-template-columns: minmax(0, 1fr); }
             /* 移动端：合并卡两分区内边距随 .card 统一收至 16px */
             .sys-combo-card .emby-media-card { padding: 16px 16px 12px; }
@@ -1401,10 +1405,9 @@
 
         /* ============ TMDB 影视榜单 ============ */
         /* 订阅探索入口海报：尺寸/布局由 #tab-system .tmdb-entry-poster（更高特异性）全权接管，
-           此处只保留交互属性（唯一不会被上层覆盖覆盖的部分） */
+           此处只保留 cursor（唯一不会被上层覆盖的部分） */
         .tmdb-entry-poster {
             cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .tmdb-entry-poster img {
             width: 100%;
@@ -2502,6 +2505,7 @@
             Object.assign(el.style, prev);
             return h;
         }
+        let _sysBgLock = 0;   // 连按 系统/后台 时，只有最后一次切换有权解锁 content 高度
         function switchTab(tab) {
             const prevTab = switchTab._last;
             switchTab._last = tab;
@@ -2515,15 +2519,12 @@
             const isSysBg = !!prevPanel && ((tab === 'system' && prevTab === 'bg') || (tab === 'bg' && prevTab === 'system'));
             const host = document.querySelector('main.content');
             // 高度稳住：先锁到 max(旧页, 新页)，避免切换瞬间内容区塌缩跳变；桌面端不做此处理
+            // min-height 是布局属性、不上合成器，做成 transition 会在这 400ms 里逐帧重排内容区。
+            // 改成滑动结束后一次性松开：这段分支已 scrollTo(0,0)，那一帧在视口里看不到。
             if (isSysBg && host && prevPanel && window.matchMedia('(max-width: 768px)').matches) {
-                const keep = Math.max(prevPanel.offsetHeight || 0, measurePanel(panel));
-                host.style.transition = 'none';
-                host.style.minHeight = keep + 'px';
-                requestAnimationFrame(() => {                       // 下一帧解锁，让高度平滑落回新页
-                    host.style.transition = 'min-height .4s ease';
-                    host.style.minHeight = '0px';
-                    setTimeout(() => { if (host.style.minHeight === '0px') { host.style.minHeight = ''; host.style.transition = ''; } }, 460);
-                });
+                const lock = ++_sysBgLock;
+                host.style.minHeight = Math.max(prevPanel.offsetHeight || 0, measurePanel(panel)) + 'px';
+                setTimeout(() => { if (lock === _sysBgLock) host.style.minHeight = ''; }, 460);
                 window.scrollTo(0, 0);                              // 两页高度不同，切换归顶，避免残卷位移
             }
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -3228,9 +3229,10 @@
         let _entryPosterIdx = 0;
         let _entryPosterTimer = null;
         let _entryPosterTouch = null;
-        let _heroBgTimer = null;
         function _entryImgSrc(i) {
-            return `https://image.tmdb.org/t/p/w1280${i.backdrop_path || i.poster_path}`;
+            // 仅供 body::before 那个 34px 模糊背景层使用，模糊后 w300 与 w1280 肉眼无差，
+            // 但解码像素少约 18 倍 —— 每次换图都要重新光栅化这一层，省下来的是实打实的帧。
+            return `https://image.tmdb.org/t/p/w300${i.backdrop_path || i.poster_path}`;
         }
         function renderEntryPosters(items) {
             const strip = document.getElementById('tmdb-poster');
@@ -3288,16 +3290,25 @@
             const car = document.querySelector('#tmdb-poster .entry-carousel');
             if (!car) return;
             [...car.querySelectorAll('.entry-card')].forEach((c, i) => c.classList.toggle('active', i === _entryPosterIdx));
-            const item = _entryPosterItems[_entryPosterIdx];
-            if (item) {
-                const nextBg = `url("${_entryImgSrc(item)}")`;
-                document.body.classList.add('hero-bg-changing');
-                if (_heroBgTimer) clearTimeout(_heroBgTimer);
-                _heroBgTimer = setTimeout(() => {
-                    document.documentElement.style.setProperty('--hero-bg', nextBg);
-                    requestAnimationFrame(() => document.body.classList.remove('hero-bg-changing'));
-                }, 180);
-            }
+            _setHeroBg(_entryPosterItems[_entryPosterIdx]);
+        }
+        // 背景层换图：等新图 decode 完再塞进 --hero-bg。
+        // 原来是盲等 180ms 就换 URL —— 图还没解码完就解冻，34px 模糊 + mask 的全屏固定层
+        // 得现场重新光栅化，这一下就是肉眼可见的卡顿；且 180ms 短于淡出时长 .28s，
+        // 淡出没走完就被摘 class，表现是「跳一下」而不是交叉淡入。
+        let _heroBgSeq = 0;
+        function _setHeroBg(item) {
+            if (!item) return;
+            const src = _entryImgSrc(item);
+            const seq = ++_heroBgSeq;
+            document.body.classList.add('hero-bg-changing');
+            const im = new Image();
+            im.src = src;                                    // 与 body::before 共用图片缓存，decode 即预热
+            (im.decode ? im.decode() : Promise.resolve()).catch(() => {}).then(() => {
+                if (seq !== _heroBgSeq) return;              // 期间又切了，让最新那次说了算
+                document.documentElement.style.setProperty('--hero-bg', `url("${src}")`);
+                requestAnimationFrame(() => document.body.classList.remove('hero-bg-changing'));
+            });
         }
         function _setEntryPoster(index) {
             if (!_entryPosterItems.length) return;
@@ -5160,7 +5171,7 @@
                     <circle cx="50" cy="50" r="${R}" fill="none" stroke="#EEF2F7" stroke-width="9"/>
                     ${mR > 0 ? segCircle(mSeg, 0, 'var(--primary)') : ''}
                     ${tR > 0 ? segCircle(tSeg, -(mSeg + GAP), 'var(--success)') : ''}
-                    <text x="50" y="54" text-anchor="middle" font-size="17" font-weight="700" fill="#0F172A">${total.num}</text>
+                    <text x="50" y="54" text-anchor="middle" font-size="17.2" font-weight="700" fill="#0F172A">${total.num}</text>
                     <text x="50" y="65" text-anchor="middle" font-size="7" fill="#94A3B8">${total.unit}</text>
                 </svg>
             `;
