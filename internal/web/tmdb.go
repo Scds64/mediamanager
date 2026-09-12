@@ -16,31 +16,72 @@ import (
 	"mmbot/internal/transfer"
 )
 
-// TMDB 内存缓存：key -> (ts, data)，TTL 24h。
+// ttlCache 带 TTL 与容量上限的内存缓存：榜单/搜索、详情、集数、日历共用这一份实现。
+// 取值、回源、写回是分开的三步——回源期间不持锁，否则并发请求会互相排队。
+type ttlCache struct {
+	mu  sync.Mutex
+	m   map[string]ttlEntry
+	ttl time.Duration
+	max int
+}
+
+type ttlEntry struct {
+	at time.Time
+	v  any
+}
+
+func newTTLCache(ttl time.Duration, max int) *ttlCache {
+	return &ttlCache{m: map[string]ttlEntry{}, ttl: ttl, max: max}
+}
+
+// get 命中且未过期时返回 (值, true)。
+func (c *ttlCache) get(key string) (any, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	e, ok := c.m[key]
+	if !ok || time.Since(e.at) >= c.ttl {
+		return nil, false
+	}
+	return e.v, true
+}
+
+// set 写入并维持条目上限，满了先淘汰最旧的一条。
+// ponytail: 淘汰是 O(n) 扫描（n ≤ max，最多几百），不值得为它引入 LRU 链表。
+func (c *ttlCache) set(key string, v any) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, ok := c.m[key]; !ok && len(c.m) >= c.max {
+		oldest := ""
+		for k, e := range c.m {
+			if oldest == "" || e.at.Before(c.m[oldest].at) {
+				oldest = k
+			}
+		}
+		if oldest != "" {
+			delete(c.m, oldest)
+		}
+	}
+	c.m[key] = ttlEntry{at: time.Now(), v: v}
+}
+
+// 各接口缓存：TTL 按「数据多久才会变」定，容量按「最多同时用多少个 key」定
 var (
-	tmdbCacheMu sync.Mutex
-	tmdbCache   = map[string][2]any{}
-	webTMDBMu   sync.Mutex
-	webTMDBKey  string
-	webTMDB     *transfer.TmdbClient
+	// listCache 榜单 + 关键词搜索；已订阅页最多 60 个关键词 × movie/tv = 120 个 key，容量留够免得来回淘汰
+	listCache = newTTLCache(24*time.Hour, 160)
+	// detailCache 详情（演职员 + 图片，单个值最重）
+	detailCache = newTTLCache(24*time.Hour, 200)
+	// episodeTotalCache TMDB 总集数，剧集只会增季不会改总数
+	episodeTotalCache = newTTLCache(24*time.Hour, 300)
+	// embyCountCache Emby 已收录集数，随下载变化
+	embyCountCache = newTTLCache(10*time.Minute, 300)
+	// calendarCache 单部剧的排播（key 为 tmdb id）；日期过滤在读取时做，跨天不会串味
+	calendarCache = newTTLCache(24*time.Hour, 300)
 )
 
-const (
-	tmdbCacheTTL = 24 * time.Hour
-	episodeTTL   = 10 * time.Minute
-	calendarTTL  = 24 * time.Hour
-)
-
-// episodeCache 集数缓存：key -> (ts, emby, total)
 var (
-	episodeCacheMu sync.Mutex
-	episodeCache   = map[string][3]any{}
-)
-
-// calendarCache 日历缓存：key "_" -> (ts, ids, today, shows, dates)
-var (
-	calendarCacheMu sync.Mutex
-	calendarCache   = map[string]any{}
+	webTMDBMu  sync.Mutex
+	webTMDBKey string
+	webTMDB    *transfer.TmdbClient
 )
 
 func tmdbAPIKey() string { return envGet("ENV_TMDB_API_KEY", "") }
@@ -122,25 +163,19 @@ func (s *Server) handleTMDBSearch(w http.ResponseWriter, r *http.Request) {
 		cacheKey = category + ":" + mediaType + ":" + timeWindow
 	}
 
-	tmdbCacheMu.Lock()
 	if !refresh {
-		if cached, ok := tmdbCache[cacheKey]; ok {
-			if time.Since(cached[0].(time.Time)) < tmdbCacheTTL {
-				items := cached[1]
-				tmdbCacheMu.Unlock()
-				writeJSON(w, http.StatusOK, map[string]any{
-					"configured":  true,
-					"category":    category,
-					"type":        mediaType,
-					"time_window": timeWindowIf(category, timeWindow),
-					"query":       queryOrNil(query),
-					"items":       items,
-				})
-				return
-			}
+		if items, ok := listCache.get(cacheKey); ok {
+			writeJSON(w, http.StatusOK, map[string]any{
+				"configured":  true,
+				"category":    category,
+				"type":        mediaType,
+				"time_window": timeWindowIf(category, timeWindow),
+				"query":       queryOrNil(query),
+				"items":       items,
+			})
+			return
 		}
 	}
-	tmdbCacheMu.Unlock()
 
 	client := tmdbClient()
 	var items []transfer.TmdbListItem
@@ -166,21 +201,7 @@ func (s *Server) handleTMDBSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(items) > 0 {
-		tmdbCacheMu.Lock()
-		now := time.Now()
-		for k, cached := range tmdbCache {
-			if now.Sub(cached[0].(time.Time)) >= tmdbCacheTTL {
-				delete(tmdbCache, k)
-			}
-		}
-		if len(tmdbCache) >= 50 {
-			for k := range tmdbCache {
-				delete(tmdbCache, k)
-				break
-			}
-		}
-		tmdbCache[cacheKey] = [2]any{now, items}
-		tmdbCacheMu.Unlock()
+		listCache.set(cacheKey, items)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"configured":  true,
@@ -239,8 +260,9 @@ func (s *Server) handleTMDBSubscribe(w http.ResponseWriter, r *http.Request) {
 // ---------- GET /api/tmdb/detail ----------
 
 func (s *Server) handleTMDBDetail(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	mediaType := r.URL.Query().Get("type")
+	q := r.URL.Query()
+	idStr := q.Get("id")
+	mediaType := q.Get("type")
 	if mediaType == "" {
 		mediaType = "movie"
 	}
@@ -260,8 +282,21 @@ func (s *Server) handleTMDBDetail(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	client := tmdbClient()
-	detail := client.GetDetailDict(tmdbID, mediaType)
+
+	// 缓存 24h；需要强刷时带 refresh=1（与榜单/搜索接口同款约定）
+	cacheKey := mediaType + ":" + idStr
+	var detail *transfer.TmdbDetail
+	if q.Get("refresh") != "1" {
+		if v, ok := detailCache.get(cacheKey); ok {
+			detail = v.(*transfer.TmdbDetail)
+		}
+	}
+	if detail == nil {
+		detail = tmdbClient().GetDetailDict(tmdbID, mediaType)
+		if detail != nil {
+			detailCache.set(cacheKey, detail)
+		}
+	}
 	if detail == nil {
 		writeJSON(w, http.StatusOK, map[string]any{"configured": true, "error": "请求失败，请检查 ENV_TMDB_API_KEY 或网络"})
 		return
@@ -284,20 +319,11 @@ func (s *Server) handleMediaEpisodes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cacheKey := mediaType + ":" + idStr
-	episodeCacheMu.Lock()
-	if cached, ok := episodeCache[cacheKey]; ok {
-		if time.Since(cached[0].(time.Time)) < episodeTTL {
-			episodeCacheMu.Unlock()
-			writeJSON(w, http.StatusOK, map[string]any{"emby": cached[1], "total": cached[2]})
-			return
-		}
-	}
-	episodeCacheMu.Unlock()
 
-	var emby, total any = nil, nil
-
-	// TMDB 总集数（电影为 1）
-	if tmdbAPIKey() != "" {
+	// TMDB 总集数（电影为 1）：剧集只会增季、不会改总集数，缓存 24h。
+	// 原先与 Emby 收录数共用一个 10 分钟 TTL，等于每 10 分钟白打一次 TMDB。
+	total, ok := episodeTotalCache.get(cacheKey)
+	if !ok && tmdbAPIKey() != "" {
 		client := tmdbClient()
 		data, err := client.GetJSON(fmt.Sprintf("/%s/%d", mediaType, tmdbID), nil)
 		if err == nil {
@@ -310,58 +336,66 @@ func (s *Server) handleMediaEpisodes(w http.ResponseWriter, r *http.Request) {
 				} else {
 					total = 1
 				}
-			}
-		}
-	}
-
-	// Emby 已收录条目数
-	embyClient := embyClient()
-	if embyClient != nil {
-		ctx := context.Background()
-		if mediaType == "movie" {
-			if resp := embyRequest(ctx, embyClient, "/emby/Items", map[string]string{
-				"Recursive":           "true",
-				"IncludeItemTypes":    "Movie",
-				"AnyProviderIdEquals": "tmdb." + idStr,
-				"Limit":               "1",
-			}); resp != nil {
-				emby = resp["TotalRecordCount"]
-			}
-		} else {
-			resp := embyRequest(ctx, embyClient, "/emby/Items", map[string]string{
-				"Recursive":           "true",
-				"IncludeItemTypes":    "Series",
-				"AnyProviderIdEquals": "tmdb." + idStr,
-				"Limit":               "1",
-			})
-			if resp != nil {
-				if items, ok := resp["Items"].([]any); ok && len(items) > 0 {
-					if first, ok := items[0].(map[string]any); ok {
-						if resp2 := embyRequest(ctx, embyClient, "/emby/Items", map[string]string{
-							"ParentId":         fmt.Sprintf("%v", first["Id"]),
-							"Recursive":        "true",
-							"IncludeItemTypes": "Episode",
-							"Limit":            "1",
-						}); resp2 != nil {
-							emby = resp2["TotalRecordCount"]
-						}
-					}
+				if total != nil {
+					episodeTotalCache.set(cacheKey, total)
 				}
 			}
 		}
 	}
 
-	episodeCacheMu.Lock()
-	if len(episodeCache) >= 300 {
-		for k := range episodeCache {
-			delete(episodeCache, k)
-			break
+	// Emby 已收录条目数：随下载变化，保留 10 分钟 TTL
+	emby, ok := embyCountCache.get(cacheKey)
+	if !ok {
+		emby = embyOwnedCount(idStr, mediaType)
+		if emby != nil {
+			embyCountCache.set(cacheKey, emby)
 		}
 	}
-	episodeCache[cacheKey] = [3]any{time.Now(), emby, total}
-	episodeCacheMu.Unlock()
 
 	writeJSON(w, http.StatusOK, map[string]any{"emby": emby, "total": total})
+}
+
+// embyOwnedCount 查询该 TMDB 条目在 Emby 里已收录的集数（电影为条目数）；未配置或请求失败返回 nil。
+func embyOwnedCount(idStr, mediaType string) any {
+	client := embyClient()
+	if client == nil {
+		return nil
+	}
+	ctx := context.Background()
+	if mediaType == "movie" {
+		if resp := embyRequest(ctx, client, "/emby/Items", map[string]string{
+			"Recursive":           "true",
+			"IncludeItemTypes":    "Movie",
+			"AnyProviderIdEquals": "tmdb." + idStr,
+			"Limit":               "1",
+		}); resp != nil {
+			return resp["TotalRecordCount"]
+		}
+		return nil
+	}
+	resp := embyRequest(ctx, client, "/emby/Items", map[string]string{
+		"Recursive":           "true",
+		"IncludeItemTypes":    "Series",
+		"AnyProviderIdEquals": "tmdb." + idStr,
+		"Limit":               "1",
+	})
+	items, _ := resp["Items"].([]any)
+	if len(items) == 0 {
+		return nil
+	}
+	first, _ := items[0].(map[string]any)
+	if first == nil {
+		return nil
+	}
+	if resp2 := embyRequest(ctx, client, "/emby/Items", map[string]string{
+		"ParentId":         fmt.Sprintf("%v", first["Id"]),
+		"Recursive":        "true",
+		"IncludeItemTypes": "Episode",
+		"Limit":            "1",
+	}); resp2 != nil {
+		return resp2["TotalRecordCount"]
+	}
+	return nil
 }
 
 // embyRequest 请求 Emby GET API，失败返回 nil。
@@ -402,25 +436,8 @@ func (s *Server) handleMediaCalendar(w http.ResponseWriter, r *http.Request) {
 	for id := range tvSet {
 		tvIDs = append(tvIDs, id)
 	}
-	sortInts(tvIDs)
 
 	today := time.Now().Format("2006-01-02")
-
-	// 缓存命中要求仍是同一天：today 不参与缓存，避免跨天后返回昨天的日期（追剧日历周几错位）。
-	calendarCacheMu.Lock()
-	if cached, ok := calendarCache["_"]; ok {
-		arr := cached.([]any)
-		if arr[2].(string) == today && time.Since(arr[0].(time.Time)) < calendarTTL {
-			if ids, ok := arr[1].([]int); ok && equalInts(ids, tvIDs) {
-				calendarCacheMu.Unlock()
-				writeJSON(w, http.StatusOK, map[string]any{
-					"configured": true, "today": arr[2], "shows": arr[3], "dates": arr[4],
-				})
-				return
-			}
-		}
-	}
-	calendarCacheMu.Unlock()
 
 	if tmdbAPIKey() == "" {
 		writeJSON(w, http.StatusOK, map[string]any{
@@ -434,29 +451,42 @@ func (s *Server) handleMediaCalendar(w http.ResponseWriter, r *http.Request) {
 	dates := map[string]any{}
 	client := tmdbClient()
 	for _, tmdbID := range tvIDs {
-		info := getUpcomingEpisodes(client, tmdbID, today)
+		// 按剧缓存：订阅列表变化时只补拉新增的那几部，不再整表重算
+		key := strconv.Itoa(tmdbID)
+		v, ok := calendarCache.get(key)
+		if !ok {
+			if info := getUpcomingEpisodes(client, tmdbID, today); info != nil {
+				calendarCache.set(key, info)
+				v = info
+			}
+		}
+		info, _ := v.(*upcomingInfo)
 		if info == nil {
 			continue
 		}
-		shows[strconv.Itoa(tmdbID)] = map[string]any{"title": info.title, "season": info.season}
+		// 缓存里存的是整季排播，已播过的在这里按今天过滤掉（跨天由这层保证，缓存不需要跟着作废）
+		var upcoming bool
 		for airDate, eps := range info.byDate {
+			if airDate < today {
+				continue
+			}
+			upcoming = true
 			if dates[airDate] == nil {
 				dates[airDate] = map[string]any{}
 			}
-			dates[airDate].(map[string]any)[strconv.Itoa(tmdbID)] = eps
+			dates[airDate].(map[string]any)[key] = eps
+		}
+		if upcoming {
+			shows[key] = map[string]any{"title": info.title, "season": info.season}
 		}
 	}
-
-	calendarCacheMu.Lock()
-	calendarCache["_"] = []any{time.Now(), tvIDs, today, shows, dates}
-	calendarCacheMu.Unlock()
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"configured": true, "today": today, "shows": shows, "dates": dates,
 	})
 }
 
-// upcomingInfo 已订阅剧未来已排播集。
+// upcomingInfo 一部剧当前播出季的排播（含已播出的集，按今天过滤由调用方做）。
 type upcomingInfo struct {
 	title  string
 	season int
@@ -518,7 +548,7 @@ func getUpcomingEpisodes(client *transfer.TmdbClient, tmdbID int, today string) 
 	byDate := map[string][]int{}
 	for _, ep := range episodes {
 		airDate := strings.TrimSpace(ep.AirDate)
-		if airDate == "" || airDate < today || ep.EpisodeNumber <= 0 {
+		if airDate == "" || ep.EpisodeNumber <= 0 {
 			continue
 		}
 		byDate[airDate] = append(byDate[airDate], ep.EpisodeNumber)
@@ -527,24 +557,4 @@ func getUpcomingEpisodes(client *transfer.TmdbClient, tmdbID int, today string) 
 		return nil
 	}
 	return &upcomingInfo{title: title, season: target.SeasonNumber, byDate: byDate}
-}
-
-func sortInts(a []int) {
-	for i := 1; i < len(a); i++ {
-		for j := i; j > 0 && a[j] < a[j-1]; j-- {
-			a[j], a[j-1] = a[j-1], a[j]
-		}
-	}
-}
-
-func equalInts(a, b []int) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }

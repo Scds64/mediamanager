@@ -3245,7 +3245,7 @@
                 brand.loading = 'lazy';
                 brand.hidden = true;
                 c.appendChild(brand);
-                _loadEntryLogo(_entryPosterItems[_entryPosterItems.indexOf(it)], brand);
+                _loadEntryLogo(it, brand);
                 return c;
             }));
             _entryPosterIdx = 0;
@@ -3253,18 +3253,21 @@
             _bindEntrySwipe(strip);   // 手势只绑一次
             _restartEntryPoster();
         }
-        async function _loadEntryLogo(item, target) {
+        // 徽标路径按条目缓存：轮播每次重建（搜索框过滤、切作用域）都要重铺一次 <img>，
+        // 不缓存就每敲一个字符重拉 10 次详情接口。缓存 Promise 而非结果，连打时也不会重复请求。
+        function _loadEntryLogo(item, target) {
             if (!item || !item.id || !target) return;
-            try {
-                const data = await api(`/api/tmdb/detail?id=${encodeURIComponent(item.id)}&type=${encodeURIComponent(item.media_type || 'movie')}`);
-                const logo = data && data.detail && data.detail.logo_path;
+            if (!item._logoReq) {
+                item._logoReq = api(`/api/tmdb/detail?id=${encodeURIComponent(item.id)}&type=${encodeURIComponent(item.media_type || 'movie')}`)
+                    .then(d => (d && d.detail && d.detail.logo_path) || '')
+                    .catch(() => { item._logoReq = null; return ''; });   // 失败不落缓存，下次重建再试
+            }
+            item._logoReq.then(logo => {
                 if (logo && target.isConnected) {
                     target.src = `https://image.tmdb.org/t/p/w500${logo}`;
                     target.hidden = false;
                 }
-            } catch (e) {
-                // 徽标是增强信息，获取失败时保留海报本身。
-            }
+            });
         }
         function _updateEntryCarousel() {
             const car = document.querySelector('#tmdb-poster .entry-carousel');

@@ -274,8 +274,9 @@ func (t *TmdbClient) GetDetailDict(tmdbID int, mediaType string) *TmdbDetail {
 	if mediaType != "tv" {
 		mediaType = "movie"
 	}
+	// external_ids 本函数结构体未声明任何字段，取回来纯属浪费响应体
 	data, err := t.getJSON(context.Background(), fmt.Sprintf("/%s/%d", mediaType, tmdbID), map[string]string{
-		"append_to_response":     "credits,external_ids,images",
+		"append_to_response":     "credits,images",
 		"include_image_language": "zh,en,null",
 	})
 	if err != nil {
