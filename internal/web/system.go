@@ -9,11 +9,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"time"
 
 	"mmbot/internal/mediawarp"
+	"mmbot/internal/memx"
 	"mmbot/internal/pan123"
 	"mmbot/internal/strm"
 	"mmbot/internal/transfer"
@@ -87,6 +89,9 @@ func (s *Server) handleOAuthStatus(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleSystemUsage(w http.ResponseWriter, r *http.Request) {
 	memMB := readMemMB()
+	allocMiB, sysMiB := memx.Stats()
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
 	s.memMu.Lock()
 	hist := append([][2]float64(nil), s.memHistory...)
 	s.memMu.Unlock()
@@ -94,7 +99,13 @@ func (s *Server) handleSystemUsage(w http.ResponseWriter, r *http.Request) {
 		hist = hist[len(hist)-memHistoryMax:]
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"process": map[string]any{"memory_mb": memMB},
+		"process": map[string]any{
+			"memory_mb": memMB,
+			// Go 堆：alloc=存活对象，sys=向 OS 申请的量（含空闲未归还部分）
+			"heap_alloc_mb": allocMiB,
+			"heap_sys_mb":   sysMiB,
+			"num_gc":        ms.NumGC,
+		},
 		"history": hist,
 	})
 }

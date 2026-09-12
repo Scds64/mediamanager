@@ -4306,11 +4306,9 @@
                 : null;
         }
         // ① 实时过滤订阅探索海报（标题包含匹配）；清空时还原全量池
-        let _lastMediaMatches = -1;   // 记录上次匹配数，0→N 或 N→0 变化时才提示，避免打字刷屏
         function heroSearchLive(kw) {
             kw = (kw || '').trim().toLowerCase();
             if (!kw) {
-                _lastMediaMatches = -1;
                 // 当前已是全量池：无需重建。_buildEntryCarousel 会重新铺一遍 <img>
                 // 并把轮播索引复位到中间，空调用会表现为「海报闪一下、跳回第一张」
                 const same = _entryPosterItems.length === _entryPosterAll.length &&
@@ -4323,13 +4321,8 @@
             const matches = _entryPosterAll.filter(i =>
                 (i.title || i.name || '').toLowerCase().includes(kw));
             if (!matches.length) {
-                if (_lastMediaMatches !== 0) {
-                    _lastMediaMatches = 0;
-                    showNotification(`未找到匹配的影视「${escapeHtml(kw)}」`, 'info');
-                }
                 return;              // 无匹配：保持当前画面不动
             }
-            _lastMediaMatches = matches.length;
             _entryPosterItems = matches;
             _buildEntryCarousel();
             // 海报若在视口区外（页面已滚走、搜索条脱流浮在顶部），滚到可见让用户看到过滤结果
