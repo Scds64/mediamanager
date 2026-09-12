@@ -17,7 +17,6 @@ import (
 	"golang.org/x/net/html"
 
 	"mmbot/internal/httpx"
-	"mmbot/internal/memx"
 	_ "modernc.org/sqlite"
 )
 
@@ -461,9 +460,6 @@ func (b *Bot) StartMonitor() {
 				lastCleanup = time.Now()
 			}
 			log.Printf("[监控] 休息%d分钟...", interval)
-			// 一轮扫描刚结束，即将空闲数小时：强制把空闲内存还给 OS，
-			// 否则 RSS 会一直停在本次峰值（Go scavenger 在 GOMEMLIMIT 宽松时不主动归还）
-			memx.Release(true)
 			select {
 			case <-b.ctx.Done():
 				b.monitorMu.Lock()
