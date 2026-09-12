@@ -1459,6 +1459,8 @@
         .tmdb-toolbar:not(.list-only) #tmdb-category-seg,
         .tmdb-toolbar:not(.list-only) #tmdb-time-seg,
         .tmdb-toolbar:not(.list-only) .tmdb-search { display: none; }
+        /* 猫眼榜单视图：只显示猫眼自己的榜单切换（TMDB 那组控件已被上一条规则隐藏） */
+        .tmdb-toolbar:not(.maoyan-only) #maoyan-view-seg { display: none; }
         .tmdb-seg {
             display: inline-flex;
             background: #F1F5F9;
@@ -2198,11 +2200,16 @@
                     <div class="card-title tmdb-page-head">
                         <div class="tmdb-view-tabs" id="tmdb-view-seg">
                             <span class="tmdb-view-tab active" id="tmdb-view-list" data-view="list" onclick="setTmdbView('list')">TMDB榜单</span>
+                            <span class="tmdb-view-tab" id="tmdb-view-maoyan" data-view="maoyan" onclick="setTmdbView('maoyan')">猫眼榜单</span>
                             <span class="tmdb-view-tab" id="tmdb-view-sub" data-view="subscribed" onclick="setTmdbView('subscribed')">已订阅</span>
                             <span class="tmdb-view-tab" id="tmdb-view-cal" data-view="calendar" onclick="setTmdbView('calendar')">追剧日历</span>
                         </div>
                     </div>
                     <div class="tmdb-toolbar list-only">
+                        <div class="tmdb-seg" id="maoyan-view-seg">
+                            <button data-mview="tv" class="active" onclick="setMaoyanView('tv')">电视剧</button>
+                            <button data-mview="movie" onclick="setMaoyanView('movie')">电影票房</button>
+                        </div>
                         <div class="tmdb-seg" id="tmdb-type-seg">
                             <button data-type="movie" class="active" onclick="setTmdbType('movie')">电影</button>
                             <button data-type="tv" onclick="setTmdbType('tv')">电视剧</button>
@@ -2650,7 +2657,8 @@
         let _tmdbCategory = 'trending';
         let _tmdbTimeWindow = 'week';
         let _tmdbQuery = '';
-        let _tmdbView = 'list';  // 'list' 榜单 / 'subscribed' 已订阅
+        let _tmdbView = 'list';  // 'list' 榜单 / 'maoyan' 猫眼榜单 / 'subscribed' 已订阅 / 'calendar' 追剧日历
+        let _maoyanView = 'tv';  // 猫眼榜单：'tv' 电视剧 / 'movie' 电影票房
 
         // 从 ENV_FILTER 解析已订阅关键词（去重、去空）
         function getSubscribedKeys() {
@@ -2917,7 +2925,10 @@
         // 榜单视图显示榜单控件与搜索框；已订阅/追剧日历视图隐藏
         function _applyToolbarMode() {
             const toolbar = document.querySelector('.tmdb-toolbar');
-            if (toolbar) toolbar.classList.toggle('list-only', _tmdbView === 'list');
+            if (toolbar) {
+                toolbar.classList.toggle('list-only', _tmdbView === 'list');
+                toolbar.classList.toggle('maoyan-only', _tmdbView === 'maoyan');
+            }
         }
 
         // 标题栏视图页签选中态（与 _tmdbView 同步）
@@ -2931,7 +2942,7 @@
         (function () {
             const box = document.getElementById('tab-tmdb') || document.getElementById('tmdb-content');
             if (!box) return;
-            const ORDER = ['list', 'subscribed', 'calendar'];
+            const ORDER = ['list', 'maoyan', 'subscribed', 'calendar'];
             let sx = 0, sy = 0, st = 0, se = null;
             box.addEventListener('touchstart', e => {
                 se = e.touches.length === 1 ? e.target : null;
@@ -2960,6 +2971,7 @@
             _updateViewSeg();
             if (view === 'subscribed') showSubscribed();
             else if (view === 'calendar') showCalendar();
+            else if (view === 'maoyan') loadMaoyan();
             else loadTmdb();
         }
 
@@ -2981,6 +2993,7 @@
         function renderTmdbView() {
             if (_tmdbView === 'subscribed') showSubscribed();
             else if (_tmdbView === 'calendar') showCalendar();
+            else if (_tmdbView === 'maoyan') loadMaoyan();
             else loadTmdb();
         }
 
@@ -3099,6 +3112,8 @@
 
         function openTmdbDetailFromCard(card) {
             if (!card) return;
+            // 未匹配到 TMDB 的猫眼条目只有标题（id 为 0），点不进详情
+            if (!card.dataset.id || card.dataset.id === '0') return;
             openTmdbDetail({
                 id: card.dataset.id,
                 type: card.dataset.type,
@@ -3340,32 +3355,63 @@
                         (force ? '&refresh=1' : '');
                 }
                 const data = await api('/api/tmdb?' + query);
-                // 异步请求返回后，如果用户已切到已订阅/追剧日历视图，不再覆盖内容
-                if (_tmdbView !== 'list') return;
-                if (!data.configured) {
-                    content.innerHTML = `<div class="info-callout">
-                        <div class="ic-title"><i class="fas fa-exclamation-circle"></i>未配置 TMDB API Key</div>
-                        ${escapeHtml(data.error || '请前往「用户配置」填写 ENV_TMDB_API_KEY')}
-                    </div>`;
-                    return;
-                }
-                if (data.error) {
-                    content.innerHTML = `<div class="info-callout">
-                        <div class="ic-title"><i class="fas fa-exclamation-circle"></i>加载失败</div>
-                        ${escapeHtml(data.error)}
-                    </div>`;
-                    return;
-                }
-                if (!data.items || data.items.length === 0) {
-                    content.innerHTML = '<div style="color: var(--text-400); padding: 40px; text-align: center;">暂无数据，请稍后刷新重试</div>';
-                    return;
-                }
-                content.innerHTML = `<div class="tmdb-grid">${data.items.map(item => renderTmdbCard(item)).join('')}</div>`;
+                _renderTmdbResult(content, data, 'list');
             } catch (e) {
+                content.innerHTML = _tmdbFailHTML(e.message || '请求 TMDB 失败');
+            }
+        }
+
+        function setMaoyanView(view) {
+            _maoyanView = view;
+            _tmdbUpdateActive('maoyan-view-seg', 'data-mview', view);
+            loadMaoyan();
+        }
+
+        // 榜单结果渲染（TMDB 榜单与猫眼榜单共用）：未配置 / 加载失败 / 暂无数据 / 网格
+        // viewName 是发起请求时的视图，返回时用户若已切走就不再覆盖内容
+        function _renderTmdbResult(content, data, viewName) {
+            if (_tmdbView !== viewName) return;
+            if (!data.configured) {
                 content.innerHTML = `<div class="info-callout">
-                    <div class="ic-title"><i class="fas fa-exclamation-circle"></i>加载失败</div>
-                    ${escapeHtml(e.message || '请求 TMDB 失败')}
+                    <div class="ic-title"><i class="fas fa-exclamation-circle"></i>未配置 TMDB API Key</div>
+                    ${escapeHtml(data.error || '请前往「用户配置」填写 ENV_TMDB_API_KEY')}
                 </div>`;
+                return;
+            }
+            if (data.error) {
+                content.innerHTML = _tmdbFailHTML(data.error);
+                return;
+            }
+            if (!data.items || data.items.length === 0) {
+                content.innerHTML = '<div style="color: var(--text-400); padding: 40px; text-align: center;">暂无数据，请稍后刷新重试</div>';
+                return;
+            }
+            content.innerHTML = `<div class="tmdb-grid">${data.items.map(item => renderTmdbCard(item)).join('')}</div>`;
+        }
+
+        function _tmdbFailHTML(msg) {
+            return `<div class="info-callout">
+                <div class="ic-title"><i class="fas fa-exclamation-circle"></i>加载失败</div>
+                ${escapeHtml(msg)}
+            </div>`;
+        }
+
+        function setMaoyanView(view) {
+            _maoyanView = view;
+            _tmdbUpdateActive('maoyan-view-seg', 'data-mview', view);
+            loadMaoyan();
+        }
+
+        // 猫眼榜单：卡片、评分、订阅机制与 TMDB 榜单完全一致，只是数据源不同
+        async function loadMaoyan() {
+            const content = document.getElementById('tmdb-content');
+            if (!content) return;
+            content.innerHTML = '<div style="color: var(--text-400); padding: 40px; text-align: center;">加载中...</div>';
+            try {
+                const data = await api('/api/maoyan?view=' + encodeURIComponent(_maoyanView));
+                _renderTmdbResult(content, data, 'maoyan');
+            } catch (e) {
+                content.innerHTML = _tmdbFailHTML(e.message || '请求猫眼榜单失败');
             }
         }
 

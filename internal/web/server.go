@@ -162,6 +162,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/tmdb", s.authWrap(s.handleTMDBSearch))
 	mux.HandleFunc("POST /api/tmdb/subscribe", s.authWrap(s.handleTMDBSubscribe))
 	mux.HandleFunc("GET /api/tmdb/detail", s.authWrap(s.handleTMDBDetail))
+	mux.HandleFunc("GET /api/maoyan", s.authWrap(s.handleMaoyanRank))
 	mux.HandleFunc("GET /api/media/episodes", s.authWrap(s.handleMediaEpisodes))
 	mux.HandleFunc("GET /api/media/calendar", s.authWrap(s.handleMediaCalendar))
 
