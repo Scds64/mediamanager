@@ -1,7 +1,7 @@
 package web
 
 // 猫眼榜单 API（piaofang.maoyan.com 的两个公开接口，无需 Cookie/签名，只需 User-Agent）。
-// 榜单只取前 10 条，匹配 TMDB 拿到海报与评分后复用 TMDB 卡片渲染；
+// 榜单只取前 12 条，匹配 TMDB 拿到海报与评分后复用 TMDB 卡片渲染；
 // 订阅沿用 ENV_FILTER 关键词机制，不需要新代码。
 
 import (
@@ -21,8 +21,8 @@ import (
 
 const (
 	maoyanBase = "https://piaofang.maoyan.com"
-	// 每个榜单只取前 10 条（电影票房接口会返回 94 条）
-	maoyanListSize = 10
+	// 每个榜单只取前 12 条（电影票房接口会返回 94 条；电视剧热度接口本身只返回 10 条，最多取满 10）
+	maoyanListSize = 12
 	// 猫眼对空 UA 会拒绝；固定一个桌面 Chrome UA 即可，不需要随机列表
 	maoyanUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
 )
@@ -97,7 +97,7 @@ func parseMaoyanHeat(body []byte) ([]string, error) {
 	return out, nil
 }
 
-// maoyanBoxOfficeTitles 取电影票房榜片名（接口返回 94 条，只取前 10）。
+// maoyanBoxOfficeTitles 取电影票房榜片名（接口返回 94 条，只取前 12）。
 // 排序是猫眼自己的综合序，不是票房降序，原样截取不重排。
 func maoyanBoxOfficeTitles() ([]string, error) {
 	body, err := maoyanGet("/dashboard-ajax/movie")
