@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -18,8 +18,8 @@
     <link rel="manifest" href="/static/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#F8FAFC">
     <link rel="apple-touch-icon" href="/static/icon-180.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -306,11 +306,7 @@
         }
         .tab-panel { display: none; animation: fadeIn 0.28s ease; }
         .tab-panel.active { display: block; }
-        /* 只淡入、不做位移：原来 from 里的 translateY(6px) 会把整个面板下推 6px 再回位，
-           系统页海报是 margin-top 负值顶到 y=0 的（见 .tmdb-entry-card.card），面板一下推
-           顶上就露出一条 6px 的浅色底边 —— 也就是「切页时顶部一条白线一闪」加「海报先降
-           一点再回去」。这两条是同一个位移。 */
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         /* 系统/后台 切换：带方向的横向滑入动画（由 switchTab 依据切换方向添加对应 class） */
         @keyframes slideInL { from { opacity: 0; transform: translateX(-42px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes slideInR { from { opacity: 0; transform: translateX(42px); } to { opacity: 1; transform: translateX(0); } }
@@ -1405,9 +1401,10 @@
 
         /* ============ TMDB 影视榜单 ============ */
         /* 订阅探索入口海报：尺寸/布局由 #tab-system .tmdb-entry-poster（更高特异性）全权接管，
-           此处只保留 cursor（唯一不会被上层覆盖的部分） */
+           此处只保留交互属性（唯一不会被上层覆盖的部分） */
         .tmdb-entry-poster {
             cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
         .tmdb-entry-poster img {
             width: 100%;
@@ -2505,7 +2502,6 @@
             Object.assign(el.style, prev);
             return h;
         }
-        let _sysBgLock = 0;   // 连按 系统/后台 时，只有最后一次切换有权解锁 content 高度
         function switchTab(tab) {
             const prevTab = switchTab._last;
             switchTab._last = tab;
@@ -2519,12 +2515,15 @@
             const isSysBg = !!prevPanel && ((tab === 'system' && prevTab === 'bg') || (tab === 'bg' && prevTab === 'system'));
             const host = document.querySelector('main.content');
             // 高度稳住：先锁到 max(旧页, 新页)，避免切换瞬间内容区塌缩跳变；桌面端不做此处理
-            // min-height 是布局属性、不上合成器，做成 transition 会在这 400ms 里逐帧重排内容区。
-            // 改成滑动结束后一次性松开：这段分支已 scrollTo(0,0)，那一帧在视口里看不到。
             if (isSysBg && host && prevPanel && window.matchMedia('(max-width: 768px)').matches) {
-                const lock = ++_sysBgLock;
-                host.style.minHeight = Math.max(prevPanel.offsetHeight || 0, measurePanel(panel)) + 'px';
-                setTimeout(() => { if (lock === _sysBgLock) host.style.minHeight = ''; }, 460);
+                const keep = Math.max(prevPanel.offsetHeight || 0, measurePanel(panel));
+                host.style.transition = 'none';
+                host.style.minHeight = keep + 'px';
+                requestAnimationFrame(() => {                       // 下一帧解锁，让高度平滑落回新页
+                    host.style.transition = 'min-height .4s ease';
+                    host.style.minHeight = '0px';
+                    setTimeout(() => { if (host.style.minHeight === '0px') { host.style.minHeight = ''; host.style.transition = ''; } }, 460);
+                });
                 window.scrollTo(0, 0);                              // 两页高度不同，切换归顶，避免残卷位移
             }
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -2595,7 +2594,7 @@
                 window._mwarpLoaded = true;
                 loadMediaWarpConfig();
             }
-            if (tab === 'logs') loadLogs();
+            if (tab === 'logs') { loadLogs(); startLogsPolling(); } else stopLogsPolling();
             // Emby 观看时长 + 后台任务：只在「后台」Tab 进入时加载
             if (tab === 'bg') {
                 if (!window._embyUsageAuto) {
@@ -3229,10 +3228,9 @@
         let _entryPosterIdx = 0;
         let _entryPosterTimer = null;
         let _entryPosterTouch = null;
+        let _heroBgTimer = null;
         function _entryImgSrc(i) {
-            // 仅供 body::before 那个 34px 模糊背景层使用，模糊后 w300 与 w1280 肉眼无差，
-            // 但解码像素少约 18 倍 —— 每次换图都要重新光栅化这一层，省下来的是实打实的帧。
-            return `https://image.tmdb.org/t/p/w300${i.backdrop_path || i.poster_path}`;
+            return `https://image.tmdb.org/t/p/w1280${i.backdrop_path || i.poster_path}`;
         }
         function renderEntryPosters(items) {
             const strip = document.getElementById('tmdb-poster');
@@ -3290,25 +3288,16 @@
             const car = document.querySelector('#tmdb-poster .entry-carousel');
             if (!car) return;
             [...car.querySelectorAll('.entry-card')].forEach((c, i) => c.classList.toggle('active', i === _entryPosterIdx));
-            _setHeroBg(_entryPosterItems[_entryPosterIdx]);
-        }
-        // 背景层换图：等新图 decode 完再塞进 --hero-bg。
-        // 原来是盲等 180ms 就换 URL —— 图还没解码完就解冻，34px 模糊 + mask 的全屏固定层
-        // 得现场重新光栅化，这一下就是肉眼可见的卡顿；且 180ms 短于淡出时长 .28s，
-        // 淡出没走完就被摘 class，表现是「跳一下」而不是交叉淡入。
-        let _heroBgSeq = 0;
-        function _setHeroBg(item) {
-            if (!item) return;
-            const src = _entryImgSrc(item);
-            const seq = ++_heroBgSeq;
-            document.body.classList.add('hero-bg-changing');
-            const im = new Image();
-            im.src = src;                                    // 与 body::before 共用图片缓存，decode 即预热
-            (im.decode ? im.decode() : Promise.resolve()).catch(() => {}).then(() => {
-                if (seq !== _heroBgSeq) return;              // 期间又切了，让最新那次说了算
-                document.documentElement.style.setProperty('--hero-bg', `url("${src}")`);
-                requestAnimationFrame(() => document.body.classList.remove('hero-bg-changing'));
-            });
+            const item = _entryPosterItems[_entryPosterIdx];
+            if (item) {
+                const nextBg = `url("${_entryImgSrc(item)}")`;
+                document.body.classList.add('hero-bg-changing');
+                if (_heroBgTimer) clearTimeout(_heroBgTimer);
+                _heroBgTimer = setTimeout(() => {
+                    document.documentElement.style.setProperty('--hero-bg', nextBg);
+                    requestAnimationFrame(() => document.body.classList.remove('hero-bg-changing'));
+                }, 180);
+            }
         }
         function _setEntryPoster(index) {
             if (!_entryPosterItems.length) return;
@@ -3370,12 +3359,6 @@
             } catch (e) {
                 content.innerHTML = _tmdbFailHTML(e.message || '请求 TMDB 失败');
             }
-        }
-
-        function setMaoyanView(view) {
-            _maoyanView = view;
-            _tmdbUpdateActive('maoyan-view-seg', 'data-mview', view);
-            loadMaoyan();
         }
 
         // 榜单结果渲染（TMDB 榜单与猫眼榜单共用）：未配置 / 加载失败 / 暂无数据 / 网格
@@ -3643,6 +3626,12 @@
             if (window._logsPollTimer) return;
             window._logsPollTimer = setInterval(loadLogs, 15000);
         }
+        function stopLogsPolling() {
+            if (window._logsPollTimer) {
+                clearInterval(window._logsPollTimer);
+                window._logsPollTimer = null;
+            }
+        }
 
         // ============ 通知与加载 ============
         // 通知条 / 页内提示：原先两套实现逐行重复（图标映射、innerHTML、定时收起），仅容器与收起时长不同
@@ -3701,87 +3690,81 @@
             return (c || '').replace(/[（(][^）)]*[）)]/g, '').trim();
         }
 
-        function renderSingleCard(item, sectionName) {
-            const isBool = BOOLEAN_KEYS.has(item.key);
-            const isSecret = SECRET_PATTERNS.test(item.key) && !FORCE_TEXT_KEYS.has(item.key);
+        // 字段公共元信息：单卡渲染与分组渲染共用，避免两处各写一遍
+        function _fieldMeta(item) {
             const comment = item.comment || '';
-            const isRequired = comment.includes('必填');
             const safeKey = item.key.replace(/"/g, '&quot;');
-            const safeComment = comment.replace(/"/g, '&quot;');
-            const safeValue = (item.value || '').replace(/"/g, '&quot;');
-            const label = cleanLabel(comment) || safeKey;
+            return {
+                isBool: BOOLEAN_KEYS.has(item.key),
+                isSecret: SECRET_PATTERNS.test(item.key) && !FORCE_TEXT_KEYS.has(item.key),
+                isRequired: comment.includes('必填'),
+                safeKey: safeKey,
+                safeComment: comment.replace(/"/g, '&quot;'),
+                safeValue: (item.value || '').replace(/"/g, '&quot;'),
+                label: cleanLabel(comment) || safeKey
+            };
+        }
 
-            if (isBool) {
-                const checked = item.value === '1' ? 'checked' : '';
+        // 开关控件：单卡与分组共用同一套 DOM
+        function _switchHtml(m, sectionName, item) {
+            const on = item.value === '1';
+            return `<label class="switch">
+                <input type="checkbox" data-section="${sectionName}" data-key="${m.safeKey}" data-comment="${m.safeComment}" ${on ? 'checked' : ''}>
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+                <span class="switch-label switch-state">${on ? '已开启' : '已关闭'}</span>
+            </label>`;
+        }
+
+        // 文本 / 密码输入框：单卡与分组共用
+        function _inputHtml(m, sectionName) {
+            return `<div class="form-group">
+                <label>${m.isRequired && !m.label.includes('必填') ? '必填：' : ''}${m.label}</label>
+                <input type="${m.isSecret ? 'password' : 'text'}" data-section="${sectionName}" data-key="${m.safeKey}" data-comment="${m.safeComment}" value="${m.safeValue}">
+            </div>`;
+        }
+
+        function renderSingleCard(item, sectionName) {
+            const m = _fieldMeta(item);
+            if (m.isBool) {
                 return `<div class="cfg-card">
                     <div class="cfg-card-head">
-                        <div class="cfg-card-label">${label}</div>
+                        <div class="cfg-card-label">${m.label}</div>
                     </div>
                     <div class="cfg-card-body">
-                        <label class="switch">
-                            <input type="checkbox" data-section="${sectionName}" data-key="${safeKey}" data-comment="${safeComment}" ${checked}>
-                            <span class="switch-track"><span class="switch-thumb"></span></span>
-                            <span class="switch-label switch-state">${item.value === '1' ? '已开启' : '已关闭'}</span>
-                        </label>
+                        ${_switchHtml(m, sectionName, item)}
                     </div>
                 </div>`;
             }
-            const inputType = isSecret ? 'password' : 'text';
             return `<div class="cfg-card">
                 <div class="cfg-card-head">
-                    <div class="cfg-card-label">${label}</div>
+                    <div class="cfg-card-label">${m.label}</div>
                 </div>
                 <div class="cfg-card-body">
-                    <div class="form-group">
-                        <label>${isRequired && !label.includes('必填') ? '必填：' : ''}${label}</label>
-                        <input type="${inputType}" data-section="${sectionName}" data-key="${safeKey}" data-comment="${safeComment}" value="${safeValue}">
-                    </div>
+                    ${_inputHtml(m, sectionName)}
                 </div>
             </div>`;
         }
 
         function renderGroupField(item, sectionName, group) {
-            const isBool = BOOLEAN_KEYS.has(item.key);
-            const isSecret = SECRET_PATTERNS.test(item.key) && !FORCE_TEXT_KEYS.has(item.key);
-            const comment = item.comment || '';
-            const isRequired = comment.includes('必填');
-            const safeKey = item.key.replace(/"/g, '&quot;');
-            const safeComment = comment.replace(/"/g, '&quot;');
-            const safeValue = (item.value || '').replace(/"/g, '&quot;');
-            const label = cleanLabel(comment) || safeKey;
+            const m = _fieldMeta(item);
             const span = (group.wide || []).includes(item.key) ? ' span-2' : '';
-            const inline = (group.inlineToggles || []).includes(item.key);
-
-            if (isBool) {
-                const checked = item.value === '1' ? 'checked' : '';
+            if (m.isBool) {
                 // 行内开关：文字在左、开关在右
-                if (inline) {
+                if ((group.inlineToggles || []).includes(item.key)) {
                     return `<div class="group-field${span}">
                         <div class="group-row">
-                            <div class="group-row-label">${label}</div>
-                            <label class="switch">
-                                <input type="checkbox" data-section="${sectionName}" data-key="${safeKey}" data-comment="${safeComment}" ${checked}>
-                                <span class="switch-track"><span class="switch-thumb"></span></span>
-                                <span class="switch-label switch-state">${item.value === '1' ? '已开启' : '已关闭'}</span>
-                            </label>
+                            <div class="group-row-label">${m.label}</div>
+                            ${_switchHtml(m, sectionName, item)}
                         </div>
                     </div>`;
                 }
                 return `<div class="group-field${span}">
-                    <div class="group-label">${label}</div>
-                    <label class="switch">
-                        <input type="checkbox" data-section="${sectionName}" data-key="${safeKey}" data-comment="${safeComment}" ${checked}>
-                        <span class="switch-track"><span class="switch-thumb"></span></span>
-                        <span class="switch-label switch-state">${item.value === '1' ? '已开启' : '已关闭'}</span>
-                    </label>
+                    <div class="group-label">${m.label}</div>
+                    ${_switchHtml(m, sectionName, item)}
                 </div>`;
             }
-            const inputType = isSecret ? 'password' : 'text';
             return `<div class="group-field${span}">
-                <div class="form-group">
-                    <label>${isRequired && !label.includes('必填') ? '必填：' : ''}${label}</label>
-                    <input type="${inputType}" data-section="${sectionName}" data-key="${safeKey}" data-comment="${safeComment}" value="${safeValue}">
-                </div>
+                ${_inputHtml(m, sectionName)}
             </div>`;
         }
 
@@ -4127,6 +4110,26 @@
         const _taskActive = { channel: false, transfer: false, strm: false, catalog: false, rewrite: false };
         let _transferWasActive = false;
 
+        // 全量同步 / 入册 / 改写 三个分支只差接口 action 与几句文案，抽出一处共用。
+        // 网关超时或断连时任务其实已经触发，按成功提示，避免误报失败。
+        async function _runStrmAction(action, loadingMsg, offlineMsg, okFallback) {
+            showLoading(loadingMsg);
+            let r = null;
+            try {
+                r = await api('/api/strm/run', 'POST', { action: action });
+            } catch (e2) {
+                if (e2.message.includes('Failed to fetch') || e2.message.includes('NetworkError')) {
+                    showNotification(offlineMsg, 'success');
+                    startBgTasksPolling(true);
+                } else {
+                    throw e2;
+                }
+            }
+            if (r) {
+                showNotification(r.message || okFallback, 'success');
+                startBgTasksPolling(true);
+            }
+        }
         async function triggerBgTask(kind) {
             const cfgs = {
                 channel: { msg: '确认手动触发一次频道监控扫描？' },
@@ -4163,56 +4166,11 @@
                         showNotification(r.message || r.error || '整理失败', 'error');
                     }
                 } else if (kind === 'strm') {
-                    showLoading('正在执行全量同步...');
-                    let r = null;
-                    try {
-                        r = await api('/api/strm/run', 'POST', { action: 'full_sync' });
-                    } catch (e2) {
-                        if (e2.message.includes('Failed to fetch') || e2.message.includes('NetworkError')) {
-                            showNotification('任务已触发，结果将通过 Telegram 通知', 'success');
-                            startBgTasksPolling(true);
-                        } else {
-                            throw e2;
-                        }
-                    }
-                    if (r) {
-                        showNotification(r.message || '任务已触发', 'success');
-                        startBgTasksPolling(true);
-                    }
+                    await _runStrmAction('full_sync', '正在执行全量同步...', '任务已触发，结果将通过 Telegram 通知', '任务已触发');
                 } else if (kind === 'catalog') {
-                    showLoading('正在全量 STRM 入册...');
-                    let r = null;
-                    try {
-                        r = await api('/api/strm/run', 'POST', { action: 'catalog' });
-                    } catch (e2) {
-                        if (e2.message.includes('Failed to fetch') || e2.message.includes('NetworkError')) {
-                            showNotification('任务已触发，结果将通过 Telegram 通知', 'success');
-                            startBgTasksPolling(true);
-                        } else {
-                            throw e2;
-                        }
-                    }
-                    if (r) {
-                        showNotification(r.message || '任务已触发', 'success');
-                        startBgTasksPolling(true);
-                    }
+                    await _runStrmAction('catalog', '正在全量 STRM 入册...', '任务已触发，结果将通过 Telegram 通知', '任务已触发');
                 } else if (kind === 'rewrite') {
-                    showLoading('正在改写本地 STRM 地址...');
-                    let r = null;
-                    try {
-                        r = await api('/api/strm/run', 'POST', { action: 'rewrite' });
-                    } catch (e2) {
-                        if (e2.message.includes('Failed to fetch') || e2.message.includes('NetworkError')) {
-                            showNotification('改写任务已触发，结果将通过 Telegram 通知', 'success');
-                            startBgTasksPolling(true);
-                        } else {
-                            throw e2;
-                        }
-                    }
-                    if (r) {
-                        showNotification(r.message || '改写任务已触发', 'success');
-                        startBgTasksPolling(true);
-                    }
+                    await _runStrmAction('rewrite', '正在改写本地 STRM 地址...', '改写任务已触发，结果将通过 Telegram 通知', '改写任务已触发');
                 }
             } catch (e) {
                 _taskActive[kind] = false;
@@ -5123,8 +5081,6 @@
             }
         }
 
-        function closeEmbyUsageDetail() { closeOverlay('emby-usage-overlay'); }
-
         let _embyScanStarted = false;  // 本会话是否点击过开始扫描：未点击则不显示历史扫描结果
 
         async function runEmbyScan() {
@@ -5374,7 +5330,6 @@
                 if (saved === 'media' || saved === 'history') setSearchScope(saved);
             } catch (e) {}
             loadTmdb(false, true);  // 静默预取榜单，填充订阅探索入口海报
-            startLogsPolling();
             bindPageSwipe();
             bindLogsSwipeBack();
             switchTab(initialTab);

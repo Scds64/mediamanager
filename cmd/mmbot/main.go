@@ -1,4 +1,4 @@
-﻿// 123bot Go 重构版入口：加载配置、初始化日志、启动 Telegram Bot / 频道监控 / Web 服务。
+// 123bot Go 重构版入口：加载配置、初始化日志、启动 Telegram Bot / 频道监控 / Web 服务。
 package main
 
 import (
@@ -214,7 +214,7 @@ func initLogging(path string) {
 	log.SetPrefix("")
 }
 
-var version = "0.8.20"
+var version = "0.8.21"
 
 func fatalf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
