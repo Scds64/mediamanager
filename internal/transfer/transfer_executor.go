@@ -399,7 +399,12 @@ func (e *TransferExecutor) TransferFile(ctx context.Context, fileID, fileName st
 			if media == nil && len(parentDirs) > 0 {
 				parent := Recognize("", mtype, parentDirs)
 				if parent.Name != "" {
-					if m := search(parent.Name, parent.Year, parent.TMDBID); m != nil {
+					// 优先用文件自身的年份搜索，避免同类不同年份撞名错配（如 1978 老版 vs 2020 重制）
+					year := parent.Year
+					if meta.Year > 0 {
+						year = meta.Year
+					}
+					if m := search(parent.Name, year, parent.TMDBID); m != nil {
 						media = m
 						meta.Name = parent.Name
 						if meta.Year == 0 {
