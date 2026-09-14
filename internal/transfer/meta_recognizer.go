@@ -109,9 +109,9 @@ var (
 // 父目录名清洗正则
 var (
 	dirNameYearRe     = regexp.MustCompile(`[(（]\s*(\d{4})\s*[)）]`)
-	dirNameSeasonCNRe = regexp.MustCompile(`第\s*(\d+)\s*[季部]`)
+	dirNameSeasonCNRe = regexp.MustCompile(`第\s*(\d+|[一二三四五六七八九十]+)\s*[季部]`)
 	dirNameSeasonENRe = regexp.MustCompile(`(?i)\b(?:Season|S)\s*(\d{1,2})\b`)
-	dirDecorationRe   = regexp.MustCompile(`(?i)更新至\s*第?\s*\d+\s*(?:-\s*\d+)?\s*集|全\s*\d+\s*集|完结|第\s*\d+\s*[季部]|\b(?:Season|S)\s*\d{1,2}\b|[(（]\s*\d{4}\s*[)）]`)
+	dirDecorationRe   = regexp.MustCompile(`(?i)更新至\s*第?\s*\d+\s*(?:-\s*\d+)?\s*集|全\s*\d+\s*集|完结|第\s*(?:\d+|[一二三四五六七八九十]+)\s*[季部]|\b(?:Season|S)\s*\d{1,2}\b|[(（]\s*\d{4}\s*[)）]`)
 )
 
 // recognizeByRegex 用正则解析文件名，输出 MetaInfo。
