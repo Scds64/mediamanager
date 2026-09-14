@@ -261,6 +261,10 @@ func (e *TransferExecutor) versionScore(meta *MetaInfo) int {
 // dedupDecision 版本优先去重决策，返回 (是否覆盖整理, 原因描述)。
 func (e *TransferExecutor) dedupDecision(newVersion, oldVersion int, newSize, oldSize int64) (bool, string) {
 	r := e.SizeOverrideRatio
+	// 版本优先关闭时旧记录残留历史分数，统一归零，退化为纯大小去重
+	if len(e.PriorityVersions) == 0 {
+		newVersion, oldVersion = 0, 0
+	}
 	if r > 1 && oldSize > 0 {
 		if newSize >= int64(float64(oldSize)*r) {
 			return true, fmt.Sprintf("大小碾压（新 %dB ≥ 旧 %dB×%.1f）", newSize, oldSize, r)
@@ -371,6 +375,18 @@ func (e *TransferExecutor) TransferFile(ctx context.Context, fileID, fileName st
 		if mtype == "" {
 			mtype = "movie"
 		}
+		search := func(name string, year, id int) (m *MediaInfo) {
+			if id > 0 {
+				m = e.TMDB.GetDetail(id, mtype)
+				if m != nil {
+					log.Printf("TMDB 按 ID 匹配: %s (id=%d)", m.Title, id)
+				}
+			}
+			if m == nil {
+				m = e.TMDB.Search(name, year, mtype)
+			}
+			return
+		}
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -378,14 +394,23 @@ func (e *TransferExecutor) TransferFile(ctx context.Context, fileID, fileName st
 					media = nil
 				}
 			}()
-			if meta.TMDBID > 0 {
-				media = e.TMDB.GetDetail(meta.TMDBID, mtype)
-				if media != nil {
-					log.Printf("TMDB 按 ID 匹配: %s (id=%d)", media.Title, media.TMDBID)
+			media = search(meta.Name, meta.Year, meta.TMDBID)
+			// 父目录名重试：文件名 TMDB 搜索失败时，复用 Recognize 的父目录识别再搜（电影/剧集通用）
+			if media == nil && len(parentDirs) > 0 {
+				parent := Recognize("", mtype, parentDirs)
+				if parent.Name != "" {
+					if m := search(parent.Name, parent.Year, parent.TMDBID); m != nil {
+						media = m
+						meta.Name = parent.Name
+						if meta.Year == 0 {
+							meta.Year = parent.Year
+						}
+						if meta.Type == "" {
+							meta.Type = m.Type
+						}
+						log.Printf("父目录TMDB重试命中: '%s' -> '%s' (id=%d)", fileName, parent.Name, m.TMDBID)
+					}
 				}
-			}
-			if media == nil {
-				media = e.TMDB.Search(meta.Name, meta.Year, mtype)
 			}
 		}()
 		if media != nil {
