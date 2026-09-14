@@ -632,12 +632,16 @@
             }
             body:has(#tab-system.active) #tab-system .hero-search {
                 top: calc(62px + env(safe-area-inset-top));
-                background: rgba(255,255,255,0.6);
+                background: rgba(255,255,255,0.35);
+                -webkit-backdrop-filter: blur(18px) saturate(140%);
+                backdrop-filter: blur(18px) saturate(140%);
             }
             body:has(#tab-system.active) #tab-system .sys-combo-card {
                 top: calc(134px + env(safe-area-inset-top));
                 height: 175px;
-                background: rgba(255,255,255,0.6);
+                background: rgba(255,255,255,0.35);
+                -webkit-backdrop-filter: blur(18px) saturate(140%);
+                backdrop-filter: blur(18px) saturate(140%);
             }
             body:has(#tab-system.active) #tab-system #history-card {
                 top: calc(334px + env(safe-area-inset-top));
@@ -646,7 +650,9 @@
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
-                background: rgba(255,255,255,0.6);
+                background: rgba(255,255,255,0.35);
+                -webkit-backdrop-filter: blur(18px) saturate(140%);
+                backdrop-filter: blur(18px) saturate(140%);
             }
             body:has(#tab-system.active) #tab-system #history-card .history-wrap {
                 flex: 1;
@@ -1339,6 +1345,9 @@
                 margin-top: -36px;
                 position: relative;
                 z-index: 6;
+                background: rgba(255,255,255,0.35);
+                -webkit-backdrop-filter: blur(18px) saturate(140%);
+                backdrop-filter: blur(18px) saturate(140%);
             }
             .cards-row { grid-template-columns: minmax(0, 1fr); }
             /* 移动端：合并卡两分区内边距随 .card 统一收至 16px */
