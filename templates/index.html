@@ -5227,6 +5227,7 @@
                 const onBtn = document.querySelector('#topSeg .seg-dot.on');
                 const cur = onBtn ? (onBtn.getAttribute('data-seg-tab') || 'system') : 'system';
                 if (cur === 'system') switchTab(dx < 0 ? 'bg' : 'system');   // 系统页左右滑切后台/回系统
+                else if (cur === 'bg') switchTab(dx > 0 ? 'system' : 'bg');  // 后台页右滑切回系统、左滑回后台
             }, { passive: true });
         }
 
