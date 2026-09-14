@@ -305,7 +305,9 @@
         /* ============ 卡片（克制的平板面层） ============ */
         .card {
             position: relative;
-            background: var(--surface);
+            background: rgba(255,255,255,0.55);
+            -webkit-backdrop-filter: blur(18px) saturate(140%);
+            backdrop-filter: blur(18px) saturate(140%);
             border-radius: var(--radius-card);
             padding: 18px 24px 24px;
             margin-bottom: 20px;
@@ -575,7 +577,7 @@
             flex: 0 0 1px;
             width: 1px;
             margin: 12px 0;
-            background-image: repeating-linear-gradient(to bottom, var(--border-strong) 0 9px, transparent 9px 15px);
+            background-image: repeating-linear-gradient(to bottom, rgba(82,82,91,0.55) 0 9px, transparent 9px 15px);
         }
         /* 后台 Tab：Emby 观看时长占宽列（左），后台任务 340px（右） */
         #tab-bg .cards-row { grid-template-columns: minmax(0, 1fr) 340px; }
@@ -632,16 +634,13 @@
             }
             body:has(#tab-system.active) #tab-system .hero-search {
                 top: calc(62px + env(safe-area-inset-top));
-                background: rgba(255,255,255,0.35);
+                background: rgba(255,255,255,0.55);
                 -webkit-backdrop-filter: blur(18px) saturate(140%);
                 backdrop-filter: blur(18px) saturate(140%);
             }
             body:has(#tab-system.active) #tab-system .sys-combo-card {
                 top: calc(134px + env(safe-area-inset-top));
                 height: 175px;
-                background: rgba(255,255,255,0.35);
-                -webkit-backdrop-filter: blur(18px) saturate(140%);
-                backdrop-filter: blur(18px) saturate(140%);
             }
             body:has(#tab-system.active) #tab-system #history-card {
                 top: calc(334px + env(safe-area-inset-top));
@@ -650,9 +649,6 @@
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
-                background: rgba(255,255,255,0.35);
-                -webkit-backdrop-filter: blur(18px) saturate(140%);
-                backdrop-filter: blur(18px) saturate(140%);
             }
             body:has(#tab-system.active) #tab-system #history-card .history-wrap {
                 flex: 1;
@@ -1345,7 +1341,7 @@
                 margin-top: -36px;
                 position: relative;
                 z-index: 6;
-                background: rgba(255,255,255,0.35);
+                background: rgba(255,255,255,0.55);
                 -webkit-backdrop-filter: blur(18px) saturate(140%);
                 backdrop-filter: blur(18px) saturate(140%);
             }
