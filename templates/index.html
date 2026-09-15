@@ -178,6 +178,14 @@
             -webkit-tap-highlight-color: transparent;
             padding: 0;
         }
+        /* 汉堡三横线：默认三条横线，点击后中间线消失，上下两线向中下收拢成尖端在下的 V */
+        .ham-bars { display: inline-flex; flex-direction: column; justify-content: center; gap: 5px; transition: transform .32s cubic-bezier(.4,0,.2,1); }
+        .ham-bar { display: block; width: 22px; height: 2.2px; border-radius: 2px; background: currentColor;
+                   transition: transform .32s cubic-bezier(.4,0,.2,1), opacity .18s ease, width .2s ease; }
+        #hamburgerBtn.open .ham-bars { transform: translateY(0); }
+        #hamburgerBtn.open .ham-bar1 { transform-origin: center; transform: translateY(7px) rotate(-45deg); }
+        #hamburgerBtn.open .ham-bar3 { transform-origin: center; transform: translateY(-7px) rotate(45deg); }
+        #hamburgerBtn.open .ham-bar2 { opacity: 0; width: 0; }
         /* 顶部工具行：默认态（汉堡/分段/日志） vs 编辑态（返回/空/保存） */
         #topToolbar:not(.mode-edit):not(.mode-log) .mode-edit-left,
         #topToolbar:not(.mode-edit):not(.mode-log) .mode-edit-right { display: none; }
@@ -1913,7 +1921,11 @@
             <div class="top-toolbar" id="topToolbar">
                 <!-- 汉堡（默认态） -->
                 <button class="toolbar-icon-btn hamburger-btn mode-default-left" id="hamburgerBtn" onclick="toggleDrawer(event)" aria-label="打开菜单">
-                    <i class="fas fa-bars"></i>
+                    <span class="ham-bars" id="hamBars">
+                        <span class="ham-bar ham-bar1"></span>
+                        <span class="ham-bar ham-bar2"></span>
+                        <span class="ham-bar ham-bar3"></span>
+                    </span>
                 </button>
                 <!-- 返回（编辑态） -->
                 <button class="toolbar-icon-btn back-btn mode-edit-left" onclick="goTopBack()" aria-label="返回">
@@ -3498,6 +3510,9 @@
             const drawer = document.getElementById('drawer');
             if (!drawer) return;
             drawer.classList.toggle('open', open);
+            // 同步汉堡按钮动画：菜单开→三条横线旋转成向下的 V；关→还原三条横线
+            const hamBtn = document.getElementById('hamburgerBtn');
+            if (hamBtn) hamBtn.classList.toggle('open', open);
         }
         function toggleDrawer(e) {
             // 阻止冒泡：避免同一次点击（汉堡）被外层的"点击外部关闭"监听立刻反向关闭
