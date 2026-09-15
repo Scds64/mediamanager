@@ -39,19 +39,24 @@ type Client struct {
 	mu   sync.Mutex
 	http *httpx.Client
 
+	// 进程级请求节流：所有请求统一在此限速，从源头避免触发 123 风控（code=100011"请勿频繁操作"）。
+	throttleMu   sync.Mutex
+	lastReqAt    time.Time
+	minReqGap    time.Duration
+
 	uidMu    sync.Mutex
 	uidCache map[string]int64 // shareKey → 上传者 UID（share.123pan.com 三级域名）
 }
 
 // New 用已有 token 创建客户端。
 func New(token string) *Client {
-	return &Client{Token: token, http: httpx.New(30 * time.Second)}
+	return &Client{Token: token, http: httpx.New(30 * time.Second), minReqGap: defaultMinReqGap}
 }
 
 // NewWithSecret 用手机号+密码（web 登录）或 client_id+client_secret（开放平台）创建客户端并获取 token。
 // 优先使用 web 登录（手机号+密码），若凭证长度 >= 32 且为 hex 格式则使用开放平台登录。
 func NewWithSecret(clientID, clientSecret string) (*Client, error) {
-	c := &Client{http: httpx.New(30 * time.Second)}
+	c := &Client{http: httpx.New(30 * time.Second), minReqGap: defaultMinReqGap}
 	// 判断是否为开放平台凭据（client_id >= 32 位 hex 字符串）
 	if len(clientID) >= 32 && isHex(clientID) && len(clientSecret) >= 32 && isHex(clientSecret) {
 		c.ClientID = clientID
@@ -207,8 +212,35 @@ func (c *Client) LoginToken(ctx context.Context) error {
 
 // ---------- 通用请求 ----------
 
+// defaultMinReqGap 进程级最小请求间隔。123 风控（code=100011）在低频限速下即消失。
+// ponytail: 固定 1s 即可满足全量扫描/联动的并发量级；若末尾并发仍偏大再调大可配置。
+const defaultMinReqGap = time.Second
+
+// throttle 保证任意时刻距上次实际请求至少 minReqGap，超出则等待。
+func (c *Client) throttle(ctx context.Context) {
+	if c.minReqGap <= 0 {
+		return
+	}
+	for {
+		c.throttleMu.Lock()
+		wait := c.minReqGap - time.Since(c.lastReqAt)
+		if wait <= 0 {
+			c.lastReqAt = time.Now()
+			c.throttleMu.Unlock()
+			return
+		}
+		c.throttleMu.Unlock()
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(wait):
+		}
+	}
+}
+
 // req 发起请求，URL 为完整路径。自动带 Authorization: Bearer <token>。
 func (c *Client) req(ctx context.Context, method, url string, headers map[string]string, params map[string]string, body any) (*Response, error) {
+	c.throttle(ctx) // 进程级限速，从源头避免触发 123 风控
 	h := map[string]string{
 		"platform":    "open_platform",
 		"app-version": "3",
@@ -244,11 +276,38 @@ func (c *Client) req(ctx context.Context, method, url string, headers map[string
 	return &resp, nil
 }
 
-// reqAuto 与 req 相同，但遇到鉴权错误自动重新获取 token 并重试一次。
+// reqAuto 与 req 相同，但遇到鉴权错误自动重新获取 token 并重试一次；
+// 遇到风控限流（code=100011"请勿频繁操作"）自动退避重试最多 limitBackoffTimes 次。
+// 所有走 reqAuto 的接口（FSList/FSDetail/FSMkdir 等）统一在此处获得限流容错，避免
+// 目录定位/整理/联动 STRM 因风控集体失败。
+// ponytail: 固定最大次数+线性退避，够用即可；若 123 限流加剧再考虑指数退避。
+const (
+	rateLimitCode       = 100011
+	limitBackoffTimes   = 3
+	limitBackoffSeconds = 3
+)
+
 func (c *Client) reqAuto(ctx context.Context, method, url string, headers map[string]string, params map[string]string, body any) (*Response, error) {
-	resp, err := c.req(ctx, method, url, headers, params, body)
-	if err != nil {
-		return nil, err
+	var resp *Response
+	var err error
+	// 先做一次尝试；限流时退避重试
+	for attempt := 0; attempt <= limitBackoffTimes; attempt++ {
+		resp, err = c.req(ctx, method, url, headers, params, body)
+		if err != nil {
+			return nil, err
+		}
+		if resp.Code != rateLimitCode {
+			break
+		}
+		if attempt < limitBackoffTimes {
+			delay := time.Duration(attempt+1) * limitBackoffSeconds * time.Second
+			log.Printf("[123] 频繁操作被限流(code=100011)，%v 后重试（第 %d/%d 次）", delay, attempt+1, limitBackoffTimes)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(delay):
+			}
+		}
 	}
 	if resp.Code == 401 || strings.Contains(strings.ToLower(resp.MessageString()), "token is expired") {
 		c.mu.Lock()

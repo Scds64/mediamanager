@@ -101,7 +101,7 @@
                 background-size: cover;
                 background-position: center top;
                 filter: blur(34px) saturate(1.05);
-                opacity: .65;
+                opacity: .35;
                 -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 48%, transparent 94%);
                 mask-image: linear-gradient(to bottom, #000 0%, #000 48%, transparent 94%);
                 transition: opacity .28s ease;
@@ -305,9 +305,7 @@
         /* ============ 卡片（克制的平板面层） ============ */
         .card {
             position: relative;
-            background: rgba(255,255,255,0.55);
-            -webkit-backdrop-filter: blur(18px) saturate(140%);
-            backdrop-filter: blur(18px) saturate(140%);
+            background: var(--surface);
             border-radius: var(--radius-card);
             padding: 18px 24px 24px;
             margin-bottom: 20px;
@@ -577,7 +575,7 @@
             flex: 0 0 1px;
             width: 1px;
             margin: 12px 0;
-            background-image: repeating-linear-gradient(to bottom, #A1A1AA 0 9px, transparent 9px 15px);
+            background-image: repeating-linear-gradient(to bottom, var(--border-strong) 0 9px, transparent 9px 15px);
         }
         /* 后台 Tab：Emby 观看时长占宽列（左），后台任务 340px（右） */
         #tab-bg .cards-row { grid-template-columns: minmax(0, 1fr) 340px; }
@@ -634,9 +632,6 @@
             }
             body:has(#tab-system.active) #tab-system .hero-search {
                 top: calc(62px + env(safe-area-inset-top));
-                background: rgba(255,255,255,0.55);
-                -webkit-backdrop-filter: blur(18px) saturate(140%);
-                backdrop-filter: blur(18px) saturate(140%);
             }
             body:has(#tab-system.active) #tab-system .sys-combo-card {
                 top: calc(134px + env(safe-area-inset-top));
@@ -667,7 +662,7 @@
                 background-size: cover;
                 background-position: center top;
                 filter: blur(34px) saturate(1.05);
-                opacity: .65;
+                opacity: .35;
                 -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 48%, transparent 94%);
                 mask-image: linear-gradient(to bottom, #000 0%, #000 48%, transparent 94%);
                 transition: opacity .28s ease;
@@ -1341,9 +1336,6 @@
                 margin-top: -36px;
                 position: relative;
                 z-index: 6;
-                background: rgba(255,255,255,0.55);
-                -webkit-backdrop-filter: blur(18px) saturate(140%);
-                backdrop-filter: blur(18px) saturate(140%);
             }
             .cards-row { grid-template-columns: minmax(0, 1fr); }
             /* 移动端：合并卡两分区内边距随 .card 统一收至 16px */
@@ -1876,16 +1868,16 @@
         #tab-logs .notif-line { padding-left: 0; padding-right: 0; }
         #tab-logs .notif-line .m { -webkit-line-clamp: 2; }
 
-        /* ============ 全局卡片底色半透明：仅白色底 60%，卡片内文字/控件保持 100% 不透明 ============ */
+        /* ============ 全局卡片底色半透明：仅白色底 70%，卡片内文字/控件保持 100% 不透明 ============ */
         .card,
         .hero-search,
         .loading-card,
         .cfg-card {
-            background: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.7);
         }
-        /* 配置卡 hover 底色同样降到 60%（与上方 .cfg-card:hover 同权重，置于其后生效） */
+        /* 配置卡 hover 底色同样降到 70%（与上方 .cfg-card:hover 同权重，置于其后生效） */
         .cfg-card:hover {
-            background: rgba(238, 242, 255, 0.6);
+            background: rgba(238, 242, 255, 0.7);
         }
 
     </style>
